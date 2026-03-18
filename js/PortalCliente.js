@@ -160,16 +160,21 @@ const ClientPortal = ({ clients = [], appointments = [], treatments = [], catego
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
 
-        const client = (clients || []).find(c => String(c?.phone || "").replace(/\D/g, '') === cleanPhone);
-        
-        if (client) {
-            setCurrentUser(client);
-            setIsLoggedIn(true);
-            notify(`¡Hola de nuevo, ${client.name}!`, "success");
-        } else {
-            setIsRegistering(true);
-            notify("Parece que eres nuevo. Por favor, completa tus datos.", "info");
-        }
+        const alias = window.location.hash.replace('#/', '').toLowerCase();
+
+        // Llamamos a la ventanilla pública de Google
+        window.google.script.run
+            .withSuccessHandler(res => {
+                if (res.success && res.exists) {
+                    setCurrentUser(res.client);
+                    setIsLoggedIn(true);
+                    notify(`¡Hola de nuevo, ${res.client.name}!`, "success");
+                } else {
+                    setIsRegistering(true);
+                    notify("No encontramos tu perfil. Por favor regístrate.", "info");
+                }
+            })
+            .checkClientPublic(alias, cleanPhone);
     };
 
     const handleRegister = (e) => {
