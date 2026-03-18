@@ -833,6 +833,7 @@ const App = () => {
     const [toasts, setToasts] = useState([]);
     const [publicData, setPublicData] = useState(null);
     const [publicError, setPublicError] = useState('');
+    const [publicAlias, setPublicAlias] = useState('');
     const [brandConfig, setBrandConfig] = useState(() => {
         try {
             const saved = localStorage.getItem('localBranding');
@@ -924,12 +925,9 @@ const App = () => {
 
     // EFECTO 1: DETECTIVE DE URL
     useEffect(() => { 
-        const hash = window.location.hash;
-        const params = new URLSearchParams(window.location.search);
-        const viewParam = params.get('view');
-
-        if (hash && hash.startsWith('#/')) {
-            const alias = hash.replace('#/', '').toLowerCase();
+        const initPortal = (aliasStr) => {
+            const alias = aliasStr.replace('#/', '').replace('/', '').toLowerCase();
+            setPublicAlias(alias);
             setMode('public_portal');
             setLoadingData(true);
             google.script.run
@@ -938,13 +936,37 @@ const App = () => {
                     else { setPublicError(res.message); setMode('public_error'); }
                     setLoadingData(false);
                 })
+                .withFailureHandler(() => {
+                    setPublicError("Error de conexión al cargar el local.");
+                    setMode('public_error');
+                    setLoadingData(false);
+                })
                 .getPublicData(alias);
-        } else if (viewParam === 'client') {
-            setMode('client');
-            const t = params.get('tenant');
-            if (t) setTenantId(t);
-            setLoadingData(false);
+        };
+
+        const hash = window.location.hash;
+        const params = new URLSearchParams(window.location.search);
+        const localParam = params.get('local'); // Plan B (?local=amara)
+        const viewParam = params.get('view');
+
+        if (hash && hash.startsWith('#/')) {
+            initPortal(hash);
+        } else if (localParam) {
+            initPortal(localParam);
+        } else if (window.google && window.google.script && window.google.script.url) {
+            // Magia: Leemos la URL a través del Iframe de Google
+            window.google.script.url.getLocation(function(location) {
+                if (location.hash && location.hash.startsWith('/')) {
+                    initPortal(location.hash);
+                } else if (location.parameter && location.parameter.local) {
+                    initPortal(location.parameter.local);
+                } else {
+                    if (viewParam === 'client') setMode('client');
+                    setLoadingData(false);
+                }
+            });
         } else {
+            if (viewParam === 'client') setMode('client');
             setLoadingData(false); 
         }
     }, []);
@@ -1003,40 +1025,35 @@ const App = () => {
         }
     }, [data, publicData, currentUser, mode, tenantId]);
 
-    // --- RENDERIZADO ---
+// --- 4. RENDERIZADO (ORDEN DE PRIORIDAD) ---
 
-    if (loadingData) return (
-        <div className="h-screen flex items-center justify-center bg-white">
-            <img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" />
-        </div>
-    );
+    if (loadingData) return <div className="h-screen flex items-center justify-center bg-white"><img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" /></div>;
 
-    if (mode === 'public_error') return (
-        <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">
-            {publicError || 'Local no encontrado'}
-        </div>
-    );
+    if (mode === 'public_error') return <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
 
-    if (mode === 'public_portal' && publicData) {
-        return (
-            <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
-                <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-                <ClientPortal 
-                    appointments={publicData.appointments} 
-                    treatments={publicData.treatments} 
-                    professionals={publicData.professionals} 
-                    categories={publicData.categories}
-                    settings={publicData.settings}
-                    notify={addToast} 
-                    refreshData={() => {
-                        const alias = window.location.hash.replace('#/', '').toLowerCase();
-                        google.script.run
-                            .withSuccessHandler(res => { if (res.success) setPublicData(res); })
-                            .getPublicData(alias);
-                    }}
-                />
-            </div>
-        );
+    if (mode === 'public_portal') {
+        if (publicData) {
+            return (
+                <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+                    <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
+                    <ClientPortal 
+                        alias={publicAlias} // <--- PASAMOS EL ALIAS COMO PROP
+                        appointments={publicData.appointments} 
+                        treatments={publicData.treatments} 
+                        professionals={publicData.professionals} 
+                        categories={publicData.categories}
+                        settings={publicData.settings}
+                        notify={addToast} 
+                        refreshData={() => {
+                            if(publicAlias) google.script.run.withSuccessHandler(res => { if (res.success) setPublicData(res); }).getPublicData(publicAlias);
+                        }}
+                    />
+                </div>
+            );
+        } else {
+            // Pantalla de espera segura
+            return <div className="h-screen flex items-center justify-center"><Icon name="loader" className="animate-spin text-[#008395]" size={40}/></div>;
+        }
     }
 
     if (mode === 'client') return (
