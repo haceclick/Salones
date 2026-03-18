@@ -1,6 +1,19 @@
 
 // --- COMPONENTE PORTAL DE CLIENTES (INTELIGENTE Y FLEXIBLE) ---
-const ClientPortal = ({ clients = [], appointments = [], treatments = [], categories = [], professionals = [], settings = [], notifications = [], saveAppointments, saveClients, saveNotifications, notify, refreshData }) => {
+    const ClientPortal = ({ 
+        clients = [], 
+        appointments = [], 
+        treatments = [], 
+        categories = [], 
+        professionals = [], 
+        settings = [], 
+        notifications = [], 
+        saveAppointments, 
+        saveClients, 
+        saveNotifications, 
+        notify, 
+        refreshData 
+    }) => {
     // --- ESTADOS DE LOGIN Y ALTA ---
     const [phone, setPhone] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
