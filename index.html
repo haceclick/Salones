@@ -76,31 +76,41 @@
     <div id="root"></div>
 
     <script>
+      // 1. Configuración de URLs
+      window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
+      
+      // 2. Definición del objeto google ANTES de que carguen los componentes
       window.google = {
         script: {
           run: {
-            withSuccessHandler: function(cb) { this.successHandler = cb; return this; },
-            withFailureHandler: function(cb) { this.failureHandler = cb; return this; },
-            
-            // EL MOTOR DE LLAMADAS (No tocar)
-            _call: function(action, args) {
-              fetch(window.SCRIPT_URL + "?action=" + action, {
+            withSuccessHandler: function(successCallback) {
+              this.onSuccess = successCallback;
+              return this;
+            },
+            withFailureHandler: function(failureCallback) {
+              this.onFailure = failureCallback;
+              return this;
+            },
+            // Función genérica que dispara el fetch
+            _execute: function(action, params) {
+              const self = this;
+              fetch(window.SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: action, params: args })
+                body: JSON.stringify({ action: action, params: params })
               })
               .then(res => res.json())
-              .then(data => { if(this.successHandler) this.successHandler(data); })
-              .catch(err => { if(this.failureHandler) this.failureHandler(err); });
+              .then(data => {
+                if (self.onSuccess) self.onSuccess(data);
+              })
+              .catch(err => {
+                console.error("Error en " + action + ":", err);
+                if (self.onFailure) self.onFailure(err);
+              });
             },
-
-            // REGISTRO DE FUNCIONES (Agregamos authenticateUser aquí)
-            authenticateUser: function(u, p) { this._call('authenticateUser', [u, p]); },
-            getAllData: function(email) { this._call('getAllData', [email]); },
-            saveData: function(email, type, data) { this._call('saveData', [email, type, data]); },
-            uploadBrandLogo: function(email, dataUri) { this._call('uploadBrandLogo', [email, dataUri]); },
-            
-            // Si en el futuro ves otro error de "is not a function", 
-            // solo agrega el nombre de la función aquí siguiendo el mismo formato.
+            // Mapeo explícito de funciones
+            authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
+            getAllData: function(e) { this._execute('getAllData', [e]); },
+            saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); }
           }
         }
       };
