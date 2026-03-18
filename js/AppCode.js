@@ -1056,26 +1056,35 @@ const App = () => {
             setLoadingData(false); 
         }
 
-        // --- VISTAS DEL PORTAL PÚBLICO ---
+        // --- VISTAS DEL PORTAL PÚBLICO (CLIENTES) ---
         if (view === 'public_loading') {
-            return <div className="min-h-screen flex items-center justify-center bg-brand-bg text-[var(--color-primary)] font-bold text-xl"><Icon name="loader" className="animate-spin mr-2"/> Cargando portal...</div>;
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-[var(--color-primary)] font-bold text-xl">
+                    <Icon name="loader" className="animate-spin mr-2"/> Cargando portal de turnos...
+                </div>
+            );
         }
     
         if (view === 'public_error') {
-            return <div className="min-h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold text-xl">{publicError || 'Local no encontrado.'}</div>;
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500 font-bold text-xl p-8 text-center">
+                    {publicError || 'Lo sentimos, este enlace no es válido o el local no existe.'}
+                </div>
+            );
         }
     
         if (view === 'public_portal' && publicData) {
             return (
                 <ClientPortal 
-                    // Le pasamos la data que nos trajo el detective desde la base del cliente
+                    // Pasamos la data que el "Detective" trajo de la base de Amara
                     treatments={publicData.treatments}
                     professionals={publicData.professionals}
                     categories={publicData.categories}
-                    settings={publicData.settings}
+                    settings={publicData.settings} // <--- ¡AQUÍ ESTÁN LOS COLORES Y EL LOGO!
                     appointments={publicData.appointments}
                     
-                    // NOTA: Para el refresh público, volvemos a llamar al detective
+                    // Funciones de apoyo
+                    notify={notify}
                     refreshData={() => {
                         const alias = window.location.hash.replace('#/', '').toLowerCase();
                         window.google.script.run.withSuccessHandler(res => {
