@@ -96,11 +96,22 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const getClientLink = () => {
+        // 1. Si el cliente configuró una URL manual en settings, la usamos
         if (agentConfig?.schedulerUrl) return agentConfig.schedulerUrl;
-        let baseUrl = window.SCRIPT_URL || window.location.href.split('?')[0];
-        const tenantEmail = settings?.find(s => s.id === 'branding')?.adminEmail;
-        const tenantParam = tenantEmail ? `&tenant=${encodeURIComponent(tenantEmail)}` : '';
-        return `${baseUrl}?view=client${tenantParam}`;
+
+        // 2. Si no, construimos la URL usando el Alias dinámico
+        const baseUrl = window.location.origin + window.location.pathname;
+        
+        // Buscamos el alias que guardamos en la columna G (ahora disponible en agentConfig)
+        const alias = agentConfig?.tenantAlias;
+
+        if (alias) {
+            // Retorna: https://salones.haceclick-ai.com/#/amara
+            return `${baseUrl}#/${alias}`;
+        }
+
+        // Fallback: si no hay alias, mandamos al home
+        return baseUrl;
     };
 
     const openWhatsAppApp = (phone, text) => {
