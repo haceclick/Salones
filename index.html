@@ -93,7 +93,8 @@
             deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); },
             getGlobalMessages: function() { this._execute('getGlobalMessages', []); },
             saveGlobalMessage: function(msg) { this._execute('saveGlobalMessage', [msg]); },
-            getShortUrl: function(longUrl) { this._execute('getShortUrl', [longUrl]); }
+            ggetShortUrl: function(longUrl) { this._execute('getShortUrl', [longUrl]); }, 
+            getPublicData: function(alias) { this._execute('getPublicData', [alias]); }
           }
         }
       };
