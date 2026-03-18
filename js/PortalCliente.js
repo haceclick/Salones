@@ -173,25 +173,29 @@
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
 
+        // 1. Identificamos el local por la URL (#/amara)
         const alias = window.location.hash.replace('#/', '').toLowerCase();
 
-        // Llamamos a la ventanilla pública de Google
+        // 2. Le preguntamos al servidor si este cliente existe en este local
         window.google.script.run
             .withSuccessHandler(res => {
                 if (res.success && res.exists) {
                     setCurrentUser(res.client);
                     setIsLoggedIn(true);
                     notify(`¡Hola de nuevo, ${res.client.name}!`, "success");
-                } else {
+                } else if (res.success && !res.exists) {
                     setIsRegistering(true);
                     notify("No encontramos tu perfil. Por favor regístrate.", "info");
+                } else {
+                    notify("Error al verificar: " + res.message, "error");
                 }
             })
-            .checkClientPublic(alias, cleanPhone);
+            .checkClientPublic(alias, cleanPhone); // Esta es la función de seguridad en Código.gs
     };
-
     const handleRegister = (e) => {
         e.preventDefault();
+        const alias = window.location.hash.replace('#/', '').toLowerCase();
+        
         const newClient = {
             id: 'CLI-' + Date.now(),
             phone: phone,
@@ -201,22 +205,19 @@
             origin: 'web'
         };
         
-        if(saveClients) saveClients([...(clients || []), newClient]);
-        setCurrentUser(newClient);
-        
-        const newNotif = {
-            id: Date.now().toString(),
-            type: 'new_client',
-            title: '🌟 Nuevo Cliente Web',
-            message: `${clientForm.name} se registró en el portal.`,
-            clientPhone: phone,
-            clientName: clientForm.name
-        };
-        if(saveNotifications) saveNotifications([...(notifications || []), newNotif]);
-        
-        setIsRegistering(false);
-        setIsLoggedIn(true);
-        notify("¡Perfil creado!", "success");
+        // Enviamos al servidor para que lo guarde en la hoja 'Clients' del local
+        window.google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    setCurrentUser(newClient);
+                    setIsRegistering(false);
+                    setIsLoggedIn(true);
+                    notify("¡Perfil creado con éxito!", "success");
+                } else {
+                    notify("Error al registrar: " + res.message, "error");
+                }
+            })
+            .savePublicClient(alias, JSON.stringify(newClient)); 
     };
 
     const handleInitReschedule = (appt) => {
