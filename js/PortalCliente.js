@@ -1,6 +1,7 @@
 
 // --- COMPONENTE PORTAL DE CLIENTES (INTELIGENTE Y FLEXIBLE) ---
     const ClientPortal = ({ 
+        alias,
         clients = [], 
         appointments = [], 
         treatments = [], 
@@ -173,9 +174,6 @@
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
 
-        // 1. Identificamos el local por la URL (#/amara)
-        const alias = window.location.hash.replace('#/', '').toLowerCase();
-
         // 2. Le preguntamos al servidor si este cliente existe en este local
         window.google.script.run
             .withSuccessHandler(res => {
@@ -192,9 +190,8 @@
             })
             .checkClientPublic(alias, cleanPhone); // Esta es la función de seguridad en Código.gs
     };
-    const handleRegister = (e) => {
-        e.preventDefault();
-        const alias = window.location.hash.replace('#/', '').toLowerCase();
+const handleRegister = (e) => {
+        e.preventDefault();       
         
         const newClient = {
             id: 'CLI-' + Date.now(),
