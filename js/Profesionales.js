@@ -1,0 +1,404 @@
+
+// --- COMPONENTE PROFESIONALES (CON VISTA TARJETAS / TABLA Y COMISIONES MÚLTIPLES) ---
+const Professionals = ({ list = [], setList, notify, categories = [], user }) => { 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
+    
+    // NUEVO: Estado para alternar entre "grid" (tarjetas) y "table" (lista)
+    const [viewMode, setViewMode] = useState('grid'); 
+    
+    const defaultDays = () => Array.from({ length: 7 }, () => ({ active: true, start: '0900', end: '1800' }));
+
+    const [form, setForm] = useState({ 
+        id: '', name: '', phone: '', color: 'bg-red-100 text-red-800', specialties: [], 
+        workingDays: defaultDays(),
+        hasAccess: false, email: '', password: '',
+        hasCommission: false, commissionRates: {} 
+    });
+
+    const colors = ['bg-red-100 text-red-800', 'bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800', 'bg-pink-100 text-pink-800', 'bg-indigo-100 text-indigo-800', 'bg-teal-100 text-teal-800'];
+
+    const handleSave = (e) => {
+        e.preventDefault();
+        const newProf = { ...form, id: form.id || 'PROF-' + Date.now() };
+        
+        let updatedList = form.id ? list.map(p => p.id === form.id ? newProf : p) : [...list, newProf];
+        
+        setList(updatedList); 
+        setIsModalOpen(false);
+        notify(form.id ? "Profesional actualizado" : "Profesional creado", "success");
+
+        google.script.run
+            .withFailureHandler((err) => {
+                console.error(err);
+                notify("Error al actualizar el backend.", "error");
+            })
+            .saveProfessionalWithUser(user?.email || '', JSON.stringify(newProf));
+    };
+
+    const handleDelete = () => {
+        const idToDelete = confirmDelete.id;
+        setList(list.filter(p => p.id !== idToDelete));
+        setConfirmDelete({ open: false, id: null });
+        notify("Profesional eliminado", "success");
+        google.script.run.deleteProfessionalAndUser(user?.email || '', idToDelete);
+    };
+
+    const toggleDay = (index) => {
+        const days = [...form.workingDays];
+        days[index].active = !days[index].active;
+        setForm({...form, workingDays: days});
+    };
+
+    const updateTime = (index, field, value) => {
+        const days = [...form.workingDays];
+        days[index][field] = value;
+        setForm({...form, workingDays: days});
+    };
+
+    const toggleSpecialty = (catName) => {
+        const specs = (form.specialties || []).includes(catName) 
+            ? form.specialties.filter(s => s !== catName) 
+            : [...(form.specialties || []), catName];
+        setForm({...form, specialties: specs});
+    };
+
+    const openEdit = (prof) => {
+        setForm({
+            ...prof,
+            hasAccess: prof?.hasAccess || false,
+            email: prof?.email || '',
+            password: prof?.password || '',
+            workingDays: prof?.workingDays || defaultDays(),
+            specialties: prof?.specialties || [],
+            hasCommission: prof?.hasCommission || false, 
+            commissionRates: prof?.commissionRates || (prof?.commissionRate ? { "GENERAL": prof.commissionRate } : {})
+        });
+        setIsModalOpen(true);
+    };
+
+    const openNew = () => {
+        setForm({ 
+            id: '', name: '', phone: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], 
+            workingDays: defaultDays(),
+            hasAccess: false, email: '', password: '',
+            hasCommission: false, commissionRates: {}
+        });
+        setIsModalOpen(true);
+    };
+
+    const weekMap = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    return (
+        <div className="p-8 h-full bg-brand-bg overflow-y-auto">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-800">Profesionales</h2>
+                    <p className="text-gray-500 mt-2">Gestiona tu equipo y sus accesos.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {/* INTERRUPTOR DE VISTA */}
+                    <div className="bg-white border border-gray-200 flex rounded-xl p-1 shadow-sm">
+                        <button 
+                            onClick={() => setViewMode('grid')} 
+                            className={`p-2.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`} 
+                            title="Vista de Tarjetas"
+                        >
+                            <Icon name="grid" size={18}/>
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('table')} 
+                            className={`p-2.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`} 
+                            title="Vista de Lista"
+                        >
+                            <Icon name="list" size={18}/>
+                        </button>
+                    </div>
+                    
+                    <button onClick={openNew} className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl font-bold shadow-md transition-transform hover:scale-105 flex items-center gap-2">
+                        <Icon name="plus" size={18} /> Agregar
+                    </button>
+                </div>
+            </header>
+
+            {/* RENDERIZADO CONDICIONAL DE LA VISTA */}
+            {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in">
+                    {(list || []).map(p => (
+                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group relative">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shadow-sm ${p.color || 'bg-gray-100'}`}>
+                                        {(p?.name || "?").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                            {p?.name || "Sin nombre"}
+                                            {p?.hasCommission && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold" title="Cobra comisión">% Múltiple</span>}
+                                        </h3>
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                            <Icon name="phone" size={12}/> {p?.phone || '-'}
+                                        </div>
+                                        {p?.hasAccess && (
+                                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold mt-1.5 border border-blue-100">
+                                                <Icon name="lock" size={8}/> ACCESO APP
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={()=>openEdit(p)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"><Icon name="edit" size={18}/></button>
+                                    <button onClick={()=>setConfirmDelete({open:true, id:p.id})} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"><Icon name="trash-2" size={18}/></button>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                                {(p?.specialties || []).map((s, idx) => {
+                                    const specName = typeof s === 'object' ? s.name : s;
+                                    return <span key={idx} className="text-[10px] font-bold bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-full text-gray-600">{specName}</span>;
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow-card border border-gray-200 overflow-hidden animate-fade-in">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th className="p-4 whitespace-nowrap">Profesional</th>
+                                    <th className="p-4">Contacto</th>
+                                    <th className="p-4">Especialidades</th>
+                                    <th className="p-4">Acceso App</th>
+                                    <th className="p-4 text-center">Comisiones</th>
+                                    <th className="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-sm">
+                                {(list || []).length === 0 ? (
+                                    <tr><td colSpan="6" className="p-8 text-center text-gray-400 italic">No hay profesionales registrados.</td></tr>
+                                ) : (
+                                    (list || []).map(p => (
+                                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${p.color || 'bg-gray-100'}`}>
+                                                        {(p?.name || "?").charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="font-bold text-gray-800 whitespace-nowrap">{p.name || "Sin nombre"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 font-medium text-gray-600 whitespace-nowrap">
+                                                {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={12}/> {p.phone}</span> : '-'}
+                                            </td>
+                                            <td className="p-4 max-w-xs">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(p?.specialties || []).map((s, idx) => {
+                                                        const specName = typeof s === 'object' ? s.name : s;
+                                                        return <span key={idx} className="text-[9px] font-bold bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded text-gray-600">{specName}</span>;
+                                                    })}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                {p.hasAccess ? (
+                                                    <span className="inline-flex items-center gap-1 text-blue-600 font-bold text-xs truncate max-w-[150px]" title={p.email}>
+                                                        <Icon name="unlock" size={12}/> {p.email}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs italic">Sin acceso</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                {p.hasCommission ? (
+                                                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[9px] px-2 py-1 rounded font-bold uppercase">
+                                                        <Icon name="dollar-sign" size={10}/> Activo
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-300 text-xs">-</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <button onClick={()=>openEdit(p)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="Editar"><Icon name="edit" size={16}/></button>
+                                                    <button onClick={()=>setConfirmDelete({open:true, id:p.id})} className="p-1.5 text-red-500 hover:bg-red-100 rounded transition-colors" title="Eliminar"><Icon name="trash-2" size={16}/></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE EDICIÓN / CREACIÓN */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+                        
+                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 className="font-bold text-xl text-gray-800">Perfil del Profesional</h3>
+                            <button onClick={()=>setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors"><Icon name="x" size={24}/></button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8 flex flex-col md:flex-row gap-8">
+                            <div className="flex-1 space-y-6">
+                                <div className="grid grid-cols-2 gap-5">
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre Completo</label>
+                                        <input type="text" required className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800" value={form.name || ""} onChange={e=>setForm({...form, name:e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Teléfono</label>
+                                        <input type="tel" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800" value={form.phone || ""} onChange={e=>setForm({...form, phone:e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Color Agenda</label>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {colors.map((c, i) => (
+                                                <button key={i} type="button" onClick={() => setForm({...form, color: c})}
+                                                    className={`w-8 h-8 rounded-full border-2 transition-transform ${c} ${form.color === c ? 'border-gray-800 scale-110 shadow-md' : 'border-transparent opacity-70'}`}
+                                                ></button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ESPECIALIDADES */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Especialidades (Qué servicios hace)</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(categories || []).map((c, i) => {
+                                            const catName = typeof c === 'object' ? c.name : c;
+                                            if (!catName) return null;
+                                            const isSelected = (form.specialties || []).includes(catName);
+                                            return (
+                                                <button key={i} type="button" onClick={()=>toggleSpecialty(catName)} 
+                                                    className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${isSelected ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'bg-white text-gray-500 hover:border-gray-300'}`}>
+                                                    {catName}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    {(form.specialties || []).length === 0 && <p className="text-[10px] text-red-500 mt-2">⚠️ Debes seleccionar al menos una especialidad para asignar comisiones.</p>}
+                                </div>
+
+                                {/* SECCIÓN COMISIONES MÚLTIPLES */}
+                                <div className="bg-green-50/50 border border-green-100 rounded-xl p-5">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-bold text-green-900 flex items-center gap-2"><Icon name="dollar-sign" size={18}/> Pago de Comisiones</h4>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={form.hasCommission || false} onChange={e => setForm({...form, hasCommission: e.target.checked})} />
+                                            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    {form.hasCommission && (
+                                        <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-3">
+                                            {(form.specialties || []).length > 0 ? (
+                                                <>
+                                                    <p className="text-[10px] uppercase font-bold text-green-800">Define el porcentaje (%) por especialidad:</p>
+                                                    {(form.specialties || []).map(spec => (
+                                                        <div key={spec} className="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200">
+                                                            <span className="text-xs font-bold text-gray-700">{spec}</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <input 
+                                                                    type="number" min="0" max="100" 
+                                                                    className="w-16 border border-gray-300 p-1.5 rounded text-center text-sm font-bold text-green-700 outline-none focus:border-green-500" 
+                                                                    value={form.commissionRates?.[spec] || ''} 
+                                                                    onChange={e => setForm({
+                                                                        ...form, 
+                                                                        commissionRates: { ...form.commissionRates, [spec]: e.target.value }
+                                                                    })} 
+                                                                />
+                                                                <span className="text-xs text-gray-500 font-bold">%</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-orange-600 italic font-medium">Sube a la sección de arriba y marca las especialidades de este profesional para asignar los porcentajes.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ACCESO AL SISTEMA */}
+                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="font-bold text-blue-900 flex items-center gap-2"><Icon name="shield" size={18}/> Acceso al Sistema</h4>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={form.hasAccess || false} onChange={e => setForm({...form, hasAccess: e.target.checked})} />
+                                            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                        </label>
+                                    </div>
+                                    {form.hasAccess && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-blue-100/50 animate-fade-in">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Email (Usuario)</label>
+                                                <input type="email" placeholder="juan@local.com" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400" value={form.email || ""} onChange={e=>setForm({...form, email:e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Contraseña</label>
+                                                <input type="text" placeholder="1234" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400" value={form.password || ""} onChange={e=>setForm({...form, password:e.target.value})} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* HORARIOS */}
+                            <div className="w-full md:w-80 bg-gray-50 rounded-xl p-6 border border-gray-100 h-fit">
+                                <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                    <Icon name="clock" size={16}/> Horarios de Trabajo
+                                </h3>
+                                <div className="space-y-4">
+                                    {(form.workingDays || []).map((day, i) => (
+                                        <div key={i} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-3 w-20">
+                                                <input type="checkbox" checked={day?.active || false} onChange={()=>toggleDay(i)} className="w-4 h-4 rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"/>
+                                                <span className={`font-bold ${day?.active ? 'text-gray-800' : 'text-gray-400'}`}>{weekMap[i]}</span>
+                                            </div>
+                                            {day?.active ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)]" value={day.start || "0900"} onChange={e=>updateTime(i,'start',e.target.value)} maxLength="4" placeholder="0900"/>
+                                                    <span className="text-gray-400">-</span>
+                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)]" value={day.end || "1800"} onChange={e=>updateTime(i,'end',e.target.value)} maxLength="4" placeholder="1800"/>
+                                                </div>
+                                            ) : <span className="text-xs text-gray-400 font-medium bg-gray-100 px-3 py-1 rounded">Descanso</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-4">
+                            <button onClick={()=>setIsModalOpen(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:text-gray-800 transition-colors">Cancelar</button>
+                            <button onClick={handleSave} className="px-8 py-2.5 bg-[var(--color-primary)] text-white rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2">
+                                <Icon name="save" size={18}/> Guardar Perfil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* MODAL CONFIRMAR BORRADO */}
+            {confirmDelete.open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100">
+                        <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Icon name="alert-triangle" size={24} />
+                        </div>
+                        <h3 className="font-bold text-lg mb-2 text-gray-800">¿Eliminar Profesional?</h3>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setConfirmDelete({open:false, id:null})} className="flex-1 py-2.5 border rounded-lg font-bold text-gray-600">Cancelar</button>
+                            <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-bold shadow-md">Sí, Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

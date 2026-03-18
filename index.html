@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>HaceClick-ai | Salones</title>
+    
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0"
+      }
+    }
+    </script>
+
+    <script>
+      // Definimos la URL de tu API de Google
+      window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
+      window.GOOGLE_API_KEY = "AIzaSyDP0l0WtvGoJgaYU_77CnxIUwZFOCPaPbk";
+      
+      // Detectamos la vista por URL (ej: ?view=client)
+      const urlParams = new URLSearchParams(window.location.search);
+      window.INITIAL_VIEW = urlParams.get('view') || "admin";
+
+      // Configuración de Tailwind
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', text: '#1e293b', 'text-light': '#64748b' },
+              primary: 'var(--color-primary)',
+              'primary-dark': 'var(--color-primary-dark)',
+              secondary: 'var(--color-secondary)'
+            },
+            borderRadius: { 'brand': '1rem' }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      :root {
+        --color-primary: #14b8a6;
+        --color-primary-dark: #0f766e;
+        --color-secondary: #9EC5FF;
+        --color-accent: #F2C9D6;
+        --color-bg: #F6F8FC;
+        --color-border: #E2E6F0;
+        --color-text: #2B2F3A;
+      }
+      * { -webkit-tap-highlight-color: transparent; }
+      html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; width: 100%; }
+      body { font-family: 'Inter', sans-serif; background-color: var(--color-bg); color: var(--color-text); }
+      .animate-spin { animation: spin 1s linear infinite; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: var(--color-bg); }
+      ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-secondary); }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script>
+      window.google = {
+        script: {
+          run: {
+            withSuccessHandler: function(cb) { this.successHandler = cb; return this; },
+            withFailureHandler: function(cb) { this.failureHandler = cb; return this; },
+            // Simulador de llamadas
+            getAllData: function(email) { this._call('getAllData', [email]); },
+            saveData: function(email, type, data) { this._call('saveData', [email, type, data]); },
+            uploadBrandLogo: function(email, dataUri) { this._call('uploadBrandLogo', [email, dataUri]); },
+            _call: function(action, args) {
+              fetch(window.SCRIPT_URL + "?action=" + action + "&email=" + args[0], {
+                method: 'POST',
+                body: JSON.stringify({ action: action, params: args })
+              })
+              .then(res => res.json())
+              .then(data => { if(this.successHandler) this.successHandler(data); })
+              .catch(err => { if(this.failureHandler) this.failureHandler(err); });
+            }
+          }
+        }
+      };
+    </script>
+
+    <script src="js/Utils.js" type="text/babel"></script>
+    <script src="js/AgentSimulator.js" type="text/babel"></script>
+    <script src="js/PortalCliente.js" type="text/babel"></script>
+    <script src="js/Dashboard.js" type="text/babel"></script>
+    <script src="js/Agenda.js" type="text/babel"></script>
+    <script src="js/Clientes.js" type="text/babel"></script>
+    <script src="js/Profesionales.js" type="text/babel"></script>
+    <script src="js/Servicios.js" type="text/babel"></script>
+    <script src="js/Facturacion.js" type="text/babel"></script>
+    <script src="js/Statistics.js" type="text/babel"></script>
+    <script src="js/LocalSettings.js" type="text/babel"></script>
+    
+    <script src="js/AppCode.js" type="text/babel"></script>
+
+    <script>
+      setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 500);
+    </script>
+  </body>
+</html>

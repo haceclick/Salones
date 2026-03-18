@@ -1,0 +1,20 @@
+    <style>
+      :root {
+        --color-primary: #14b8a6;
+        --color-primary-dark: #0f766e;
+        --color-secondary: #9EC5FF;
+        --color-accent: #F2C9D6;
+        --color-bg: #F6F8FC;
+        --color-border: #E2E6F0;
+        --color-text: #2B2F3A;
+      }
+      * { -webkit-tap-highlight-color: transparent; }
+      html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; width: 100%; }
+      body { font-family: 'Inter', sans-serif; background-color: var(--color-bg); color: var(--color-text); }
+      .animate-spin { animation: spin 1s linear infinite; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: var(--color-bg); }
+      ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-secondary); }
+    </style>
