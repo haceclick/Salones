@@ -1055,6 +1055,36 @@ const App = () => {
             // Si no es cliente, asumimos que es admin o carga normal
             setLoadingData(false); 
         }
+
+        // --- VISTAS DEL PORTAL PÚBLICO ---
+        if (view === 'public_loading') {
+            return <div className="min-h-screen flex items-center justify-center bg-brand-bg text-[var(--color-primary)] font-bold text-xl"><Icon name="loader" className="animate-spin mr-2"/> Cargando portal...</div>;
+        }
+    
+        if (view === 'public_error') {
+            return <div className="min-h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold text-xl">{publicError || 'Local no encontrado.'}</div>;
+        }
+    
+        if (view === 'public_portal' && publicData) {
+            return (
+                <ClientPortal 
+                    // Le pasamos la data que nos trajo el detective desde la base del cliente
+                    treatments={publicData.treatments}
+                    professionals={publicData.professionals}
+                    categories={publicData.categories}
+                    settings={publicData.settings}
+                    appointments={publicData.appointments}
+                    
+                    // NOTA: Para el refresh público, volvemos a llamar al detective
+                    refreshData={() => {
+                        const alias = window.location.hash.replace('#/', '').toLowerCase();
+                        window.google.script.run.withSuccessHandler(res => {
+                            if (res.success) setPublicData(res);
+                        }).getPublicData(alias);
+                    }}
+                />
+            );
+        }
     }, []);
 
     // --- EFECTO 2: CARGA INICIAL ---
