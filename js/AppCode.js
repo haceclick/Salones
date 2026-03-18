@@ -898,12 +898,16 @@ const App = () => {
             .getAllData(emailToUse, dbId);
     };
 
-    // ✅ NUEVA: save — guarda cualquier colección en el backend con optimistic update
+    // ✅ NUEVA: save — guarda cualquier colección en el backend
     const save = (type, dataToSave) => {
         window.isSavingData = true;
         const emailToUse = currentUser?.adminEmail || currentUser?.email;
+        if (!emailToUse) return;
 
-        // Actualización local inmediata para que la UI no se congele
+        // Recuperamos el ID específico de la memoria
+        const specificId = localStorage.getItem('targetDbId');
+
+        // Actualización local inmediata
         setData(prev => ({ ...prev, [type]: dataToSave }));
 
         google.script.run
@@ -918,15 +922,19 @@ const App = () => {
                 addToast('Error de conexión al guardar', 'error');
                 console.error('save error:', err);
             })
-            .saveData(emailToUse, type, JSON.stringify(dataToSave));
+            .saveData(emailToUse, type, JSON.stringify(dataToSave), specificId); // <--- AHORA SÍ PASAMOS EL ID AL FINAL
     };
 
     // --- EFFECTS ---
 
-    // EFECTO 1: DETECTIVE DE URL
+    // EFECTO 1: DETECTIVE DE URL (BLINDADO CONTRA IFRAMES)
     useEffect(() => { 
         const initPortal = (aliasStr) => {
-            const alias = aliasStr.replace('#/', '').replace('/', '').toLowerCase();
+            const alias = aliasStr.replace('#/', '').replace('?local=', '').replace('/', '').toLowerCase();
+            if (!alias) {
+                setLoadingData(false);
+                return;
+            }
             setPublicAlias(alias);
             setMode('public_portal');
             setLoadingData(true);
@@ -937,7 +945,7 @@ const App = () => {
                     setLoadingData(false);
                 })
                 .withFailureHandler(() => {
-                    setPublicError("Error de conexión al cargar el local.");
+                    setPublicError("Error al cargar el local. Verifica el enlace.");
                     setMode('public_error');
                     setLoadingData(false);
                 })
@@ -946,20 +954,20 @@ const App = () => {
 
         const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
-        const localParam = params.get('local'); // Plan B (?local=amara)
+        const localParam = params.get('local'); // <--- AHORA LEE ?local=amara
         const viewParam = params.get('view');
 
-        if (hash && hash.startsWith('#/')) {
-            initPortal(hash);
-        } else if (localParam) {
+        if (localParam) {
             initPortal(localParam);
+        } else if (hash && hash.startsWith('#/')) {
+            initPortal(hash);
         } else if (window.google && window.google.script && window.google.script.url) {
-            // Magia: Leemos la URL a través del Iframe de Google
+            // Magia para leer la URL a través del Iframe
             window.google.script.url.getLocation(function(location) {
-                if (location.hash && location.hash.startsWith('/')) {
-                    initPortal(location.hash);
-                } else if (location.parameter && location.parameter.local) {
+                if (location.parameter && location.parameter.local) {
                     initPortal(location.parameter.local);
+                } else if (location.hash) {
+                    initPortal(location.hash);
                 } else {
                     if (viewParam === 'client') setMode('client');
                     setLoadingData(false);
@@ -967,7 +975,7 @@ const App = () => {
             });
         } else {
             if (viewParam === 'client') setMode('client');
-            setLoadingData(false); 
+            setLoadingData(false);
         }
     }, []);
 
@@ -996,24 +1004,13 @@ const App = () => {
         };
     }, [currentUser, mode, tenantId]);
 
-    // EFECTO 4: BRANDING
+    // EFECTO 4: BRANDING (CORREGIDO PARA DB AISLADAS)
     useEffect(() => {
         let targetSettings = (mode === 'public_portal' && publicData) ? publicData.settings : data.settings;
         if (!targetSettings || !Array.isArray(targetSettings)) return;
         
-        let targetBranding = null;
-        if (currentUser?.isMasterPanel) {
-            targetBranding = targetSettings.find(s => s.id === 'branding');
-            if (!targetBranding || !targetBranding.primaryColor) {
-                targetBranding = { primaryColor: '#008395', sidebarBg: '#1e293b', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: 'https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png' };
-            }
-        } else if (mode === 'admin' && currentUser) {
-            targetBranding = targetSettings.find(s => s.adminEmail === (currentUser.adminEmail || currentUser.email));
-        } else if (mode === 'client' || mode === 'public_portal') {
-            targetBranding = targetSettings.find(s => s.id === 'branding');
-        }
-
-        if (!targetBranding) targetBranding = targetSettings.find(s => s.primaryColor);
+        // Ya no filtramos por correo porque el Excel local SOLO tiene la data de este local
+        let targetBranding = targetSettings.find(s => s.id === 'branding' || s.primaryColor);
 
         if (targetBranding && targetBranding.primaryColor) {
             setBrandConfig(targetBranding);
