@@ -169,12 +169,12 @@
         return Array.from(slotsSet).sort();
     }, [date, treatmentId, profId, appointments, treatments, professionals, reschedulingId]);
 
-    const handleLogin = (e) => {
+   const handleLogin = (e) => {
         e.preventDefault();
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
 
-        // 2. Le preguntamos al servidor si este cliente existe en este local
+       // 2. Le preguntamos al servidor si este cliente existe en este local
         window.google.script.run
             .withSuccessHandler(res => {
                 if (res.success && res.exists) {
@@ -188,11 +188,11 @@
                     notify("Error al verificar: " + res.message, "error");
                 }
             })
-            .checkClientPublic(alias, cleanPhone); // Esta es la función de seguridad en Código.gs
+            .checkClientPublic(alias, cleanPhone); // Automáticamente usará el alias de los props
     };
 const handleRegister = (e) => {
-        e.preventDefault();       
-        
+        e.preventDefault();
+    
         const newClient = {
             id: 'CLI-' + Date.now(),
             phone: phone,
@@ -251,9 +251,7 @@ const handleRegister = (e) => {
             origin: 'web'
         };
 
-        // --- 1. NUEVO DETECTIVE DE URL ---
-        // Leemos la palabra exacta después del #/ (ej: "amara")
-        const alias = window.location.hash.replace('#/', '').toLowerCase();
+        // ❌ BORRAMOS LA LÍNEA DEL HASH AQUÍ
 
         // --- 2. LLAMADA AL BACKEND PÚBLICO A TRAVÉS DEL PUENTE ---
         window.google.script.run
@@ -276,7 +274,7 @@ const handleRegister = (e) => {
                 setIsBooking(false);
                 notify("Error de conexión con el servidor", "error");
             })
-            .savePublicAppointment(alias, JSON.stringify(newAppt)); // Usamos la nueva ruta segura
+            .savePublicAppointment(alias, JSON.stringify(newAppt)); // Usará el alias del prop
     };
 
     const getStatusBadge = (status) => {
