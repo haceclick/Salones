@@ -992,16 +992,20 @@ const App = () => {
             .saveData(emailToSave, key, JSON.stringify(value));
     };
 
-    // --- EFECTO 1: LECTURA DE URL ---
+// --- EFECTO 1: LECTURA DE URL (VERSIÓN WEB/GITHUB) ---
     useEffect(() => { 
-        google.script.url.getLocation((location) => {
-            if (location.parameter.view === 'client') {
-                setMode('client');
-                if (location.parameter.tenant) setTenantId(location.parameter.tenant);
-            } else {
-                setLoadingData(false); 
-            }
-        });
+        // Leemos los parámetros directamente de la barra de direcciones del navegador
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get('view');
+        const tenant = params.get('tenant');
+
+        if (view === 'client') {
+            setMode('client');
+            if (tenant) setTenantId(tenant);
+        } else {
+            // Si no es cliente, asumimos que es admin o carga normal
+            setLoadingData(false); 
+        }
     }, []);
 
     // --- EFECTO 2: CARGA INICIAL ---
