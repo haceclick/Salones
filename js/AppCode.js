@@ -20,21 +20,7 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [publicData, setPublicData] = React.useState(null);
     const [publicError, setPublicError] = React.useState('');
     // --- COMPONENTE PORTAL DE CLIENTES ---
-    const ClientPortal = ({ 
-        clients = [], 
-        appointments = [], 
-        treatments = [], 
-        categories = [], 
-        professionals = [], 
-        settings = [], 
-        notifications = [], 
-        saveAppointments, 
-        saveClients, 
-        saveNotifications, 
-        notify, 
-        refreshData 
-    }) => {
-    // ... aquí sigue el resto de tu código normal ...
+    const ClientPortal = ({ clients = [], appointments = [], treatments = [], categories = [], professionals = [], settings = [], notifications = [], saveAppointments, saveClients, saveNotifications, notify, refreshData }) => {
         
     // 2. El Detective de URLs (Se ejecuta apenas abre la página)
     React.useEffect(() => {
