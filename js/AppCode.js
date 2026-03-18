@@ -19,7 +19,8 @@ const LoginScreen = ({ onLogin, notify }) => {
     // 1. Nuevos estados para manejar el portal público
     const [publicData, setPublicData] = React.useState(null);
     const [publicError, setPublicError] = React.useState('');
-
+    const ClientPortal = ({ clients = [], appointments = [], ... }) => {
+        
     // 2. El Detective de URLs (Se ejecuta apenas abre la página)
     React.useEffect(() => {
         // Leemos qué dice la barra de direcciones
@@ -1189,18 +1190,30 @@ const App = () => {
         <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
             <ClientPortal 
-                clients={data.clients} 
-                appointments={data.appointments} 
-                treatments={data.treatments} 
-                professionals={data.professionals} 
-                settings={data.settings} 
-                notifications={data.notifications} 
-                saveAppointments={d => save('appointments', d)} 
-                saveClients={d => save('clients', d)} 
-                saveNotifications={d => save('notifications', d)}
-                notify={addToast} 
-                refreshData={refreshData}
-            />
+                    // 🪄 TODO DEBE SALIR DE publicData (la data que trajo el "Detective")
+                    appointments={publicData.appointments} 
+                    treatments={publicData.treatments} 
+                    professionals={publicData.professionals} 
+                    categories={publicData.categories}
+                    settings={publicData.settings}
+                    
+                    // El portal de clientes NO necesita ni debe ver:
+                    // clients={[]} (Se maneja por el login seguro que creamos)
+                    // notifications={[]} 
+                    
+                    // Funciones de guardado y avisos
+                    notify={addToast} 
+                    
+                    // Refresco de datos especial para el portal público
+                    refreshData={() => {
+                        const alias = window.location.hash.replace('#/', '').toLowerCase();
+                        window.google.script.run
+                            .withSuccessHandler(res => {
+                                if (res.success) setPublicData(res);
+                            })
+                            .getPublicData(alias);
+                    }}
+                />
         </div>
     );
 
