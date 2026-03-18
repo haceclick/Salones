@@ -1,3 +1,4 @@
+// --- 1. COMPONENTE DE LOGIN (LIMPIO Y SIN ERRORES) ---
 const LoginScreen = ({ onLogin, notify }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -14,8 +15,7 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [newPassword, setNewPassword] = useState('');
     const [isChangingPass, setIsChangingPass] = useState(false);
 
-    const handleSuccessLogin = (userOrComp) => {
-    
+    // --- FUNCIÓN DE ÉXITO (CORREGIDA) ---
     const handleSuccessLogin = (userOrComp) => {
         if (userOrComp.spreadsheetId) {
             localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
@@ -76,13 +76,13 @@ const LoginScreen = ({ onLogin, notify }) => {
                 setIsChangingPass(false);
                 if (res.success) {
                     notify("Contraseña actualizada con éxito", "success");
-                    // Ingresamos automáticamente
                     onLogin({...forcePassUser, needsPasswordChange: false});
                 } else notify(res.message, 'error');
             })
             .updateUserPassword(forcePassUser.email, newPassword);
     };
 
+    // --- RENDERIZADO DE SELECCIÓN DE EMPRESA ---
     if (availableCompanies.length > 0 && view !== 'force_password') {
         const isSuper = availableCompanies[0]?.isSuperAdmin;
         return (
@@ -90,7 +90,6 @@ const LoginScreen = ({ onLogin, notify }) => {
                 <div className="bg-white p-8 rounded-[20px] shadow-2xl w-full max-w-[400px]">
                     <div className="mb-6"><img src="https://i.postimg.cc/6QMLthk0/CENTRADO-SIN-FONDO.png" alt="Logo" className="h-20 object-contain mx-auto" /></div>
                     
-                    {/* --- BOTÓN ESPECIAL PARA SUPER ADMIN (MODO ADMINISTRACIÓN) --- */}
                     {isSuper && (
                         <div className="mb-8 p-1 bg-gradient-to-r from-[#008395] to-[#1e293b] rounded-2xl">
                             <button 
@@ -118,12 +117,9 @@ const LoginScreen = ({ onLogin, notify }) => {
 
                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                         {availableCompanies.map((comp, idx) => {
-                            // 1. Regla original
-                            if (isSuper && !comp.spreadsheetId) return null;
-                            
-                            // 2. NUEVA REGLA: Ocultar los botones de las bases maestras por su nombre
                             const nombre = comp.businessName || "";
                             if (nombre === "haceclick-ai" || nombre === "d/mm/yyyy") return null;
+                            if (isSuper && !comp.spreadsheetId) return null;
 
                             return (
                                 <button key={idx} onClick={() => handleSuccessLogin(comp)} className="w-full p-4 border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-[#008395] transition-all flex items-center justify-between group">
@@ -139,6 +135,7 @@ const LoginScreen = ({ onLogin, notify }) => {
         );
     }
 
+    // --- RENDERIZADO DE LOGIN/RECOVER/FORCE ---
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 p-4 text-center">
             <div className="bg-white p-10 rounded-[25px] shadow-2xl w-full max-w-[380px]">
@@ -146,8 +143,8 @@ const LoginScreen = ({ onLogin, notify }) => {
                 
                 {view === 'login' && (
                     <form onSubmit={handleSubmit} className="space-y-5 animate-fade-in">
-                        <div className="relative"><Icon name="mail" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="email" required className="w-full pl-10 pr-4 py-3 border rounded-xl" placeholder="Tu Email" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                        <div className="relative"><Icon name="lock" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="password" required className="w-full pl-10 pr-4 py-3 border rounded-xl" placeholder="Tu Contraseña" value={password} onChange={e => setPassword(e.target.value)} /></div>
+                        <div className="relative"><Icon name="mail" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="email" required className="w-full border p-3 pl-10 rounded-xl" placeholder="Tu Email" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                        <div className="relative"><Icon name="lock" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="password" required className="w-full border p-3 pl-10 rounded-xl" placeholder="Tu Contraseña" value={password} onChange={e => setPassword(e.target.value)} /></div>
                         <button type="submit" disabled={isChecking} className="w-full bg-[#008395] text-white font-bold py-4 rounded-xl shadow-lg">{isChecking ? "Verificando..." : "Entrar al Sistema"}</button>
                         <div className="pt-2"><button type="button" onClick={() => setView('recover')} className="text-xs font-bold text-gray-400 underline">¿Olvidaste tu contraseña?</button></div>
                     </form>
@@ -156,8 +153,7 @@ const LoginScreen = ({ onLogin, notify }) => {
                 {view === 'recover' && (
                     <form onSubmit={handleRecover} className="space-y-5 animate-fade-in">
                         <h3 className="font-bold text-gray-800">Recuperar Acceso</h3>
-                        <p className="text-xs text-gray-500 mb-4">Ingresa tu correo y te enviaremos una clave temporal.</p>
-                        <div className="relative"><Icon name="mail" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="email" required className="w-full pl-10 pr-4 py-3 border rounded-xl" placeholder="Correo registrado" value={recoverEmail} onChange={e => setRecoverEmail(e.target.value)} /></div>
+                        <div className="relative"><Icon name="mail" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="email" required className="w-full border p-3 pl-10 rounded-xl" placeholder="Correo registrado" value={recoverEmail} onChange={e => setRecoverEmail(e.target.value)} /></div>
                         <button type="submit" disabled={isRecovering} className="w-full bg-[#1e293b] text-white font-bold py-4 rounded-xl shadow-lg">{isRecovering ? "Enviando..." : "Solicitar Clave"}</button>
                         <div className="pt-2"><button type="button" onClick={() => setView('login')} className="text-xs font-bold text-gray-400 uppercase tracking-widest">← Volver Atrás</button></div>
                     </form>
@@ -166,16 +162,15 @@ const LoginScreen = ({ onLogin, notify }) => {
                 {view === 'force_password' && (
                     <form onSubmit={handleChangePassword} className="space-y-5 animate-fade-in">
                         <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-2"><Icon name="shield-alert" size={32}/></div>
-                        <h3 className="font-bold text-gray-800">Cambio Obligatorio</h3>
-                        <p className="text-xs text-gray-500 mb-4">Estás usando una contraseña temporal. Por tu seguridad, debes crear una nueva clave definitiva.</p>
-                        <div className="relative"><Icon name="lock" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="password" required minLength="6" className="w-full pl-10 pr-4 py-3 border rounded-xl" placeholder="Nueva Contraseña" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
+                        <h3 className="font-bold text-gray-800">Nueva Contraseña</h3>
+                        <div className="relative"><Icon name="lock" className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="password" required minLength="6" className="w-full border p-3 pl-10 rounded-xl" placeholder="Nueva Contraseña" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
                         <button type="submit" disabled={isChangingPass} className="w-full bg-[#008395] text-white font-bold py-4 rounded-xl shadow-lg">{isChangingPass ? "Guardando..." : "Guardar e Ingresar"}</button>
                     </form>
                 )}
             </div>
         </div>
     );
-};
+}; // <--- LLAVE DE CIERRE FINAL DE LOGINSCREEN
 // --- 2. SIDEBAR ---
 const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig }) => {
 
@@ -884,7 +879,7 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
 
 const App = () => {
-    // --- 1. TUS ESTADOS ORIGINALES (REVISADOS) ---
+    // --- 1. TUS ESTADOS ORIGINALES ---
     const [mode, setMode] = useState('admin');
     const [tenantId, setTenantId] = useState(null); 
     const [currentUser, setCurrentUser] = useState(null); 
@@ -895,11 +890,10 @@ const App = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
     
-    // ESTADOS PARA EL PORTAL PÚBLICO
+    // NUEVOS ESTADOS PARA EL PORTAL PÚBLICO
     const [publicData, setPublicData] = useState(null);
     const [publicError, setPublicError] = useState('');
 
-    // BRANDING Y TOASTS
     const [brandConfig, setBrandConfig] = useState(() => {
         try {
             const saved = localStorage.getItem('localBranding');
@@ -912,62 +906,11 @@ const App = () => {
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
     };
 
-    // --- 2. TUS FUNCIONES (handleLogin, refreshData, save) ---
-    const handleLogin = (u) => { 
-        if (u.branding) {
-            setBrandConfig(u.branding);
-            try { localStorage.setItem('localBranding', JSON.stringify(u.branding)); } catch(e) {}
-            const root = document.documentElement;
-            if (u.branding.primaryColor) root.style.setProperty('--color-primary', u.branding.primaryColor);
-            if (u.branding.sidebarBg) root.style.setProperty('--color-sidebar-bg', u.branding.sidebarBg);
-        }
-        setCurrentUser(u); 
-        setLoadingData(true);
-        if (u.isMasterPanel) setCurrentView('superadmin');
-    };
-
-    const refreshData = () => {
-        if (window.isSavingData) return;
-        let emailToLoad = (mode === 'client' && tenantId) ? tenantId : (currentUser?.adminEmail || currentUser?.email);
-        if (!emailToLoad) return;
-
-        // 🪄 RECUPERAMOS EL ID ESPECÍFICO (Para Amara)
-        const specificId = localStorage.getItem('targetDbId');
-
-        google.script.run
-            .withSuccessHandler(d => { 
-                if (d && d.success === false) { addToast("Error BD: " + d.message, "error"); setLoadingData(false); return; }
-                setData({
-                    clients: d?.clients || [], treatments: d?.treatments || [], appointments: d?.appointments || [],
-                    categories: d?.categories || [], professionals: d?.professionals || [], settings: d?.settings || [],
-                    notifications: d?.notifications || [], adminMessages: d?.adminMessages || []
-                });
-                setLoadingData(false); 
-            })
-            .withFailureHandler(() => { addToast("Fallo de conexión", "error"); setLoadingData(false); })
-            .getAllData(emailToLoad, specificId); // <--- PASAMOS EL ID
-    };
-
-    const save = (key, value) => { 
-        window.isSavingData = true;
-        let emailToSave = (mode === 'client' && tenantId) ? tenantId : (currentUser?.adminEmail || currentUser?.email);
-        if (!emailToSave) { window.isSavingData = false; return; }
-
-        const specificId = localStorage.getItem('targetDbId');
-        setData(prev => ({ ...prev, [key]: value })); 
-        
-        google.script.run
-            .withSuccessHandler(() => setTimeout(() => window.isSavingData = false, 2000))
-            .withFailureHandler(() => { window.isSavingData = false; addToast("Error al guardar", "error"); })
-            .saveData(emailToSave, key, JSON.stringify(value), specificId); // <--- PASAMOS EL ID
-    };
-
-    // --- 3. EFECTO URL (REVISADO) ---
+    // --- DETECTIVE DE URL (REVISADO) ---
     useEffect(() => { 
         const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
         const viewParam = params.get('view');
-        const tenantParam = params.get('tenant');
 
         if (hash && hash.startsWith('#/')) {
             const alias = hash.replace('#/', '').toLowerCase();
@@ -982,14 +925,13 @@ const App = () => {
                 .getPublicData(alias);
         } else if (viewParam === 'client') {
             setMode('client');
-            if (tenantParam) setTenantId(tenantParam);
+            const t = params.get('tenant');
+            if (t) setTenantId(t);
             setLoadingData(false);
         } else {
             setLoadingData(false); 
         }
     }, []);
-
-    // --- AQUÍ CONTINÚA EL RESTO DE TU CÓDIGO (No lo borres) ---
 
     // EFECTO 2: CARGA INICIAL
     useEffect(() => {
