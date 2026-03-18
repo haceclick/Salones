@@ -17,6 +17,10 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [isChangingPass, setIsChangingPass] = useState(false);
 
     const handleSuccessLogin = (userOrComp) => {
+        if (userOrComp.spreadsheetId) {
+            localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
+        }
+
         if (userOrComp.needsPasswordChange) {
             setForcePassUser(userOrComp);
             setView('force_password');
