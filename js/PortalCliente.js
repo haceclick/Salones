@@ -1,4 +1,3 @@
-
 // --- COMPONENTE PORTAL DE CLIENTES (INTELIGENTE Y FLEXIBLE) ---
     const ClientPortal = ({ 
         alias,
@@ -21,6 +20,10 @@
     const [isRegistering, setIsRegistering] = useState(false);
     const [clientForm, setClientForm] = useState({ name: '', email: '', birthday: '' });
     const [currentUser, setCurrentUser] = useState(null);
+    
+    // ✅ NUEVOS ESTADOS DE INTERACTIVIDAD PARA BOTONES
+    const [isCheckingLogin, setIsCheckingLogin] = useState(false);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [isBooking, setIsBooking] = useState(false);
     
     // --- ESTADOS DEL FORMULARIO DE RESERVA ---
@@ -35,22 +38,27 @@
     const agentConfig = (settings || []).find(s => s.id === 'agent_config') || {};
     const brandingConfig = (settings || []).find(s => s.id === 'branding') || {};
 
-    // 1. LISTA DE CATEGORÍAS BLINDADA (Con auto-recuperación)
+    // 🛡️ EL SÚPER RESCATADOR DE ALIAS: Busca el alias en 4 lugares distintos para no perderlo JAMÁS
+    const actualAlias = alias 
+        || agentConfig?.tenantAlias 
+        || new URLSearchParams(window.location.search).get('local') 
+        || window.location.hash.replace('#/', '').replace('/', '').toLowerCase();
+
+    // 1. LISTA DE CATEGORÍAS BLINDADA
     const categoryList = useMemo(() => {
         let list = [];
         if (categories && categories.length > 0) {
             list = categories.map(c => typeof c === 'object' ? (c.name || c.id) : c).filter(Boolean);
         }
-        // Respaldo vital: Si no hay categorías oficiales, las extrae de los servicios que sí existen
         if (list.length === 0 && treatments && treatments.length > 0) {
             list = [...new Set((treatments || []).map(t => t?.category).filter(Boolean))];
         }
         return list;
     }, [categories, treatments]);
 
-    // 2. FILTRO DE SERVICIOS SEGURO (Ignora espacios en blanco y mayúsculas)
+    // 2. FILTRO DE SERVICIOS SEGURO
     const filteredTreatments = useMemo(() => {
-        if (!category) return treatments || []; // Si no hay categoría elegida, muestra TODOS los servicios
+        if (!category) return treatments || []; 
         return (treatments || []).filter(t => 
             String(t?.category || '').trim().toLowerCase() === String(category).trim().toLowerCase()
         );
@@ -71,7 +79,7 @@
             .sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [appointments, currentUser]);
 
-// =====================================================================
+    // =====================================================================
     // MOTOR DINÁMICO DE ENCASTRE (Con Buffer/Margen Oculto)
     // =====================================================================
     const availableSlots = useMemo(() => {
@@ -81,10 +89,9 @@
         const safeAppts = Array.isArray(appointments) ? appointments : [];
         const t = (treatments || []).find(x => x.id === treatmentId);
         
-        // 1. Calculamos el tiempo REAL que ocupará el profesional
         const baseDuration = t?.duration ? parseInt(String(t.duration).replace(/\D/g, '')) || 30 : 30;
         const marginDuration = t?.hasMargin ? (parseInt(t?.margin) || 0) : 0;
-        const totalDurationToBlock = baseDuration + marginDuration; // Este es el tamaño de la caja que buscamos
+        const totalDurationToBlock = baseDuration + marginDuration; 
 
         let capableProfs = safeProfs.filter(p => {
             if (!p?.specialties || p.specialties.length === 0) return true;
@@ -122,7 +129,6 @@
             const workStart = new Date(year, month - 1, day, pStartH, pStartM, 0);
             const workEnd = new Date(year, month - 1, day, pEndH, pEndM, 0);
             
-            // 2. Extraer los bloques ocupados SUMÁNDOLES SU PROPIO MARGEN
             const occupied = safeAppts.filter(a => {
                 if (a.status === 'cancelled' || a.id === reschedulingId) return false;
                 const aDate = new Date(a.date);
@@ -133,24 +139,21 @@
             }).map(a => {
                 const aStart = new Date(a.date);
                 const apptTr = (treatments || []).find(x => x.id === a.treatmentId);
-                // Si el turno que ya está agendado tiene margen, la agenda debe proteger ese margen
                 const aBaseDur = apptTr?.duration ? parseInt(String(apptTr.duration).replace(/\D/g, '')) || 30 : 30;
                 const aMargin = apptTr?.hasMargin ? parseInt(apptTr.margin) || 0 : 0;
                 const aTotalDur = aBaseDur + aMargin;
-                
                 return { start: aStart.getTime(), end: aStart.getTime() + (aTotalDur * 60000) };
             });
 
             let potentialStarts = [workStart.getTime()];
-            occupied.forEach(o => potentialStarts.push(o.end)); // El siguiente turno puede arrancar cuando termina el margen del anterior
+            occupied.forEach(o => potentialStarts.push(o.end)); 
             
             for(let time = workStart.getTime(); time < workEnd.getTime(); time += 30 * 60000) {
                 potentialStarts.push(time);
             }
 
-            // 3. Validar si el nuevo "bloque total" (Duración + Margen) entra en el hueco
             potentialStarts.sort().forEach(startTime => {
-                const endTime = startTime + (totalDurationToBlock * 60000); // Aquí usamos el totalDurationToBlock
+                const endTime = startTime + (totalDurationToBlock * 60000); 
                 const now = new Date().getTime();
 
                 if (startTime < now) return; 
@@ -169,14 +172,20 @@
         return Array.from(slotsSet).sort();
     }, [date, treatmentId, profId, appointments, treatments, professionals, reschedulingId]);
 
-   const handleLogin = (e) => {
+    // ✅ LOGIN CORREGIDO (CON INTERACTIVIDAD)
+    const handleLogin = (e) => {
         e.preventDefault();
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
+        
+        // Verificación de seguridad
+        if(!actualAlias) return notify("Error: El sistema no detectó a qué local intentas acceder.", "error");
 
-       // 2. Le preguntamos al servidor si este cliente existe en este local
+        setIsCheckingLogin(true); // <--- ACTIVAMOS EL BOTÓN
+
         window.google.script.run
             .withSuccessHandler(res => {
+                setIsCheckingLogin(false); // <--- DESACTIVAMOS EL BOTÓN
                 if (res.success && res.exists) {
                     setCurrentUser(res.client);
                     setIsLoggedIn(true);
@@ -188,11 +197,20 @@
                     notify("Error al verificar: " + res.message, "error");
                 }
             })
-            .checkClientPublic(alias, cleanPhone); // Automáticamente usará el alias de los props
+            .withFailureHandler(() => {
+                setIsCheckingLogin(false);
+                notify("Error de conexión con el servidor", "error");
+            })
+            .checkClientPublic(actualAlias, cleanPhone); 
     };
-const handleRegister = (e) => {
+
+    // ✅ REGISTRO CORREGIDO (CON INTERACTIVIDAD)
+    const handleRegister = (e) => {
         e.preventDefault();
-    
+        if(!actualAlias) return notify("Error: Local no identificado.", "error");
+        
+        setIsSavingProfile(true); // <--- ACTIVAMOS EL BOTÓN
+        
         const newClient = {
             id: 'CLI-' + Date.now(),
             phone: phone,
@@ -202,9 +220,9 @@ const handleRegister = (e) => {
             origin: 'web'
         };
         
-        // Enviamos al servidor para que lo guarde en la hoja 'Clients' del local
         window.google.script.run
             .withSuccessHandler(res => {
+                setIsSavingProfile(false); // <--- DESACTIVAMOS EL BOTÓN
                 if (res.success) {
                     setCurrentUser(newClient);
                     setIsRegistering(false);
@@ -214,7 +232,11 @@ const handleRegister = (e) => {
                     notify("Error al registrar: " + res.message, "error");
                 }
             })
-            .savePublicClient(alias, JSON.stringify(newClient)); 
+            .withFailureHandler(() => {
+                setIsSavingProfile(false);
+                notify("Error de conexión al registrar", "error");
+            })
+            .savePublicClient(actualAlias, JSON.stringify(newClient)); 
     };
 
     const handleInitReschedule = (appt) => {
@@ -232,8 +254,10 @@ const handleRegister = (e) => {
         setCategory(''); setTreatmentId(''); setProfId('any'); setDate(''); setTime('');
     };
 
+    // ✅ RESERVA CORREGIDA
     const handleBook = () => {
         if (!treatmentId || !date || !time) return notify("Completa todos los campos", "error");
+        if(!actualAlias) return notify("Error: Falta el identificador del local", "error");
         
         setIsBooking(true); // Bloqueamos el botón inmediatamente
 
@@ -251,17 +275,13 @@ const handleRegister = (e) => {
             origin: 'web'
         };
 
-        // ❌ BORRAMOS LA LÍNEA DEL HASH AQUÍ
-
-        // --- 2. LLAMADA AL BACKEND PÚBLICO A TRAVÉS DEL PUENTE ---
         window.google.script.run
             .withSuccessHandler((res) => {
-                setIsBooking(false); // Liberamos el botón
-                
+                setIsBooking(false); 
                 if (res.success) {
                     notify("Solicitud enviada, la confirmación te llegará via Whatsapp", "success");
                     cancelReschedule();
-                    if(refreshData) refreshData(); // Sincroniza la vista
+                    if(refreshData) refreshData(); 
                 } else if (res.message === "overlap") {
                     notify("¡Ups! Alguien acaba de reservar ese horario hace un instante. Por favor elige otro.", "error");
                     if(refreshData) refreshData(); 
@@ -274,7 +294,7 @@ const handleRegister = (e) => {
                 setIsBooking(false);
                 notify("Error de conexión con el servidor", "error");
             })
-            .savePublicAppointment(alias, JSON.stringify(newAppt)); // Usará el alias del prop
+            .savePublicAppointment(actualAlias, JSON.stringify(newAppt)); 
     };
 
     const getStatusBadge = (status) => {
@@ -301,11 +321,19 @@ const handleRegister = (e) => {
                         <form onSubmit={handleLogin} className="space-y-4">
                             <h2 className="text-2xl font-bold text-brand-text mb-2">Portal de Clientes</h2>
                             <p className="text-brand-text-light text-sm mb-8">Ingresa con tu WhatsApp.</p>
-                            <input type="tel" required placeholder="Ej: 1155554444" className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg text-center text-lg outline-none" value={phone} onChange={e => setPhone(e.target.value)} />
-                            <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-bold py-3 rounded-brand shadow-lg">Ingresar</button>
+                            <input type="tel" required placeholder="Ej: 1155554444" className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg text-center text-lg outline-none focus:border-[var(--color-primary)] transition-colors" value={phone} onChange={e => setPhone(e.target.value)} />
+                            
+                            {/* BOTÓN LOGIN INTERACTIVO */}
+                            <button type="submit" disabled={isCheckingLogin} className={`w-full text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isCheckingLogin ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
+                                {isCheckingLogin ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <Icon name="loader" size={18} className="animate-spin" /> Verificando...
+                                    </span>
+                                ) : "Ingresar"}
+                            </button>
                         </form>
                     ) : (
-                        <form onSubmit={handleRegister} className="space-y-4 text-left">
+                        <form onSubmit={handleRegister} className="space-y-4 text-left animate-fade-in">
                             <h2 className="text-xl font-bold text-brand-text mb-2 text-center">¡Bienvenido!</h2>
                             
                             <div>
@@ -325,7 +353,11 @@ const handleRegister = (e) => {
 
                             <div className="flex gap-2 pt-2">
                                 <button type="button" onClick={()=>setIsRegistering(false)} className="w-1/3 bg-gray-100 py-3 rounded-brand font-bold text-gray-600 hover:bg-gray-200 transition-colors">Atrás</button>
-                                <button type="submit" className="w-2/3 bg-[var(--color-primary)] text-white font-bold py-3 rounded-brand shadow-lg hover:opacity-90 transition-opacity">Crear Perfil</button>
+                                
+                                {/* BOTÓN REGISTRO INTERACTIVO */}
+                                <button type="submit" disabled={isSavingProfile} className={`w-2/3 text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isSavingProfile ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
+                                    {isSavingProfile ? "Creando..." : "Crear Perfil"}
+                                </button>
                             </div>
                         </form>
                     )}
@@ -346,7 +378,6 @@ const handleRegister = (e) => {
                 </div>
 
                 <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-border">
-                    {/* --- AQUÍ AGREGAMOS EL BOTÓN DE ACTUALIZAR --- */}
                     <div className="flex justify-between items-center mb-4 border-b border-brand-border pb-3">
                         <h3 className="font-bold text-lg text-brand-text">Mis Turnos</h3>
                         <button 
@@ -366,7 +397,6 @@ const handleRegister = (e) => {
                     {(myAppointments || []).length === 0 ? (
                         <div className="text-center py-6 text-brand-text-light bg-brand-bg/50 rounded-brand border border-dashed border-brand-border"><p>No tienes turnos.</p></div>
                     ) : (
-                        /* AQUI ESTA LA MAGIA DEL SCROLL: max-h-[250px] overflow-y-auto custom-scrollbar pr-2 */
                         <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                             {myAppointments.map(a => {
                                 const t = (treatments || []).find(x => x.id === a.treatmentId);
@@ -380,7 +410,7 @@ const handleRegister = (e) => {
                                         </div>
                                         <div className="flex items-center gap-3 mt-2 sm:mt-0">
                                             {getStatusBadge(a.status)}
-                                            {canReschedule && <button onClick={() => handleInitReschedule(a)} className="text-xs font-bold text-[var(--color-primary)] border border-[var(--color-primary)] px-3 py-1 rounded">Reprogramar</button>}
+                                            {canReschedule && <button onClick={() => handleInitReschedule(a)} className="text-xs font-bold text-[var(--color-primary)] border border-[var(--color-primary)] px-3 py-1 rounded hover:bg-gray-50 transition-colors">Reprogramar</button>}
                                         </div>
                                     </div>
                                 );
@@ -394,17 +424,16 @@ const handleRegister = (e) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <label className="block text-xs font-bold text-brand-text-light uppercase">1. Categoría </label>
-                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)]" value={category} onChange={e => {setCategory(e.target.value); setTreatmentId(''); setTime(''); setProfId('any');}}>
+                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" value={category} onChange={e => {setCategory(e.target.value); setTreatmentId(''); setTime(''); setProfId('any');}}>
                                 <option value="">Todas las categorías...</option>
                                 {categoryList.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                             
                             <label className="block text-xs font-bold text-brand-text-light uppercase">2. Servicio</label>
-                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)]" value={treatmentId} onChange={e => {
+                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" value={treatmentId} onChange={e => {
                                 setTreatmentId(e.target.value); 
                                 setTime(''); 
                                 setProfId('any');
-                                // Auto-selecciona la categoría si no estaba seleccionada
                                 const selectedT = (treatments || []).find(t => t.id === e.target.value);
                                 if (selectedT && !category) setCategory(selectedT.category);
                             }}>
@@ -413,22 +442,22 @@ const handleRegister = (e) => {
                             </select>
 
                             <label className="block text-xs font-bold text-brand-text-light uppercase">3. Profesional</label>
-                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)]" disabled={!treatmentId} value={profId} onChange={e => {setProfId(e.target.value); setTime('');}}>
+                            <select className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" disabled={!treatmentId} value={profId} onChange={e => {setProfId(e.target.value); setTime('');}}>
                                 <option value="any">Cualquiera (Sin preferencia)</option>
                                 {filteredProfs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
                         <div className="space-y-4">
                             <label className="block text-xs font-bold text-brand-text-light uppercase">4. Día</label>
-                            <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)]" disabled={!treatmentId} value={date} onChange={e => setDate(e.target.value)} />
+                            <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" disabled={!treatmentId} value={date} onChange={e => setDate(e.target.value)} />
                             
                             <label className="block text-xs font-bold text-brand-text-light uppercase">5. Horario</label>
                             <div className="grid grid-cols-3 gap-2 max-h-[150px] overflow-y-auto p-1 custom-scrollbar">
                                 {availableSlots.length === 0 && date ? (
-                                    <p className="col-span-3 text-xs text-center text-red-400 py-2">Sin horarios este día</p>
+                                    <p className="col-span-3 text-xs text-center text-red-400 py-2 bg-red-50 rounded-lg">Sin horarios este día</p>
                                 ) : (
                                     availableSlots.map(slot => (
-                                        <button key={slot} onClick={() => setTime(slot)} className={`py-2 rounded font-bold text-xs border transition-colors ${time === slot ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-md' : 'bg-white text-gray-600 hover:border-[var(--color-primary)]'}`}>{slot}</button>
+                                        <button key={slot} onClick={() => setTime(slot)} className={`py-2 rounded font-bold text-xs border transition-all ${time === slot ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-md scale-105' : 'bg-white text-gray-600 hover:border-[var(--color-primary)]'}`}>{slot}</button>
                                     ))
                                 )}
                             </div>
