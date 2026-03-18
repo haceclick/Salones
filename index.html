@@ -26,15 +26,47 @@
     </script>
 
     <script>
-      // Definimos la URL de tu API de Google
+      // 1. CONFIGURACIÓN GLOBAL
       window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
       window.GOOGLE_API_KEY = "AIzaSyD41bVtLZbXXymo599fsQzaioVssfdxTq4";
       
-      // Detectamos la vista por URL (ej: ?view=client)
       const urlParams = new URLSearchParams(window.location.search);
       window.INITIAL_VIEW = urlParams.get('view') || "admin";
 
-      // Configuración de Tailwind
+      // 2. PUENTE GOOGLE.SCRIPT.RUN (Traductor maestro)
+      window.google = {
+        script: {
+          run: {
+            withSuccessHandler: function(cb) { this.onSuccess = cb; return this; },
+            withFailureHandler: function(cb) { this.onFailure = cb; return this; },
+            _execute: function(action, params) {
+              const success = this.onSuccess;
+              const failure = this.onFailure;
+              fetch(window.SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, params: params })
+              })
+              .then(res => res.json())
+              .then(data => { if (success) success(data); })
+              .catch(err => { 
+                console.error("Error en " + action + ":", err);
+                if (failure) failure(err); 
+              });
+            },
+            // --- LISTA DE FUNCIONES REGISTRADAS ---
+            authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
+            getAllData: function(e) { this._execute('getAllData', [e]); },
+            saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); },
+            getAllTenants: function() { this._execute('getAllTenants', []); },
+            getAdminStats: function() { this._execute('getAdminStats', []); },
+            updateTenantStatus: function(id, s) { this._execute('updateTenantStatus', [id, s]); },
+            uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
+            deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); }
+          }
+        }
+      };
+
+      // 3. CONFIGURACIÓN TAILWIND
       tailwind.config = {
         theme: {
           extend: {
@@ -75,47 +107,6 @@
   <body>
     <div id="root"></div>
 
-    <script>
-      // 1. Configuración de URLs
-      window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
-      
-      // 2. Definición del objeto google ANTES de que carguen los componentes
-      window.google = {
-        script: {
-          run: {
-            withSuccessHandler: function(successCallback) {
-              this.onSuccess = successCallback;
-              return this;
-            },
-            withFailureHandler: function(failureCallback) {
-              this.onFailure = failureCallback;
-              return this;
-            },
-            // Función genérica que dispara el fetch
-            _execute: function(action, params) {
-              const self = this;
-              fetch(window.SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: action, params: params })
-              })
-              .then(res => res.json())
-              .then(data => {
-                if (self.onSuccess) self.onSuccess(data);
-              })
-              .catch(err => {
-                console.error("Error en " + action + ":", err);
-                if (self.onFailure) self.onFailure(err);
-              });
-            },
-            // Mapeo explícito de funciones
-            authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
-            getAllData: function(e) { this._execute('getAllData', [e]); },
-            saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); }
-          }
-        }
-      };
-    </script>
-
     <script src="js/Utils.js" type="text/babel"></script>
     <script src="js/AgentSimulator.js" type="text/babel"></script>
     <script src="js/PortalCliente.js" type="text/babel"></script>
@@ -131,7 +122,10 @@
     <script src="js/AppCode.js" type="text/babel"></script>
 
     <script>
-      setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 500);
+      // Inicialización de iconos Lucide después de la carga
+      setTimeout(function() { 
+        if (window.lucide) window.lucide.createIcons(); 
+      }, 1000);
     </script>
   </body>
 </html>
