@@ -61,7 +61,11 @@
             getAdminStats: function() { this._execute('getAdminStats', []); },
             updateTenantStatus: function(id, s) { this._execute('updateTenantStatus', [id, s]); },
             uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
-            deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); }
+            deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); },
+            
+            // ---> ¡ESTAS SON LAS NUEVAS QUE FALTABAN! <---
+            getGlobalMessages: function() { this._execute('getGlobalMessages', []); },
+            saveGlobalMessage: function(msg) { this._execute('saveGlobalMessage', [msg]); }
           }
         }
       };
