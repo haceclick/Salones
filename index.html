@@ -82,7 +82,10 @@
               const idToUse = specificId || localStorage.getItem('targetDbId');
               this._execute('getAllData', [idToUse]); 
             },
-            saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); },
+            saveData: function(e, t, d) { 
+              const specificId = localStorage.getItem('targetDbId');
+              this._execute('saveData', [e, t, d, specificId]); 
+            },
             getAllTenants: function() { this._execute('getAllTenants', []); },
             getAdminStats: function() { this._execute('getAdminStats', []); },
             updateTenantStatus: function(id, s) { this._execute('updateTenantStatus', [id, s]); },
