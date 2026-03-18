@@ -96,27 +96,18 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const getClientLink = () => {
-        // 1. Si el cliente configuró una URL manual en settings, la usamos
         if (agentConfig?.schedulerUrl) return agentConfig.schedulerUrl;
-
-        // 2. Si no, construimos la URL dinámica usando ?local= en lugar de #/
-        let baseUrl = window.location.origin + window.location.pathname;
         
-        // Si baseUrl termina en '/', se lo sacamos para evitar urls raras
-        if (baseUrl.endsWith('/')) {
-            baseUrl = baseUrl.slice(0, -1);
-        }
+        // 🔥 TRUCO: Forzamos la URL directa de Google Script para evadir el bloqueo del Iframe
+        let scriptUrl = window.SCRIPT_URL || window.location.href.split('?')[0].split('#')[0];
+        scriptUrl = scriptUrl.replace(/\/dev$/, '/exec');
         
-        // Buscamos el alias que guardamos en la columna G (ahora disponible en agentConfig)
         const alias = agentConfig?.tenantAlias;
-
         if (alias) {
-            // Retorna: https://salones.haceclick-ai.com/?local=amara
-            return `${baseUrl}?local=${alias}`;
+            // Genera: https://script.google.com/.../exec?local=amara
+            return `${scriptUrl}?local=${alias}`;
         }
-
-        // Fallback: si no hay alias, mandamos al home
-        return baseUrl;
+        return scriptUrl;
     };
 
     const openWhatsAppApp = (phone, text) => {
