@@ -15,7 +15,43 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [forcePassUser, setForcePassUser] = useState(null);
     const [newPassword, setNewPassword] = useState('');
     const [isChangingPass, setIsChangingPass] = useState(false);
+    
+    // 1. Nuevos estados para manejar el portal público
+    const [publicData, setPublicData] = React.useState(null);
+    const [publicError, setPublicError] = React.useState('');
 
+    // 2. El Detective de URLs (Se ejecuta apenas abre la página)
+    React.useEffect(() => {
+        // Leemos qué dice la barra de direcciones
+        const hash = window.location.hash; 
+        
+        // Si el enlace tiene un "#/" (Ej: #/amara)
+        if (hash && hash.startsWith('#/')) {
+            // Extraemos solo la palabra "amara"
+            const alias = hash.replace('#/', '').toLowerCase();
+            
+            // Cambiamos la vista a una pantalla de carga pública
+            setView('public_loading'); 
+            
+            // Llamamos al backend a través de nuestro puente
+            window.google.script.run
+                .withSuccessHandler(res => {
+                    if (res.success) {
+                        setPublicData(res);
+                        setView('public_portal'); // <--- AHORA MOSTRAMOS EL PORTAL DE TURNOS
+                    } else {
+                        setPublicError(res.message);
+                        setView('public_error'); // <--- MOSTRAMOS ERROR SI EL LOCAL NO EXISTE
+                    }
+                })
+                .withFailureHandler(err => {
+                    setPublicError("Error de conexión.");
+                    setView('public_error');
+                })
+                .getPublicData(alias);
+        }
+    }, []); // El array vacío significa que esto solo ocurre 1 vez al abrir la web
+    
     const handleSuccessLogin = (userOrComp) => {
         if (userOrComp.spreadsheetId) {
             localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
