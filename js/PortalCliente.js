@@ -271,7 +271,7 @@
             treatmentId: treatmentId,
             professionalId: profId || 'any',
             date: isoDate,
-            status: 'pending_payment', // <--- CAMBIO AQUÍ: Siempre entra a revisión primero
+            status: 'pending_payment', // <--- ASÍ DEBE QUEDAR (Borrando la condición)
             origin: 'web'
         };
 
