@@ -14,9 +14,13 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [isChangingPass, setIsChangingPass] = useState(false);
 
     const handleSuccessLogin = (userOrComp) => {
-        if (userOrComp.spreadsheetId) {
+        // Solo guarda el ID si es un código largo válido
+        if (userOrComp.spreadsheetId && userOrComp.spreadsheetId.length > 20) {
             localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
+        } else {
+            localStorage.removeItem('targetDbId');
         }
+
         if (userOrComp.needsPasswordChange) {
             setForcePassUser(userOrComp);
             setView('force_password');
@@ -865,12 +869,18 @@ const App = () => {
         setCurrentUser(userOrComp);
     };
 
-    // ✅ NUEVA: refreshData — recarga todos los datos desde el backend
+    // ✅ NUEVA: refreshData (CON ANTÍDOTO PARA MEMORIA CORRUPTA)
     const refreshData = () => {
         const emailToUse = currentUser?.adminEmail || currentUser?.email || tenantId;
         if (!emailToUse) return;
 
-        const dbId = localStorage.getItem('targetDbId');
+        let dbId = localStorage.getItem('targetDbId');
+        
+        // 🛡️ ESCUDO: Si el ID guardado es un correo electrónico o está mal, lo borramos
+        if (dbId && (dbId.includes('@') || dbId.length < 20)) {
+            localStorage.removeItem('targetDbId');
+            dbId = null;
+        }
 
         google.script.run
             .withSuccessHandler((res) => {
@@ -893,7 +903,6 @@ const App = () => {
             .withFailureHandler((err) => {
                 setLoadingData(false);
                 addToast('Error de conexión al cargar datos', 'error');
-                console.error('refreshData error:', err);
             })
             .getAllData(emailToUse, dbId);
     };
