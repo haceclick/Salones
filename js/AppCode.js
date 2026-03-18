@@ -921,9 +921,9 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
 
 const App = () => {
+    // --- 1. TUS ESTADOS ORIGINALES (INTACTOS) ---
     const [mode, setMode] = useState('admin');
     const [tenantId, setTenantId] = useState(null); 
-    
     const [currentUser, setCurrentUser] = useState(null); 
     const [data, setData] = useState({ clients:[], treatments:[], appointments:[], categories:[], professionals:[], settings:[], notifications:[], adminMessages:[] });
     const [loadingData, setLoadingData] = useState(true); 
@@ -932,7 +932,11 @@ const App = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
     
-    // ESCUDO ANDROID Y BRANDING LOCAL
+    // NUEVOS ESTADOS PARA EL PORTAL PÚBLICO
+    const [publicData, setPublicData] = useState(null);
+    const [publicError, setPublicError] = useState('');
+
+    // --- 2. TUS FUNCIONES ORIGINALES ---
     const [brandConfig, setBrandConfig] = useState(() => {
         try {
             const saved = localStorage.getItem('localBranding');
@@ -947,41 +951,33 @@ const App = () => {
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
     };
 
-    // --- FUNCIÓN DE LOGUEO ---
     const handleLogin = (u) => { 
         if (u.branding) {
             setBrandConfig(u.branding);
             try { localStorage.setItem('localBranding', JSON.stringify(u.branding)); } catch(e) {}
-            
             const root = document.documentElement;
             if (u.branding.primaryColor) root.style.setProperty('--color-primary', u.branding.primaryColor);
             if (u.branding.sidebarBg) root.style.setProperty('--color-sidebar-bg', u.branding.sidebarBg);
             if (u.branding.sidebarText) root.style.setProperty('--color-sidebar-text', u.branding.sidebarText);
             if (u.branding.sidebarActive) root.style.setProperty('--color-sidebar-active', u.branding.sidebarActive);
         }
-
         setCurrentUser(u); 
-        
         if (u.isMasterPanel) {
             setCurrentView('superadmin');
-            // AQUÍ: Como Súper Admin, SÍ le decimos que cargue los datos (para leer el logo y los colores de la base maestra)
             setLoadingData(true); 
         } else {
             setLoadingData(true);
         }
     };
 
-    // --- FUNCIÓN DE CARGA (REFRESH) ---
     const refreshData = () => {
         if (window.isSavingData) return;
-
         let emailToLoad = null;
         if (mode === 'client' && tenantId) {
             emailToLoad = tenantId;
         } else if (currentUser) {
             emailToLoad = currentUser.adminEmail || currentUser.email;
         }
-
         if (!emailToLoad) return;
 
         google.script.run
@@ -991,7 +987,6 @@ const App = () => {
                     setLoadingData(false);
                     return;
                 }
-                
                 setData({
                     clients: d?.clients || [],
                     treatments: d?.treatments || [],
@@ -1002,9 +997,7 @@ const App = () => {
                     notifications: d?.notifications || [],
                     adminMessages: d?.adminMessages || []
                 });
-                
                 setLoadingData(false); 
-                // Console.log eliminado para limpieza de consola
             })
             .withFailureHandler((err) => {
                 addToast("Fallo de conexión con Google", "error");
@@ -1013,24 +1006,19 @@ const App = () => {
             .getAllData(emailToLoad); 
     };
 
-    // --- FUNCIÓN DE GUARDADO ---
     const save = (key, value) => { 
         window.isSavingData = true;
-        
         let emailToSave = null;
         if (mode === 'client' && tenantId) {
             emailToSave = tenantId;
         } else if (currentUser) {
             emailToSave = currentUser.adminEmail || currentUser.email;
         }
-
         if (!emailToSave) {
             window.isSavingData = false;
             return;
         }
-
         setData(prev => ({ ...prev, [key]: value })); 
-        
         google.script.run
             .withSuccessHandler(() => { 
                 setTimeout(() => window.isSavingData = false, 2000); 
@@ -1042,62 +1030,42 @@ const App = () => {
             .saveData(emailToSave, key, JSON.stringify(value));
     };
 
-// --- EFECTO 1: LECTURA DE URL (VERSIÓN WEB/GITHUB) ---
+    // --- 3. TUS EFECTOS INTEGRADOS ---
+
+    // EFECTO 1: URL (INTEGRACIÓN GITHUB HASH + PARAMS)
     useEffect(() => { 
-        // Leemos los parámetros directamente de la barra de direcciones del navegador
+        const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
         const view = params.get('view');
         const tenant = params.get('tenant');
 
-        if (view === 'client') {
+        // NUEVO: Lógica de Hash para Portal Profesional (#/amara)
+        if (hash && hash.startsWith('#/')) {
+            const alias = hash.replace('#/', '').toLowerCase();
+            setMode('public_portal');
+            setLoadingData(true);
+            google.script.run
+                .withSuccessHandler(res => {
+                    if (res.success) {
+                        setPublicData(res);
+                    } else {
+                        setPublicError(res.message);
+                        setMode('public_error');
+                    }
+                    setLoadingData(false);
+                })
+                .getPublicData(alias);
+        } 
+        // Lógica original de parámetros
+        else if (view === 'client') {
             setMode('client');
             if (tenant) setTenantId(tenant);
         } else {
-            // Si no es cliente, asumimos que es admin o carga normal
             setLoadingData(false); 
-        }
-
-        // --- VISTAS DEL PORTAL PÚBLICO (CLIENTES) ---
-        if (view === 'public_loading') {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-[var(--color-primary)] font-bold text-xl">
-                    <Icon name="loader" className="animate-spin mr-2"/> Cargando portal de turnos...
-                </div>
-            );
-        }
-    
-        if (view === 'public_error') {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500 font-bold text-xl p-8 text-center">
-                    {publicError || 'Lo sentimos, este enlace no es válido o el local no existe.'}
-                </div>
-            );
-        }
-    
-        if (view === 'public_portal' && publicData) {
-            return (
-                <ClientPortal 
-                    // Pasamos la data que el "Detective" trajo de la base de Amara
-                    treatments={publicData.treatments}
-                    professionals={publicData.professionals}
-                    categories={publicData.categories}
-                    settings={publicData.settings} // <--- ¡AQUÍ ESTÁN LOS COLORES Y EL LOGO!
-                    appointments={publicData.appointments}
-                    
-                    // Funciones de apoyo
-                    notify={notify}
-                    refreshData={() => {
-                        const alias = window.location.hash.replace('#/', '').toLowerCase();
-                        window.google.script.run.withSuccessHandler(res => {
-                            if (res.success) setPublicData(res);
-                        }).getPublicData(alias);
-                    }}
-                />
-            );
         }
     }, []);
 
-    // --- EFECTO 2: CARGA INICIAL ---
+    // EFECTO 2: CARGA INICIAL
     useEffect(() => {
         if (currentUser || (mode === 'client' && tenantId)) {
             setLoadingData(true);
@@ -1105,118 +1073,89 @@ const App = () => {
         }
     }, [currentUser, tenantId]);
 
-    // --- EFECTO 3: RADAR INTELIGENTE ---
+    // EFECTO 3: RADAR INTELIGENTE
     useEffect(() => {
-        // Regla 1: No radar para SuperAdmin ni para Portal de Clientes
-        if (!currentUser || currentUser.isMasterPanel || mode === 'client') return;
-
-        // Regla 2: Configuración del Radar (1 minuto = 60000ms)
+        if (!currentUser || currentUser.isMasterPanel || mode === 'client' || mode === 'public_portal') return;
         const RADAR_INTERVAL = 60000;
         let radarId = setInterval(() => {
-            // Solo sincroniza si la pestaña del navegador está activa (visible)
-            if (document.visibilityState === 'visible') {
-                refreshData();
-            }
+            if (document.visibilityState === 'visible') refreshData();
         }, RADAR_INTERVAL);
-
-        // Regla 3: Sincronización inmediata al volver a la pestaña
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && !window.isSavingData) {
-                // Al volver de otra pestaña, hace un refresh automático
-                refreshData();
-            }
+            if (document.visibilityState === 'visible' && !window.isSavingData) refreshData();
         };
-
         document.addEventListener("visibilitychange", handleVisibilityChange);
-
         return () => {
             clearInterval(radarId);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [currentUser, mode, tenantId]);
 
-
-    // BRANDING
-    // --- BRANDING INTELIGENTE ---
+    // EFECTO 4: BRANDING INTELIGENTE (ADAPTADO)
     useEffect(() => {
-        if (!data || !data.settings || !Array.isArray(data.settings)) return;
+        let targetSettings = (mode === 'public_portal' && publicData) ? publicData.settings : data.settings;
+        if (!targetSettings || !Array.isArray(targetSettings)) return;
+        
         let targetBranding = null;
-
-        // 1. SI ES EL MODO ADMINISTRACIÓN (SUPER ADMIN), BUSCAMOS EN LA BASE MAESTRA
         if (currentUser?.isMasterPanel) {
-            targetBranding = data.settings.find(s => s.id === 'branding');
-            
-            // Si la base maestra está vacía, usamos los colores por defecto de HaceClick
+            targetBranding = targetSettings.find(s => s.id === 'branding');
             if (!targetBranding || !targetBranding.primaryColor) {
-                targetBranding = {
-                    primaryColor: '#008395',
-                    sidebarBg: '#1e293b',
-                    sidebarText: '#9ca3af',
-                    sidebarActive: '#ffffff',
-                    logoBase64: 'https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png'
-                };
+                targetBranding = { primaryColor: '#008395', sidebarBg: '#1e293b', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: 'https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png' };
             }
-        } 
-        // 2. SI ES UN LOCAL NORMAL O EL PORTAL DE CLIENTES, LEEMOS SU DB
-        else if (mode === 'admin' && currentUser) {
-            if (currentUser.role === 'admin' || currentUser.role === 'manager') {
-                targetBranding = data.settings.find(s => s.adminEmail === currentUser.email);
-            } else if (currentUser.role === 'professional') {
-                targetBranding = data.settings.find(s => s.adminEmail === currentUser.adminEmail);
-            }
-        } else if (mode === 'client' && tenantId) {
-            targetBranding = data.settings.find(s => s.adminEmail === tenantId);
+        } else if (mode === 'admin' && currentUser) {
+            targetBranding = targetSettings.find(s => s.adminEmail === (currentUser.adminEmail || currentUser.email));
+        } else if ((mode === 'client' || mode === 'public_portal')) {
+            targetBranding = targetSettings.find(s => s.id === 'branding');
         }
 
-        if (!targetBranding) targetBranding = data.settings.find(s => s.primaryColor);
+        if (!targetBranding) targetBranding = targetSettings.find(s => s.primaryColor);
 
         if (targetBranding && targetBranding.primaryColor) {
             setBrandConfig(targetBranding);
-            try { localStorage.setItem('localBranding', JSON.stringify(targetBranding)); } catch(e) {}
             const root = document.documentElement;
             root.style.setProperty('--color-primary', targetBranding.primaryColor);
             root.style.setProperty('--color-sidebar-bg', targetBranding.sidebarBg);
             root.style.setProperty('--color-sidebar-text', targetBranding.sidebarText || '#9ca3af');
             root.style.setProperty('--color-sidebar-active', targetBranding.sidebarActive || '#ffffff');
         }
-    }, [data, currentUser, mode, tenantId]);
+    }, [data, publicData, currentUser, mode, tenantId]);
 
-    // RENDERIZADO
+    // --- 4. RENDERIZADO (ORDEN DE PRIORIDAD) ---
+
     if (loadingData) return <div className="h-screen flex items-center justify-center bg-white"><img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" /></div>;
-    
-    if (!data) return <div className="flex h-screen w-full items-center justify-center bg-gray-50"><div className="text-gray-500 font-bold animate-pulse flex flex-col items-center gap-2"><Icon name="loader" className="animate-spin" size={32} /> Cargando datos...</div></div>;
 
-    if (mode === 'client') return (
-        <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
-            <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-            <ClientPortal 
-                    // 🪄 TODO DEBE SALIR DE publicData (la data que trajo el "Detective")
+    // ERROR EN PORTAL PÚBLICO
+    if (mode === 'public_error') return <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
+
+    // VISTA PORTAL PROFESIONAL (NUEVO)
+    if (mode === 'public_portal' && publicData) {
+        return (
+            <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+                <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
+                <ClientPortal 
                     appointments={publicData.appointments} 
                     treatments={publicData.treatments} 
                     professionals={publicData.professionals} 
                     categories={publicData.categories}
                     settings={publicData.settings}
-                    
-                    // El portal de clientes NO necesita ni debe ver:
-                    // clients={[]} (Se maneja por el login seguro que creamos)
-                    // notifications={[]} 
-                    
-                    // Funciones de guardado y avisos
                     notify={addToast} 
-                    
-                    // Refresco de datos especial para el portal público
                     refreshData={() => {
                         const alias = window.location.hash.replace('#/', '').toLowerCase();
-                        window.google.script.run
-                            .withSuccessHandler(res => {
-                                if (res.success) setPublicData(res);
-                            })
-                            .getPublicData(alias);
+                        google.script.run.withSuccessHandler(res => { if (res.success) setPublicData(res); }).getPublicData(alias);
                     }}
                 />
+            </div>
+        );
+    }
+
+    // VISTA CLIENTE (LINK VIEJO)
+    if (mode === 'client') return (
+        <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+            <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
+            <ClientPortal {...data} saveAppointments={d => save('appointments', d)} saveClients={d => save('clients', d)} saveNotifications={d => save('notifications', d)} notify={addToast} refreshData={refreshData} />
         </div>
     );
 
+    // VISTA LOGIN
     if (!currentUser) return (
         <div className="flex h-screen bg-gray-100 font-sans overflow-hidden text-center">
             <ToastContainer toasts={toasts} removeToast={id => setToasts(p => p.filter(t => t.id !== id))} />
@@ -1224,6 +1163,7 @@ const App = () => {
         </div>
     );
 
+    // VISTA ADMIN (TUS RUTAS ORIGINALES COMPLETAS)
     return (
         <div className="flex h-screen bg-gray-50 font-sans overflow-hidden relative">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
@@ -1231,48 +1171,15 @@ const App = () => {
             <Sidebar currentView={currentView} setCurrentView={setCurrentView} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} user={currentUser} customLogo={brandConfig.logoBase64} brandConfig={brandConfig} />
             <main className="flex-1 relative overflow-y-auto flex flex-col bg-white custom-scrollbar">
                 <div className="flex-1">
-                    {currentView === 'dashboard' && <Dashboard {...data} saveAppointments={d => save('appointments', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} />}
-                    {currentView === 'agenda' && <Agenda {...data} saveAppointments={d => save('appointments', d)} notify={addToast} targetApptId={targetApptId} clearTargetAppt={() => setTargetApptId(null)} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} userRole={currentUser.role} refreshData={refreshData} />}                    {currentView === 'clients' && <Clients {...data} saveClients={d => save('clients', d)} notify={addToast} />}
+                    {currentView === 'dashboard' && <Dashboard {...data} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
+                    {currentView === 'agenda' && <Agenda {...data} saveAppointments={d => save('appointments', d)} notify={addToast} targetApptId={targetApptId} clearTargetAppt={() => setTargetApptId(null)} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} userRole={currentUser.role} refreshData={refreshData} />}
+                    {currentView === 'clients' && <Clients {...data} saveClients={d => save('clients', d)} notify={addToast} />}
                     {currentView === 'professionals' && <Professionals list={data.professionals} setList={d => save('professionals', d)} notify={addToast} categories={data.categories} user={currentUser} />}
-                    {currentView === 'treatments' && (
-                        <Treatments 
-                            treatments={data.treatments} 
-                            setTreatments={d => setData(prev => ({...prev, treatments: d}))} 
-                            saveTreatments={d => save('treatments', d)} 
-                            categories={data.categories} 
-                            setCategories={d => setData(prev => ({...prev, categories: d}))} 
-                            saveCategories={d => save('categories', d)} 
-                            notify={addToast} 
-                            settings={data.settings} 
-                        />
-                    )}
-                    {currentView === 'billing' && (
-                        <Billing 
-                            {...data} 
-                            saveSettings={d => save('settings', d)} 
-                            notify={addToast} 
-                            user={currentUser} // <-- ESTA LÍNEA ES VITAL
-                        />
-                    )}
+                    {currentView === 'treatments' && <Treatments treatments={data.treatments} setTreatments={d => setData(prev => ({...prev, treatments: d}))} saveTreatments={d => save('treatments', d)} categories={data.categories} setCategories={d => setData(prev => ({...prev, categories: d}))} saveCategories={d => save('categories', d)} notify={addToast} settings={data.settings} />}
+                    {currentView === 'billing' && <Billing {...data} saveSettings={d => save('settings', d)} notify={addToast} user={currentUser} />}
                     {currentView === 'stats' && <Statistics {...data} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} />}
-                    {currentView === 'support' && (
-                        <SupportPanel 
-                            settings={data.settings} 
-                            saveSettings={d => save('settings', d)} 
-                            user={currentUser} 
-                            notify={addToast} 
-                        />
-                    )}
-                    {currentView === 'settings' && (
-                        <LocalSettings 
-                            settings={data.settings} 
-                            setSettings={d => setData(prev => ({...prev, settings: d}))} 
-                            targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email}
-                            notify={addToast} 
-                            updateBrandingState={b => setBrandConfig(b)} 
-                            user={currentUser} 
-                        />
-                    )}
+                    {currentView === 'support' && <SupportPanel settings={data.settings} saveSettings={d => save('settings', d)} user={currentUser} notify={addToast} />}
+                    {currentView === 'settings' && <LocalSettings settings={data.settings} setSettings={d => setData(prev => ({...prev, settings: d}))} targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email} notify={addToast} updateBrandingState={b => setBrandConfig(b)} user={currentUser} />}
                     {currentView === 'agent' && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
                     {currentView === 'superadmin' && <SuperAdminPanel notify={addToast} user={currentUser} />}
                 </div>
