@@ -250,7 +250,7 @@
             treatmentId: treatmentId,
             professionalId: profId || 'any',
             date: isoDate,
-            status: agentConfig?.requireDeposit ? 'reserved' : 'pending_payment', 
+            status: agentConfig?.requireDeposit ? 'awaiting_deposit' : 'pending_payment',
             origin: 'web'
         };
 
