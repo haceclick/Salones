@@ -235,12 +235,12 @@ const ClientPortal = ({ clients = [], appointments = [], treatments = [], catego
             origin: 'web'
         };
 
-        // Obtenemos el email/tenant desde la URL, o forzamos el mail del manager por defecto
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetEmail = urlParams.get('tenant') || "monica@gmail.com";
+        // --- 1. NUEVO DETECTIVE DE URL ---
+        // Leemos la palabra exacta después del #/ (ej: "amara")
+        const alias = window.location.hash.replace('#/', '').toLowerCase();
 
-        // LLAMADA AL BACKEND CON ESCUDO ANTI-DUPLICADOS
-        google.script.run
+        // --- 2. LLAMADA AL BACKEND PÚBLICO A TRAVÉS DEL PUENTE ---
+        window.google.script.run
             .withSuccessHandler((res) => {
                 setIsBooking(false); // Liberamos el botón
                 
@@ -249,10 +249,9 @@ const ClientPortal = ({ clients = [], appointments = [], treatments = [], catego
                     cancelReschedule();
                     if(refreshData) refreshData(); // Sincroniza la vista
                 } else if (res.message === "overlap") {
-                    // EL ESCUDO DETECTÓ QUE EL TURNO SE OCUPÓ HACE MILISEGUNDOS
                     notify("¡Ups! Alguien acaba de reservar ese horario hace un instante. Por favor elige otro.", "error");
-                    if(refreshData) refreshData(); // Actualiza para mostrar los huecos reales
-                    setTime(''); // Limpia la selección de hora
+                    if(refreshData) refreshData(); 
+                    setTime(''); 
                 } else {
                     notify("Error al reservar: " + res.message, "error");
                 }
@@ -261,7 +260,7 @@ const ClientPortal = ({ clients = [], appointments = [], treatments = [], catego
                 setIsBooking(false);
                 notify("Error de conexión con el servidor", "error");
             })
-            .safeBookAppointment(targetEmail, JSON.stringify(newAppt));
+            .savePublicAppointment(alias, JSON.stringify(newAppt)); // Usamos la nueva ruta segura
     };
 
     const getStatusBadge = (status) => {
