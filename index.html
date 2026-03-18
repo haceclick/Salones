@@ -9,22 +9,13 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- ✅ CORRECCIÓN: Solo UMD, eliminado el importmap que generaba conflicto -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script type="importmap">
-    {
-      "imports": {
-        "@google/genai": "https://esm.sh/@google/genai",
-        "lucide-react": "https://esm.sh/lucide-react@0.292.0",
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0"
-      }
-    }
-    </script>
+    <!-- ✅ @google/genai se importa como módulo solo donde se necesite, no globalmente -->
 
     <script>
       window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
@@ -33,7 +24,6 @@
       const urlParams = new URLSearchParams(window.location.search);
       window.INITIAL_VIEW = urlParams.get('view') || "admin";
 
-      // 2. PUENTE GOOGLE.SCRIPT.RUN (Blindado con Tokens)
       window.google = {
         script: {
           run: {
@@ -44,7 +34,6 @@
               const success = this.onSuccess;
               const failure = this.onFailure;
               
-              // Armamos el paquete inyectando siempre la seguridad
               const payload = {
                 action: action,
                 params: params,
@@ -60,7 +49,6 @@
               })
               .then(res => res.json())
               .then(data => { 
-                // Si el login fue un éxito, guardamos la llave secreta en el navegador
                 if (action === 'authenticateUser' && data.success && data.token) {
                   localStorage.setItem('adminEmail', params[0]);
                   localStorage.setItem('sessionToken', data.token);
@@ -73,34 +61,59 @@
               });
             },
             
-            // --- LISTA DE FUNCIONES (Ya no necesitan trucos manuales) ---
+            // --- AUTENTICACIÓN ---
             authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
+            recoverPassword: function(email) { this._execute('recoverPassword', [email]); },
+            updateUserPassword: function(email, newPass) { this._execute('updateUserPassword', [email, newPass]); },
+
+            // --- DATOS GENERALES ---
             getAllData: function(email, specificId) { 
-              // Lo guardamos en memoria por si refrescas la página
               if (specificId) localStorage.setItem('targetDbId', specificId);
-              
               const idToUse = specificId || localStorage.getItem('targetDbId');
-              this._execute('getAllData', [idToUse]); 
+              // ✅ CORRECCIÓN: mandamos ambos parámetros que espera el backend
+              this._execute('getAllData', [email, idToUse]); 
             },
             saveData: function(e, t, d) { 
               const specificId = localStorage.getItem('targetDbId');
               this._execute('saveData', [e, t, d, specificId]); 
             },
-            getAllTenants: function() { this._execute('getAllTenants', []); },
-            getAdminStats: function() { this._execute('getAdminStats', []); },
-            updateTenantStatus: function(id, s) { this._execute('updateTenantStatus', [id, s]); },
-            uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
             deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); },
-            getGlobalMessages: function() { this._execute('getGlobalMessages', []); },
-            saveGlobalMessage: function(msg) { this._execute('saveGlobalMessage', [msg]); },
-            ggetShortUrl: function(longUrl) { this._execute('getShortUrl', [longUrl]); }, 
+
+            // --- SUPER ADMIN ---
+            getAllTenants: function(adminEmail) { this._execute('getAllTenants', [adminEmail]); },
+            createNewTenant: function(email, pass, name, rubro, adminEmail) { this._execute('createNewTenant', [email, pass, name, rubro, adminEmail]); },
+            updateTenant: function(adminEmail, sheetId, name, pass) { this._execute('updateTenant', [adminEmail, sheetId, name, pass]); },
+            deleteTenant: function(adminEmail, sheetId) { this._execute('deleteTenant', [adminEmail, sheetId]); },
+
+            // ✅ CORRECCIÓN: getGlobalMessages ahora manda el email del admin
+            getGlobalMessages: function(adminEmail) { this._execute('getGlobalMessages', [adminEmail]); },
+            // ✅ CORRECCIÓN: saveGlobalMessagesList recibe la lista completa
+            saveGlobalMessagesList: function(adminEmail, msgsArray) { this._execute('saveGlobalMessagesList', [adminEmail, msgsArray]); },
+
+            // --- PROFESIONALES ---
+            saveProfessionalWithUser: function(email, json) { this._execute('saveProfessionalWithUser', [email, json]); },
+            deleteProfessionalAndUser: function(email, profId) { this._execute('deleteProfessionalAndUser', [email, profId]); },
+
+            // --- ARCHIVOS / LOGOS ---
+            uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
+
+            // --- SOPORTE ---
+            sendSupportEmail: function(to, from, local, body) { this._execute('sendSupportEmail', [to, from, local, body]); },
+
+            // --- PORTAL PÚBLICO ---
             getPublicData: function(alias) { this._execute('getPublicData', [alias]); },
             checkClientPublic: function(alias, phone) { this._execute('checkClientPublic', [alias, phone]); },
-            savePublicAppointment: function(alias, apptJson) { this._execute('savePublicAppointment', [alias, apptJson]); }
+            // ✅ CORRECCIÓN: función que faltaba para registrar cliente nuevo
+            savePublicClient: function(alias, clientJson) { this._execute('savePublicClient', [alias, clientJson]); },
+            savePublicAppointment: function(alias, apptJson) { this._execute('savePublicAppointment', [alias, apptJson]); },
+
+            // --- EXTRAS ---
+            getShortUrl: function(longUrl) { this._execute('getShortUrl', [longUrl]); },
+            getAdminStats: function() { this._execute('getAdminStats', []); },
           }
         }
       };
-      // 3. CONFIGURACIÓN TAILWIND
+
       tailwind.config = {
         theme: {
           extend: {
@@ -152,11 +165,9 @@
     <script src="js/Facturacion.js" type="text/babel"></script>
     <script src="js/Statistics.js" type="text/babel"></script>
     <script src="js/LocalSettings.js" type="text/babel"></script>
-    
     <script src="js/AppCode.js" type="text/babel"></script>
 
     <script>
-      // Inicialización de iconos Lucide después de la carga
       setTimeout(function() { 
         if (window.lucide) window.lucide.createIcons(); 
       }, 1000);
