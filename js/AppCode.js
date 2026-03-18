@@ -1,26 +1,22 @@
-// --- 1. COMPONENTE DE LOGIN (LIMPIO Y SIN ERRORES) ---
+// --- 1. COMPONENTE DE LOGIN ---
 const LoginScreen = ({ onLogin, notify }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isChecking, setIsChecking] = useState(false);
     const [availableCompanies, setAvailableCompanies] = useState([]);
     
-    // Estados de vistas: 'login', 'recover', 'force_password'
     const [view, setView] = useState('login'); 
     const [recoverEmail, setRecoverEmail] = useState('');
     const [isRecovering, setIsRecovering] = useState(false);
 
-    // Estado para forzar cambio
     const [forcePassUser, setForcePassUser] = useState(null);
     const [newPassword, setNewPassword] = useState('');
     const [isChangingPass, setIsChangingPass] = useState(false);
 
-    // --- FUNCIÓN DE ÉXITO (CORREGIDA) ---
     const handleSuccessLogin = (userOrComp) => {
         if (userOrComp.spreadsheetId) {
             localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
         }
-
         if (userOrComp.needsPasswordChange) {
             setForcePassUser(userOrComp);
             setView('force_password');
@@ -82,7 +78,6 @@ const LoginScreen = ({ onLogin, notify }) => {
             .updateUserPassword(forcePassUser.email, newPassword);
     };
 
-    // --- RENDERIZADO DE SELECCIÓN DE EMPRESA ---
     if (availableCompanies.length > 0 && view !== 'force_password') {
         const isSuper = availableCompanies[0]?.isSuperAdmin;
         return (
@@ -113,14 +108,17 @@ const LoginScreen = ({ onLogin, notify }) => {
                         </div>
                     )}
 
-                    <h3 className="font-bold text-gray-800 text-sm mb-4 uppercase tracking-widest flex items-center gap-2 justify-center"><span className="h-[1px] w-8 bg-gray-200"></span>{isSuper ? 'O entrar a un Local' : 'Selecciona tu Empresa'}<span className="h-[1px] w-8 bg-gray-200"></span></h3>
+                    <h3 className="font-bold text-gray-800 text-sm mb-4 uppercase tracking-widest flex items-center gap-2 justify-center">
+                        <span className="h-[1px] w-8 bg-gray-200"></span>
+                        {isSuper ? 'O entrar a un Local' : 'Selecciona tu Empresa'}
+                        <span className="h-[1px] w-8 bg-gray-200"></span>
+                    </h3>
 
-                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                         {availableCompanies.map((comp, idx) => {
                             const nombre = comp.businessName || "";
                             if (nombre === "haceclick-ai" || nombre === "d/mm/yyyy") return null;
                             if (isSuper && !comp.spreadsheetId) return null;
-
                             return (
                                 <button key={idx} onClick={() => handleSuccessLogin(comp)} className="w-full p-4 border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-[#008395] transition-all flex items-center justify-between group">
                                     <div className="text-left"><p className="font-bold text-gray-700">{comp.businessName || "Empresa"}</p></div>
@@ -135,7 +133,6 @@ const LoginScreen = ({ onLogin, notify }) => {
         );
     }
 
-    // --- RENDERIZADO DE LOGIN/RECOVER/FORCE ---
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 p-4 text-center">
             <div className="bg-white p-10 rounded-[25px] shadow-2xl w-full max-w-[380px]">
@@ -170,17 +167,10 @@ const LoginScreen = ({ onLogin, notify }) => {
             </div>
         </div>
     );
-}; // <--- LLAVE DE CIERRE FINAL DE LOGINSCREEN
+};
+
 // --- 2. SIDEBAR ---
 const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig }) => {
-
-    const getClientLink = () => {
-        let url = window.SCRIPT_URL || window.location.href.split('?')[0];
-        url = url.replace(/\/dev$/, '/exec');
-        let tenantEmail = (user?.role === 'professional') ? user.adminEmail : user.email;
-        const tenantParam = tenantEmail ? `&tenant=${encodeURIComponent(tenantEmail)}` : '';
-        return url.includes('?') ? `${url}&view=client${tenantParam}` : `${url}?view=client${tenantParam}`;
-    };
 
     const menuItems = [
         { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager'] },
@@ -208,7 +198,6 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                 )}
             </div>
 
-            {/* ZONA DE SCROLL: Menús principales */}
             <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto custom-scrollbar">
                 {menuItems.map(item => {
                     const isActive = currentView === item.id;
@@ -227,7 +216,6 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                 })}
             </nav>
 
-            {/* ZONA INFERIOR FIJA: Botón de Soporte SEPARADO */}
             <div className="px-4 py-3 border-t mt-2" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                 <button 
                     onClick={() => { setCurrentView('support'); setIsOpen(false); }} 
@@ -242,7 +230,6 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                 </button>
             </div>
 
-            {/* ZONA INFERIOR FIJA: Perfil de Usuario y Logout */}
             <div className="p-4 border-t flex items-center justify-between gap-3" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div 
@@ -283,25 +270,20 @@ const AgentBuilderWrapper = (props) => {
     return <Component {...props} />;
 };
 
-
-// --- 3. APP PRINCIPAL (SÚPER ADMIN PANEL) ---
+// --- 3. SUPER ADMIN PANEL ---
 const SuperAdminPanel = ({ notify, user }) => {
-    // ESTADOS CREAR
     const [form, setForm] = useState({ email: '', pass: '', name: '', rubro: '' });
     const [loading, setLoading] = useState(false);
     
-    // ESTADOS MENSAJERÍA GLOBAL
     const [messages, setMessages] = useState([]);
     const [msgForm, setMsgForm] = useState({ target: 'ALL', title: '', message: '' });
     const [sendingMsg, setSendingMsg] = useState(false);
     const [editingMsgId, setEditingMsgId] = useState(null);
 
-    // ESTADOS GESTIONAR (TABLA)
     const [tenants, setTenants] = useState([]);
     const [loadingList, setLoadingList] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', pass: '' });
-    
     const [deleteTarget, setDeleteTarget] = useState(null);
 
     useEffect(() => { 
@@ -443,7 +425,6 @@ const SuperAdminPanel = ({ notify, user }) => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* FORMULARIO CREAR CLIENTE */}
                 <div>
                     <h2 className="text-3xl font-bold text-gray-800 mb-6">Alta de Nuevo Cliente</h2>
                     <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
@@ -481,7 +462,6 @@ const SuperAdminPanel = ({ notify, user }) => {
                     </div>
                 </div>
 
-                {/* MENSAJERÍA GLOBAL (CON HISTORIAL) */}
                 <div id="msg-form">
                     <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2"><Icon name="message-square" className="text-blue-500"/> Notificaciones</h2>
                     <div className="bg-blue-50 p-6 rounded-2xl shadow-lg border border-blue-100">
@@ -513,7 +493,6 @@ const SuperAdminPanel = ({ notify, user }) => {
                             </div>
                         </form>
                         
-                        {/* LISTADO DE MENSAJES ENVIADOS */}
                         {messages.length > 0 && (
                             <div className="mt-6 pt-4 border-t border-blue-200">
                                 <p className="text-[10px] font-bold uppercase text-blue-800 mb-3">Avisos Activos</p>
@@ -522,7 +501,10 @@ const SuperAdminPanel = ({ notify, user }) => {
                                         <div key={m.id} className="bg-white p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
                                             <div className="overflow-hidden pr-2">
                                                 <div className="flex items-center gap-2">
-                                                    {m.target === 'ALL' ? <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 rounded font-bold uppercase">GLOBAL</span> : <span className="bg-gray-100 text-gray-600 text-[9px] px-1.5 rounded font-bold uppercase truncate max-w-[100px]">{tenants.find(t=>t.sheetId===m.target)?.businessName || 'Específico'}</span>}
+                                                    {m.target === 'ALL' 
+                                                        ? <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 rounded font-bold uppercase">GLOBAL</span> 
+                                                        : <span className="bg-gray-100 text-gray-600 text-[9px] px-1.5 rounded font-bold uppercase truncate max-w-[100px]">{tenants.find(t=>t.sheetId===m.target)?.businessName || 'Específico'}</span>
+                                                    }
                                                     <span className="font-bold text-sm text-blue-900 truncate">{m.title}</span>
                                                 </div>
                                                 <p className="text-xs text-gray-500 truncate mt-0.5">{m.message}</p>
@@ -540,7 +522,6 @@ const SuperAdminPanel = ({ notify, user }) => {
                 </div>
             </div>
 
-            {/* TABLA LISTADO DE EMPRESAS (Se mantiene idéntico) */}
             <div>
                 <div className="flex justify-between items-end mb-6">
                     <div>
@@ -563,7 +544,6 @@ const SuperAdminPanel = ({ notify, user }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-sm">
-                                {/* FILTRO ACTUALIZADO PARA DOS ADMINS */}
                                 {tenants
                                     .filter(client => !client.email.includes('haceclick.ai') && !client.email.includes('matias.bote'))
                                     .map((client, i) => (
@@ -603,7 +583,8 @@ const SuperAdminPanel = ({ notify, user }) => {
         </div>
     );
 };
-// --- NUEVO COMPONENTE DE SOPORTE E INSTRUCTIVOS (DISEÑO OPTIMIZADO) ---
+
+// --- 4. SOPORTE ---
 const SupportPanel = ({ settings, saveSettings, user, notify }) => {
     const canConfigure = user?.role === 'admin' || user?.isSuperAdmin;
     
@@ -619,8 +600,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
     const [config, setConfig] = useState(defaultConfig);
     const [isEditing, setIsEditing] = useState(false);
-    
-    // NUEVO ESTADO: Para abrir el video en tamaño grande
     const [selectedVideo, setSelectedVideo] = useState(null);
 
     useEffect(() => {
@@ -651,7 +630,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
     const removeVideo = (id) => setConfig(prev => ({ ...prev, videos: prev.videos.filter(v => v.id !== id) }));
     const updateVideo = (id, field, value) => setConfig(prev => ({ ...prev, videos: prev.videos.map(v => v.id === id ? { ...v, [field]: value } : v) }));
 
-    // Funciones para extraer ID y Links de YouTube
     const getVideoId = (url) => {
         if (!url) return null;
         let videoId = '';
@@ -669,7 +647,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg overflow-y-auto custom-scrollbar relative">
             
-            {/* MODAL DE REPRODUCTOR DE VIDEO */}
             {selectedVideo && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[500] p-4 md:p-10 animate-fade-in">
                     <div className="bg-white rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl relative flex flex-col">
@@ -686,19 +663,11 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                 </div>
             )}
 
-            {/* ENCABEZADO */}
             <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
-                    {/* Contenedor flex para alinear Logo y Título uno al lado del otro */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-3">
-                        <img 
-                            src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" 
-                            alt="HaceClick" 
-                            className="h-10 sm:h-14 opacity-90 object-contain shrink-0" 
-                        />
-                        {/* Línea vertical divisoria (solo visible en pantallas medianas/grandes) */}
+                        <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 sm:h-14 opacity-90 object-contain shrink-0" />
                         <div className="hidden sm:block h-10 w-px bg-gray-300"></div>
-                        
                         <h2 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-3">
                             <Icon name="help-circle" className="text-[#008395] hidden sm:block"/> 
                             Capacitación & Soporte
@@ -706,7 +675,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                     </div>
                     <p className="text-gray-500 mt-1">Aprende a usar la plataforma o contáctate con nuestro equipo.</p>
                 </div>
-                
                 {canConfigure && !isEditing && (
                     <button onClick={() => setIsEditing(true)} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-colors shrink-0 mb-1">
                         <Icon name="edit" size={16}/> Configurar Soporte
@@ -716,7 +684,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
             {isEditing && canConfigure ? (
                 <form onSubmit={handleSave} className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-brand-border mb-8 animate-fade-in">
-                    {/* ... (Todo el formulario de edición se mantiene exactamente igual que antes) ... */}
                     <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-gray-800 border-b pb-3"><Icon name="settings"/> Ajustes del Centro de Ayuda</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <div className="space-y-4">
@@ -745,8 +712,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                 </form>
             ) : (
                 <div className="space-y-8 animate-fade-in">
-                    
-                    {/* 1. INSTRUCTIVOS YOUTUBE (ARRIBA Y COMPACTOS) */}
                     <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-brand-border">
                         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-gray-800"><Icon name="youtube" className="text-red-500"/> Instructivos en Video</h3>
                         {activeVideos.length === 0 ? (
@@ -756,20 +721,15 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                 {activeVideos.map((vid, idx) => {
                                     const videoId = getVideoId(vid.url);
                                     const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
-                                    
                                     return (
-                                        <button 
-                                            key={idx} 
-                                            onClick={() => videoId ? setSelectedVideo(vid) : null}
+                                        <button key={idx} onClick={() => videoId ? setSelectedVideo(vid) : null}
                                             className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group text-left flex flex-col"
                                         >
                                             <div className="aspect-video w-full bg-gray-200 relative">
-                                                {thumbUrl ? (
-                                                    <img src={thumbUrl} alt="Thumbnail" className="w-full h-full object-cover"/>
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Link inválido</div>
-                                                )}
-                                                {/* Icono de Play sobre la imagen */}
+                                                {thumbUrl 
+                                                    ? <img src={thumbUrl} alt="Thumbnail" className="w-full h-full object-cover"/>
+                                                    : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Link inválido</div>
+                                                }
                                                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                                     <div className="w-10 h-10 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                                                         <Icon name="play" size={20} className="ml-1"/>
@@ -786,44 +746,34 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                         )}
                     </div>
 
-                    {/* 2. ZONA DE CONTACTO (ABAJO Y APILADAS UNA SOBRE OTRA) */}
                     <div className="flex flex-col gap-6">
-                        
-                        {/* TARJETA EMAIL */}
                         {config.supportEmail && (
                             <div className="bg-gradient-to-br from-[#008395] to-[#005f6b] p-6 md:p-8 rounded-2xl shadow-xl border border-[#004a54] text-white relative overflow-hidden group">
                                 <Icon name="mail" size={160} className="absolute -bottom-10 -right-10 text-white opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500"/>
                                 <div className="relative z-10">
                                     <h3 className="font-bold text-2xl mb-2 flex items-center gap-2"><Icon name="mail" className="text-white"/> Correo Directo</h3>
                                     <p className="text-white/80 text-sm mb-6">Redacta tu consulta y llegará a nuestra bandeja de entrada administrativa.</p>
-                                    
-                                    <form 
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            if(!config.supportEmail) { notify("El administrador no configuró un correo de soporte.", "error"); return; }
-                                            
-                                            const body = e.target.mensaje.value;
-                                            const btn = e.target.enviarBtn;
-                                            btn.disabled = true;
-                                            btn.innerText = "Enviando...";
-                                            
-                                            google.script.run
-                                                .withSuccessHandler((res) => {
-                                                    if (res.success) { notify(res.message, "success"); e.target.reset(); } 
-                                                    else notify(res.message, "error");
-                                                    btn.disabled = false;
-                                                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Mensaje';
-                                                })
-                                                .sendSupportEmail(config.supportEmail, user.email, user.businessName || 'Local', body);
-                                        }} 
-                                    >
-                                        <textarea 
-                                            name="mensaje" required rows="3" 
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if(!config.supportEmail) { notify("El administrador no configuró un correo de soporte.", "error"); return; }
+                                        const body = e.target.mensaje.value;
+                                        // ✅ CORRECCIÓN: usamos estado React en lugar de manipular el DOM
+                                        const btn = e.target.querySelector('button[type="submit"]');
+                                        if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
+                                        google.script.run
+                                            .withSuccessHandler((res) => {
+                                                if (res.success) { notify(res.message, "success"); e.target.reset(); } 
+                                                else notify(res.message, "error");
+                                                if (btn) { btn.disabled = false; btn.textContent = "Enviar Mensaje"; }
+                                            })
+                                            .sendSupportEmail(config.supportEmail, user.email, user.businessName || 'Local', body);
+                                    }}>
+                                        <textarea name="mensaje" required rows="3" 
                                             className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/50 outline-none focus:bg-white/20 focus:border-white/40 resize-none mb-4 transition-colors"
-                                            placeholder="Describe detalladamente tu problema o consulta..."
-                                        ></textarea>
+                                            placeholder="Describe detalladamente tu problema o consulta...">
+                                        </textarea>
                                         <div className="flex justify-end">
-                                            <button name="enviarBtn" type="submit" className="bg-white text-[#008395] px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg">
+                                            <button type="submit" className="bg-white text-[#008395] px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg">
                                                 <Icon name="send" size={18}/> Enviar Mensaje
                                             </button>
                                         </div>
@@ -832,7 +782,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                             </div>
                         )}
 
-                        {/* TARJETA WHATSAPP */}
                         {config.supportWa && (
                             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-gray-200 relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-1.5 bg-[#25D366]"></div>
@@ -840,26 +789,19 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                 <div className="relative z-10">
                                     <h3 className="font-bold text-2xl mb-2 flex items-center gap-2 text-gray-800"><Icon name="message-circle" className="text-[#25D366]"/> Chat Rápido</h3>
                                     <p className="text-gray-500 text-sm mb-6">Escribe tu mensaje aquí y se enviará directo a nuestro WhatsApp Oficial.</p>
-                                    
-                                    <form 
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            if(!config.supportWa) { notify("El administrador no configuró un número de WhatsApp.", "error"); return; }
-                                            
-                                            const text = e.target.waMensaje.value;
-                                            const phone = config.supportWa.replace(/\D/g, '');
-                                            const encodedText = encodeURIComponent(`Hola soporte de HaceClick, soy del local "${user?.businessName || user?.email}".\n\nConsulta: ${text}`);
-                                            
-                                            // MAGIA: El esquema whatsapp:// abre la app directamente saltando el navegador
-                                            window.location.href = `whatsapp://send?phone=${phone}&text=${encodedText}`;
-                                            e.target.reset();
-                                        }} 
-                                    >
-                                        <textarea 
-                                            name="waMensaje" required rows="3" 
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if(!config.supportWa) { notify("El administrador no configuró un número de WhatsApp.", "error"); return; }
+                                        const text = e.target.waMensaje.value;
+                                        const phone = config.supportWa.replace(/\D/g, '');
+                                        const encodedText = encodeURIComponent(`Hola soporte de HaceClick, soy del local "${user?.businessName || user?.email}".\n\nConsulta: ${text}`);
+                                        window.location.href = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                                        e.target.reset();
+                                    }}>
+                                        <textarea name="waMensaje" required rows="3" 
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-700 placeholder-gray-400 outline-none focus:bg-white focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none mb-4 transition-all"
-                                            placeholder="Escribe aquí tu duda o problema rápido..."
-                                        ></textarea>
+                                            placeholder="Escribe aquí tu duda o problema rápido...">
+                                        </textarea>
                                         <div className="flex justify-end">
                                             <button type="submit" className="bg-[#25D366] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2 shadow-lg">
                                                 <Icon name="send" size={18}/> Abrir WhatsApp
@@ -869,7 +811,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                 </div>
                             </div>
                         )}
-
                     </div>
                 </div>
             )}
@@ -878,8 +819,9 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 };
 
 
+// --- 5. APP PRINCIPAL ---
 const App = () => {
-    // --- 1. TUS ESTADOS ORIGINALES ---
+    // --- ESTADOS ---
     const [mode, setMode] = useState('admin');
     const [tenantId, setTenantId] = useState(null); 
     const [currentUser, setCurrentUser] = useState(null); 
@@ -889,11 +831,8 @@ const App = () => {
     const [targetApptId, setTargetApptId] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
-    
-    // NUEVOS ESTADOS PARA EL PORTAL PÚBLICO
     const [publicData, setPublicData] = useState(null);
     const [publicError, setPublicError] = useState('');
-
     const [brandConfig, setBrandConfig] = useState(() => {
         try {
             const saved = localStorage.getItem('localBranding');
@@ -901,12 +840,89 @@ const App = () => {
         } catch(e) { return { sidebarBg: '#1e293b', primaryColor: '#008395' }; }
     });
 
+    // --- FUNCIONES AUXILIARES ---
     const addToast = (msg, type='info') => { 
-        const id = Date.now(); setToasts(prev => [...prev, {id, msg, type}]); 
+        const id = Date.now();
+        setToasts(prev => [...prev, {id, msg, type}]); 
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
     };
 
-    // --- DETECTIVE DE URL (REVISADO) ---
+    // ✅ NUEVA: handleLogin — procesa el usuario después del login exitoso
+    const handleLogin = (userOrComp) => {
+        if (userOrComp.email) {
+            localStorage.setItem('adminEmail', userOrComp.email);
+        }
+        if (userOrComp.spreadsheetId) {
+            localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
+        }
+        // Si es el panel maestro, va directo a superadmin sin cargar datos de local
+        if (userOrComp.isMasterPanel) {
+            setCurrentUser(userOrComp);
+            setCurrentView('superadmin');
+            return;
+        }
+        setCurrentUser(userOrComp);
+    };
+
+    // ✅ NUEVA: refreshData — recarga todos los datos desde el backend
+    const refreshData = () => {
+        const emailToUse = currentUser?.adminEmail || currentUser?.email || tenantId;
+        if (!emailToUse) return;
+
+        const dbId = localStorage.getItem('targetDbId');
+
+        google.script.run
+            .withSuccessHandler((res) => {
+                setLoadingData(false);
+                if (res && res.success) {
+                    setData({
+                        clients:        res.clients        || [],
+                        treatments:     res.treatments     || [],
+                        appointments:   res.appointments   || [],
+                        categories:     res.categories     || [],
+                        professionals:  res.professionals  || [],
+                        settings:       res.settings       || [],
+                        notifications:  res.notifications  || [],
+                        adminMessages:  res.adminMessages  || []
+                    });
+                } else {
+                    addToast('Error al cargar datos: ' + (res?.message || 'Respuesta inválida'), 'error');
+                }
+            })
+            .withFailureHandler((err) => {
+                setLoadingData(false);
+                addToast('Error de conexión al cargar datos', 'error');
+                console.error('refreshData error:', err);
+            })
+            .getAllData(emailToUse, dbId);
+    };
+
+    // ✅ NUEVA: save — guarda cualquier colección en el backend con optimistic update
+    const save = (type, dataToSave) => {
+        window.isSavingData = true;
+        const emailToUse = currentUser?.adminEmail || currentUser?.email;
+
+        // Actualización local inmediata para que la UI no se congele
+        setData(prev => ({ ...prev, [type]: dataToSave }));
+
+        google.script.run
+            .withSuccessHandler((res) => {
+                window.isSavingData = false;
+                if (res && !res.success) {
+                    addToast('Error al guardar: ' + (res.message || ''), 'error');
+                }
+            })
+            .withFailureHandler((err) => {
+                window.isSavingData = false;
+                addToast('Error de conexión al guardar', 'error');
+                console.error('save error:', err);
+            })
+            .saveData(emailToUse, type, JSON.stringify(dataToSave));
+    };
+
+    // --- EFFECTS ---
+
+    // EFECTO 1: DETECTIVE DE URL
     useEffect(() => { 
         const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
@@ -933,7 +949,7 @@ const App = () => {
         }
     }, []);
 
-    // EFECTO 2: CARGA INICIAL
+    // EFECTO 2: CARGA INICIAL cuando hay usuario o tenantId
     useEffect(() => {
         if (currentUser || (mode === 'client' && tenantId)) {
             setLoadingData(true);
@@ -941,11 +957,11 @@ const App = () => {
         }
     }, [currentUser, tenantId]);
 
-    // EFECTO 3: RADAR INTELIGENTE
+    // EFECTO 3: RADAR — refresca datos en background cada 60 segundos
     useEffect(() => {
         if (!currentUser || currentUser.isMasterPanel || mode === 'client' || mode === 'public_portal') return;
         const RADAR_INTERVAL = 60000;
-        let radarId = setInterval(() => {
+        const radarId = setInterval(() => {
             if (document.visibilityState === 'visible') refreshData();
         }, RADAR_INTERVAL);
         const handleVisibilityChange = () => {
@@ -958,7 +974,7 @@ const App = () => {
         };
     }, [currentUser, mode, tenantId]);
 
-    // EFECTO 4: BRANDING INTELIGENTE (ADAPTADO)
+    // EFECTO 4: BRANDING
     useEffect(() => {
         let targetSettings = (mode === 'public_portal' && publicData) ? publicData.settings : data.settings;
         if (!targetSettings || !Array.isArray(targetSettings)) return;
@@ -971,7 +987,7 @@ const App = () => {
             }
         } else if (mode === 'admin' && currentUser) {
             targetBranding = targetSettings.find(s => s.adminEmail === (currentUser.adminEmail || currentUser.email));
-        } else if ((mode === 'client' || mode === 'public_portal')) {
+        } else if (mode === 'client' || mode === 'public_portal') {
             targetBranding = targetSettings.find(s => s.id === 'branding');
         }
 
@@ -987,14 +1003,20 @@ const App = () => {
         }
     }, [data, publicData, currentUser, mode, tenantId]);
 
-    // --- 4. RENDERIZADO (ORDEN DE PRIORIDAD) ---
+    // --- RENDERIZADO ---
 
-    if (loadingData) return <div className="h-screen flex items-center justify-center bg-white"><img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" /></div>;
+    if (loadingData) return (
+        <div className="h-screen flex items-center justify-center bg-white">
+            <img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" />
+        </div>
+    );
 
-    // ERROR EN PORTAL PÚBLICO
-    if (mode === 'public_error') return <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
+    if (mode === 'public_error') return (
+        <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">
+            {publicError || 'Local no encontrado'}
+        </div>
+    );
 
-    // VISTA PORTAL PROFESIONAL (NUEVO)
     if (mode === 'public_portal' && publicData) {
         return (
             <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
@@ -1008,22 +1030,30 @@ const App = () => {
                     notify={addToast} 
                     refreshData={() => {
                         const alias = window.location.hash.replace('#/', '').toLowerCase();
-                        google.script.run.withSuccessHandler(res => { if (res.success) setPublicData(res); }).getPublicData(alias);
+                        google.script.run
+                            .withSuccessHandler(res => { if (res.success) setPublicData(res); })
+                            .getPublicData(alias);
                     }}
                 />
             </div>
         );
     }
 
-    // VISTA CLIENTE (LINK VIEJO)
     if (mode === 'client') return (
         <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-            <ClientPortal {...data} saveAppointments={d => save('appointments', d)} saveClients={d => save('clients', d)} saveNotifications={d => save('notifications', d)} notify={addToast} refreshData={refreshData} />
+            <ClientPortal 
+                {...data} 
+                saveAppointments={d => save('appointments', d)} 
+                saveClients={d => save('clients', d)} 
+                saveNotifications={d => save('notifications', d)} 
+                notify={addToast} 
+                refreshData={refreshData} 
+            />
         </div>
     );
 
-    // VISTA LOGIN
+    // ✅ handleLogin está definida arriba, ya no da el error
     if (!currentUser) return (
         <div className="flex h-screen bg-gray-100 font-sans overflow-hidden text-center">
             <ToastContainer toasts={toasts} removeToast={id => setToasts(p => p.filter(t => t.id !== id))} />
@@ -1031,36 +1061,48 @@ const App = () => {
         </div>
     );
 
-    // VISTA ADMIN (TUS RUTAS ORIGINALES COMPLETAS)
     return (
         <div className="flex h-screen bg-gray-50 font-sans overflow-hidden relative">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-            <button className="md:hidden fixed top-4 right-4 z-50 bg-white p-2 rounded-lg shadow-md border" onClick={()=>setIsSidebarOpen(!isSidebarOpen)}><Icon name={isSidebarOpen ? "x" : "menu"} /></button>
-            <Sidebar currentView={currentView} setCurrentView={setCurrentView} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} user={currentUser} customLogo={brandConfig.logoBase64} brandConfig={brandConfig} />
+            <button className="md:hidden fixed top-4 right-4 z-50 bg-white p-2 rounded-lg shadow-md border" onClick={()=>setIsSidebarOpen(!isSidebarOpen)}>
+                <Icon name={isSidebarOpen ? "x" : "menu"} />
+            </button>
+            <Sidebar 
+                currentView={currentView} 
+                setCurrentView={setCurrentView} 
+                isOpen={isSidebarOpen} 
+                setIsOpen={setIsSidebarOpen} 
+                user={currentUser} 
+                customLogo={brandConfig.logoBase64} 
+                brandConfig={brandConfig} 
+            />
             <main className="flex-1 relative overflow-y-auto flex flex-col bg-white custom-scrollbar">
                 <div className="flex-1">
-                    {currentView === 'dashboard' && <Dashboard {...data} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
-                    {currentView === 'agenda' && <Agenda {...data} saveAppointments={d => save('appointments', d)} notify={addToast} targetApptId={targetApptId} clearTargetAppt={() => setTargetApptId(null)} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} userRole={currentUser.role} refreshData={refreshData} />}
-                    {currentView === 'clients' && <Clients {...data} saveClients={d => save('clients', d)} notify={addToast} />}
-                    {currentView === 'professionals' && <Professionals list={data.professionals} setList={d => save('professionals', d)} notify={addToast} categories={data.categories} user={currentUser} />}
-                    {currentView === 'treatments' && <Treatments treatments={data.treatments} setTreatments={d => setData(prev => ({...prev, treatments: d}))} saveTreatments={d => save('treatments', d)} categories={data.categories} setCategories={d => setData(prev => ({...prev, categories: d}))} saveCategories={d => save('categories', d)} notify={addToast} settings={data.settings} />}
-                    {currentView === 'billing' && <Billing {...data} saveSettings={d => save('settings', d)} notify={addToast} user={currentUser} />}
-                    {currentView === 'stats' && <Statistics {...data} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} />}
-                    {currentView === 'support' && <SupportPanel settings={data.settings} saveSettings={d => save('settings', d)} user={currentUser} notify={addToast} />}
-                    {currentView === 'settings' && <LocalSettings settings={data.settings} setSettings={d => setData(prev => ({...prev, settings: d}))} targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email} notify={addToast} updateBrandingState={b => setBrandConfig(b)} user={currentUser} />}
-                    {currentView === 'agent' && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
-                    {currentView === 'superadmin' && <SuperAdminPanel notify={addToast} user={currentUser} />}
+                    {currentView === 'dashboard'    && <Dashboard {...data} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
+                    {currentView === 'agenda'       && <Agenda {...data} saveAppointments={d => save('appointments', d)} notify={addToast} targetApptId={targetApptId} clearTargetAppt={() => setTargetApptId(null)} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} userRole={currentUser.role} refreshData={refreshData} />}
+                    {currentView === 'clients'      && <Clients {...data} saveClients={d => save('clients', d)} notify={addToast} />}
+                    {currentView === 'professionals'&& <Professionals list={data.professionals} setList={d => save('professionals', d)} notify={addToast} categories={data.categories} user={currentUser} />}
+                    {currentView === 'treatments'   && <Treatments treatments={data.treatments} setTreatments={d => setData(prev => ({...prev, treatments: d}))} saveTreatments={d => save('treatments', d)} categories={data.categories} setCategories={d => setData(prev => ({...prev, categories: d}))} saveCategories={d => save('categories', d)} notify={addToast} settings={data.settings} />}
+                    {currentView === 'billing'      && <Billing {...data} saveSettings={d => save('settings', d)} notify={addToast} user={currentUser} />}
+                    {currentView === 'stats'        && <Statistics {...data} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} />}
+                    {currentView === 'support'      && <SupportPanel settings={data.settings} saveSettings={d => save('settings', d)} user={currentUser} notify={addToast} />}
+                    {currentView === 'settings'     && <LocalSettings settings={data.settings} setSettings={d => setData(prev => ({...prev, settings: d}))} targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email} notify={addToast} updateBrandingState={b => setBrandConfig(b)} user={currentUser} />}
+                    {currentView === 'agent'        && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
+                    {currentView === 'superadmin'   && <SuperAdminPanel notify={addToast} user={currentUser} />}
                 </div>
                 <footer className="w-full py-8 mt-10 flex items-center justify-center border-t border-gray-100 bg-gray-50/30">
                     <div className="flex items-center gap-2 opacity-50">
                         <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400">POWERED BY |</p>
-                        <a href="https://haceclick-ai.com/" target="_blank" rel="noopener noreferrer"><img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 object-contain" /></a>
+                        <a href="https://haceclick-ai.com/" target="_blank" rel="noopener noreferrer">
+                            <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 object-contain" />
+                        </a>
                     </div>
                 </footer>
             </main>
         </div>
     );
 };
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
 setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 500);
