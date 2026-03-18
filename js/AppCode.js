@@ -112,9 +112,15 @@ const LoginScreen = ({ onLogin, notify }) => {
 
                     <h3 className="font-bold text-gray-800 text-sm mb-4 uppercase tracking-widest flex items-center gap-2 justify-center"><span className="h-[1px] w-8 bg-gray-200"></span>{isSuper ? 'O entrar a un Local' : 'Selecciona tu Empresa'}<span className="h-[1px] w-8 bg-gray-200"></span></h3>
 
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                         {availableCompanies.map((comp, idx) => {
+                            // 1. Regla original
                             if (isSuper && !comp.spreadsheetId) return null;
+                            
+                            // 2. NUEVA REGLA: Ocultar los botones de las bases maestras por su nombre
+                            const nombre = comp.businessName || "";
+                            if (nombre === "haceclick-ai" || nombre === "d/mm/yyyy") return null;
+
                             return (
                                 <button key={idx} onClick={() => handleSuccessLogin(comp)} className="w-full p-4 border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-[#008395] transition-all flex items-center justify-between group">
                                     <div className="text-left"><p className="font-bold text-gray-700">{comp.businessName || "Empresa"}</p></div>
@@ -560,7 +566,7 @@ const SuperAdminPanel = ({ notify, user }) => {
                             <tbody className="divide-y text-sm">
                                 {/* FILTRO ACTUALIZADO PARA DOS ADMINS */}
                                 {tenants
-                                    .filter(client => !client.email.includes('haceclick.ai') && !client.email.includes('matias.bote@gmail'))
+                                    .filter(client => !client.email.includes('haceclick.ai') && !client.email.includes('matias.bote'))
                                     .map((client, i) => (
                                     <tr key={i} className="hover:bg-gray-50 transition-colors">
                                         <td className="p-4 font-bold text-gray-800">
