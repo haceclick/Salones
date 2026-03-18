@@ -1194,9 +1194,6 @@ const App = () => {
         </div>
     );
 };
-
-
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
 setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 500);
