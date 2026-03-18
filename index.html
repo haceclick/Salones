@@ -94,7 +94,9 @@
             getGlobalMessages: function() { this._execute('getGlobalMessages', []); },
             saveGlobalMessage: function(msg) { this._execute('saveGlobalMessage', [msg]); },
             ggetShortUrl: function(longUrl) { this._execute('getShortUrl', [longUrl]); }, 
-            getPublicData: function(alias) { this._execute('getPublicData', [alias]); }
+            getPublicData: function(alias) { this._execute('getPublicData', [alias]); },
+            checkClientPublic: function(alias, phone) { this._execute('checkClientPublic', [alias, phone]); },
+            savePublicAppointment: function(alias, apptJson) { this._execute('savePublicAppointment', [alias, apptJson]); }
           }
         }
       };
