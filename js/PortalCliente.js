@@ -271,7 +271,7 @@
             treatmentId: treatmentId,
             professionalId: profId || 'any',
             date: isoDate,
-            status: agentConfig?.requireDeposit ? 'awaiting_deposit' : 'pending_payment',
+            status: 'pending_payment', // <--- CAMBIO AQUÍ: Siempre entra a revisión primero
             origin: 'web'
         };
 
