@@ -26,34 +26,53 @@
     </script>
 
     <script>
-      // 1. CONFIGURACIÓN GLOBAL
       window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
-      window.GOOGLE_API_KEY = "";
+      window.GOOGLE_API_KEY = "AIzaSyD41bVtLZbXXymo599fsQzaioVssfdxTq4";
       
       const urlParams = new URLSearchParams(window.location.search);
       window.INITIAL_VIEW = urlParams.get('view') || "admin";
 
-      // 2. PUENTE GOOGLE.SCRIPT.RUN (Traductor maestro)
+      // 2. PUENTE GOOGLE.SCRIPT.RUN (Blindado con Tokens)
       window.google = {
         script: {
           run: {
             withSuccessHandler: function(cb) { this.onSuccess = cb; return this; },
             withFailureHandler: function(cb) { this.onFailure = cb; return this; },
+            
             _execute: function(action, params) {
               const success = this.onSuccess;
               const failure = this.onFailure;
+              
+              // Armamos el paquete inyectando siempre la seguridad
+              const payload = {
+                action: action,
+                params: params,
+                auth: {
+                  email: localStorage.getItem('adminEmail'),
+                  token: localStorage.getItem('sessionToken')
+                }
+              };
+
               fetch(window.SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: action, params: params })
+                body: JSON.stringify(payload)
               })
               .then(res => res.json())
-              .then(data => { if (success) success(data); })
+              .then(data => { 
+                // Si el login fue un éxito, guardamos la llave secreta en el navegador
+                if (action === 'authenticateUser' && data.success && data.token) {
+                  localStorage.setItem('adminEmail', params[0]);
+                  localStorage.setItem('sessionToken', data.token);
+                }
+                if (success) success(data); 
+              })
               .catch(err => { 
                 console.error("Error en " + action + ":", err);
                 if (failure) failure(err); 
               });
             },
-            // --- LISTA DE FUNCIONES REGISTRADAS ---
+            
+            // --- LISTA DE FUNCIONES (Ya no necesitan trucos manuales) ---
             authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
             getAllData: function(e) { this._execute('getAllData', [e]); },
             saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); },
@@ -62,14 +81,11 @@
             updateTenantStatus: function(id, s) { this._execute('updateTenantStatus', [id, s]); },
             uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
             deleteData: function(e, t, id) { this._execute('deleteData', [e, t, id]); },
-            
-            // ---> ¡ESTAS SON LAS NUEVAS QUE FALTABAN! <---
             getGlobalMessages: function() { this._execute('getGlobalMessages', []); },
             saveGlobalMessage: function(msg) { this._execute('saveGlobalMessage', [msg]); }
           }
         }
       };
-
       // 3. CONFIGURACIÓN TAILWIND
       tailwind.config = {
         theme: {
