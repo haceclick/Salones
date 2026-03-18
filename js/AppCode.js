@@ -1,5 +1,3 @@
-
-// --- 1. COMPONENTE DE LOGIN (CON MODO ADMINISTRACIÓN Y FORZADO DE CLAVE) ---
 const LoginScreen = ({ onLogin, notify }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -15,44 +13,8 @@ const LoginScreen = ({ onLogin, notify }) => {
     const [forcePassUser, setForcePassUser] = useState(null);
     const [newPassword, setNewPassword] = useState('');
     const [isChangingPass, setIsChangingPass] = useState(false);
-    
-    // 1. Nuevos estados para manejar el portal público
-    const [publicData, setPublicData] = React.useState(null);
-    const [publicError, setPublicError] = React.useState('');
-    // --- COMPONENTE PORTAL DE CLIENTES ---
-    const ClientPortal = ({ clients = [], appointments = [], treatments = [], categories = [], professionals = [], settings = [], notifications = [], saveAppointments, saveClients, saveNotifications, notify, refreshData }) => {
-        
-    // 2. El Detective de URLs (Se ejecuta apenas abre la página)
-    React.useEffect(() => {
-        // Leemos qué dice la barra de direcciones
-        const hash = window.location.hash; 
-        
-        // Si el enlace tiene un "#/" (Ej: #/amara)
-        if (hash && hash.startsWith('#/')) {
-            // Extraemos solo la palabra "amara"
-            const alias = hash.replace('#/', '').toLowerCase();
-            
-            // Cambiamos la vista a una pantalla de carga pública
-            setView('public_loading'); 
-            
-            // Llamamos al backend a través de nuestro puente
-            window.google.script.run
-                .withSuccessHandler(res => {
-                    if (res.success) {
-                        setPublicData(res);
-                        setView('public_portal'); // <--- AHORA MOSTRAMOS EL PORTAL DE TURNOS
-                    } else {
-                        setPublicError(res.message);
-                        setView('public_error'); // <--- MOSTRAMOS ERROR SI EL LOCAL NO EXISTE
-                    }
-                })
-                .withFailureHandler(err => {
-                    setPublicError("Error de conexión.");
-                    setView('public_error');
-                })
-                .getPublicData(alias);
-        }
-    }, []); // El array vacío significa que esto solo ocurre 1 vez al abrir la web
+
+    const handleSuccessLogin = (userOrComp) => {
     
     const handleSuccessLogin = (userOrComp) => {
         if (userOrComp.spreadsheetId) {
@@ -922,7 +884,7 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
 
 const App = () => {
-    // --- 1. TUS ESTADOS ORIGINALES (INTACTOS) ---
+    // --- 1. TUS ESTADOS ORIGINALES (REVISADOS) ---
     const [mode, setMode] = useState('admin');
     const [tenantId, setTenantId] = useState(null); 
     const [currentUser, setCurrentUser] = useState(null); 
@@ -933,18 +895,16 @@ const App = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
     
-    // NUEVOS ESTADOS PARA EL PORTAL PÚBLICO
+    // ESTADOS PARA EL PORTAL PÚBLICO
     const [publicData, setPublicData] = useState(null);
     const [publicError, setPublicError] = useState('');
 
-    // --- 2. TUS FUNCIONES ORIGINALES ---
+    // BRANDING Y TOASTS
     const [brandConfig, setBrandConfig] = useState(() => {
         try {
             const saved = localStorage.getItem('localBranding');
             return saved ? JSON.parse(saved) : { sidebarBg: '#1e293b', primaryColor: '#008395' };
-        } catch(e) {
-            return { sidebarBg: '#1e293b', primaryColor: '#008395' };
-        }
+        } catch(e) { return { sidebarBg: '#1e293b', primaryColor: '#008395' }; }
     });
 
     const addToast = (msg, type='info') => { 
@@ -952,6 +912,7 @@ const App = () => {
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
     };
 
+    // --- 2. TUS FUNCIONES (handleLogin, refreshData, save) ---
     const handleLogin = (u) => { 
         if (u.branding) {
             setBrandConfig(u.branding);
@@ -959,112 +920,76 @@ const App = () => {
             const root = document.documentElement;
             if (u.branding.primaryColor) root.style.setProperty('--color-primary', u.branding.primaryColor);
             if (u.branding.sidebarBg) root.style.setProperty('--color-sidebar-bg', u.branding.sidebarBg);
-            if (u.branding.sidebarText) root.style.setProperty('--color-sidebar-text', u.branding.sidebarText);
-            if (u.branding.sidebarActive) root.style.setProperty('--color-sidebar-active', u.branding.sidebarActive);
         }
         setCurrentUser(u); 
-        if (u.isMasterPanel) {
-            setCurrentView('superadmin');
-            setLoadingData(true); 
-        } else {
-            setLoadingData(true);
-        }
+        setLoadingData(true);
+        if (u.isMasterPanel) setCurrentView('superadmin');
     };
 
     const refreshData = () => {
         if (window.isSavingData) return;
-        let emailToLoad = null;
-        if (mode === 'client' && tenantId) {
-            emailToLoad = tenantId;
-        } else if (currentUser) {
-            emailToLoad = currentUser.adminEmail || currentUser.email;
-        }
+        let emailToLoad = (mode === 'client' && tenantId) ? tenantId : (currentUser?.adminEmail || currentUser?.email);
         if (!emailToLoad) return;
+
+        // 🪄 RECUPERAMOS EL ID ESPECÍFICO (Para Amara)
+        const specificId = localStorage.getItem('targetDbId');
 
         google.script.run
             .withSuccessHandler(d => { 
-                if (d && d.success === false) {
-                    addToast("Error BD: " + d.message, "error");
-                    setLoadingData(false);
-                    return;
-                }
+                if (d && d.success === false) { addToast("Error BD: " + d.message, "error"); setLoadingData(false); return; }
                 setData({
-                    clients: d?.clients || [],
-                    treatments: d?.treatments || [],
-                    appointments: d?.appointments || [],
-                    categories: d?.categories || [],
-                    professionals: d?.professionals || [],
-                    settings: d?.settings || [],
-                    notifications: d?.notifications || [],
-                    adminMessages: d?.adminMessages || []
+                    clients: d?.clients || [], treatments: d?.treatments || [], appointments: d?.appointments || [],
+                    categories: d?.categories || [], professionals: d?.professionals || [], settings: d?.settings || [],
+                    notifications: d?.notifications || [], adminMessages: d?.adminMessages || []
                 });
                 setLoadingData(false); 
             })
-            .withFailureHandler((err) => {
-                addToast("Fallo de conexión con Google", "error");
-                setLoadingData(false);
-            })
-            .getAllData(emailToLoad); 
+            .withFailureHandler(() => { addToast("Fallo de conexión", "error"); setLoadingData(false); })
+            .getAllData(emailToLoad, specificId); // <--- PASAMOS EL ID
     };
 
     const save = (key, value) => { 
         window.isSavingData = true;
-        let emailToSave = null;
-        if (mode === 'client' && tenantId) {
-            emailToSave = tenantId;
-        } else if (currentUser) {
-            emailToSave = currentUser.adminEmail || currentUser.email;
-        }
-        if (!emailToSave) {
-            window.isSavingData = false;
-            return;
-        }
+        let emailToSave = (mode === 'client' && tenantId) ? tenantId : (currentUser?.adminEmail || currentUser?.email);
+        if (!emailToSave) { window.isSavingData = false; return; }
+
+        const specificId = localStorage.getItem('targetDbId');
         setData(prev => ({ ...prev, [key]: value })); 
+        
         google.script.run
-            .withSuccessHandler(() => { 
-                setTimeout(() => window.isSavingData = false, 2000); 
-            })
-            .withFailureHandler(() => {
-                window.isSavingData = false;
-                addToast("Error al guardar cambios", "error");
-            })
-            .saveData(emailToSave, key, JSON.stringify(value));
+            .withSuccessHandler(() => setTimeout(() => window.isSavingData = false, 2000))
+            .withFailureHandler(() => { window.isSavingData = false; addToast("Error al guardar", "error"); })
+            .saveData(emailToSave, key, JSON.stringify(value), specificId); // <--- PASAMOS EL ID
     };
 
-    // --- 3. TUS EFECTOS INTEGRADOS ---
-
-    // EFECTO 1: URL (INTEGRACIÓN GITHUB HASH + PARAMS)
+    // --- 3. EFECTO URL (REVISADO) ---
     useEffect(() => { 
         const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
-        const view = params.get('view');
-        const tenant = params.get('tenant');
+        const viewParam = params.get('view');
+        const tenantParam = params.get('tenant');
 
-        // NUEVO: Lógica de Hash para Portal Profesional (#/amara)
         if (hash && hash.startsWith('#/')) {
             const alias = hash.replace('#/', '').toLowerCase();
             setMode('public_portal');
             setLoadingData(true);
             google.script.run
                 .withSuccessHandler(res => {
-                    if (res.success) {
-                        setPublicData(res);
-                    } else {
-                        setPublicError(res.message);
-                        setMode('public_error');
-                    }
+                    if (res.success) setPublicData(res);
+                    else { setPublicError(res.message); setMode('public_error'); }
                     setLoadingData(false);
                 })
                 .getPublicData(alias);
-        } 
-        // Lógica original de parámetros
-        else if (view === 'client') {
+        } else if (viewParam === 'client') {
             setMode('client');
-            if (tenant) setTenantId(tenant);
+            if (tenantParam) setTenantId(tenantParam);
+            setLoadingData(false);
         } else {
             setLoadingData(false); 
         }
     }, []);
+
+    // --- AQUÍ CONTINÚA EL RESTO DE TU CÓDIGO (No lo borres) ---
 
     // EFECTO 2: CARGA INICIAL
     useEffect(() => {
