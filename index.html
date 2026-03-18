@@ -74,7 +74,13 @@
             
             // --- LISTA DE FUNCIONES (Ya no necesitan trucos manuales) ---
             authenticateUser: function(u, p) { this._execute('authenticateUser', [u, p]); },
-            getAllData: function(e) { this._execute('getAllData', [e]); },
+            getAllData: function(email, specificId) { 
+              // Lo guardamos en memoria por si refrescas la página
+              if (specificId) localStorage.setItem('targetDbId', specificId);
+              
+              const idToUse = specificId || localStorage.getItem('targetDbId');
+              this._execute('getAllData', [idToUse]); 
+            },
             saveData: function(e, t, d) { this._execute('saveData', [e, t, d]); },
             getAllTenants: function() { this._execute('getAllTenants', []); },
             getAdminStats: function() { this._execute('getAdminStats', []); },
