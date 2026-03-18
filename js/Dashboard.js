@@ -99,15 +99,20 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         // 1. Si el cliente configuró una URL manual en settings, la usamos
         if (agentConfig?.schedulerUrl) return agentConfig.schedulerUrl;
 
-        // 2. Si no, construimos la URL usando el Alias dinámico
-        const baseUrl = window.location.origin + window.location.pathname;
+        // 2. Si no, construimos la URL dinámica usando ?local= en lugar de #/
+        let baseUrl = window.location.origin + window.location.pathname;
+        
+        // Si baseUrl termina en '/', se lo sacamos para evitar urls raras
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
         
         // Buscamos el alias que guardamos en la columna G (ahora disponible en agentConfig)
         const alias = agentConfig?.tenantAlias;
 
         if (alias) {
-            // Retorna: https://salones.haceclick-ai.com/#/amara
-            return `${baseUrl}#/${alias}`;
+            // Retorna: https://salones.haceclick-ai.com/?local=amara
+            return `${baseUrl}?local=${alias}`;
         }
 
         // Fallback: si no hay alias, mandamos al home
