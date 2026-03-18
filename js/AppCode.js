@@ -935,27 +935,20 @@ const App = () => {
     };
 
     // --- EFFECTS ---
-
-    // EFECTO 1: DETECTIVE DE URL (BLINDADO CONTRA IFRAMES)
+    // EFECTO 1: DETECTIVE DE URL
     useEffect(() => { 
         const initPortal = (aliasStr) => {
             const alias = aliasStr.replace('#/', '').replace('?local=', '').replace('/', '').toLowerCase();
-            if (!alias) {
-                setLoadingData(false);
-                return;
-            }
-            setPublicAlias(alias);
+            if (!alias) { setLoadingData(false); return; }
+            
+            setPublicAlias(alias); // <--- GUARDAMOS EL ALIAS AQUÍ
             setMode('public_portal');
             setLoadingData(true);
+            
             google.script.run
                 .withSuccessHandler(res => {
                     if (res.success) setPublicData(res);
                     else { setPublicError(res.message); setMode('public_error'); }
-                    setLoadingData(false);
-                })
-                .withFailureHandler(() => {
-                    setPublicError("Error al cargar el local. Verifica el enlace.");
-                    setMode('public_error');
                     setLoadingData(false);
                 })
                 .getPublicData(alias);
@@ -963,28 +956,20 @@ const App = () => {
 
         const hash = window.location.hash;
         const params = new URLSearchParams(window.location.search);
-        const localParam = params.get('local'); // <--- AHORA LEE ?local=amara
+        const localParam = params.get('local'); 
         const viewParam = params.get('view');
 
         if (localParam) {
             initPortal(localParam);
         } else if (hash && hash.startsWith('#/')) {
             initPortal(hash);
-        } else if (window.google && window.google.script && window.google.script.url) {
-            // Magia para leer la URL a través del Iframe
-            window.google.script.url.getLocation(function(location) {
-                if (location.parameter && location.parameter.local) {
-                    initPortal(location.parameter.local);
-                } else if (location.hash) {
-                    initPortal(location.hash);
-                } else {
-                    if (viewParam === 'client') setMode('client');
-                    setLoadingData(false);
-                }
-            });
         } else {
-            if (viewParam === 'client') setMode('client');
-            setLoadingData(false);
+            if (viewParam === 'client') {
+                setMode('client');
+                const t = params.get('tenant');
+                if (t) setTenantId(t);
+            }
+            setLoadingData(false); 
         }
     }, []);
 
@@ -1037,29 +1022,26 @@ const App = () => {
 
     if (mode === 'public_error') return <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
 
-    if (mode === 'public_portal') {
-        if (publicData) {
-            return (
-                <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
-                    <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-                    <ClientPortal 
-                        alias={publicAlias} // <--- PASAMOS EL ALIAS COMO PROP
-                        appointments={publicData.appointments} 
-                        treatments={publicData.treatments} 
-                        professionals={publicData.professionals} 
-                        categories={publicData.categories}
-                        settings={publicData.settings}
-                        notify={addToast} 
-                        refreshData={() => {
-                            if(publicAlias) google.script.run.withSuccessHandler(res => { if (res.success) setPublicData(res); }).getPublicData(publicAlias);
-                        }}
-                    />
-                </div>
-            );
-        } else {
-            // Pantalla de espera segura
-            return <div className="h-screen flex items-center justify-center"><Icon name="loader" className="animate-spin text-[#008395]" size={40}/></div>;
-        }
+    if (mode === 'public_portal' && publicData) {
+        return (
+            <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+                <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
+                <ClientPortal 
+                    alias={publicAlias} // <--- ¡ESTA ES LA LÍNEA MÁGICA QUE FALTABA!
+                    appointments={publicData.appointments} 
+                    treatments={publicData.treatments} 
+                    professionals={publicData.professionals} 
+                    categories={publicData.categories}
+                    settings={publicData.settings}
+                    notify={addToast} 
+                    refreshData={() => {
+                        if (publicAlias) {
+                            google.script.run.withSuccessHandler(res => { if (res.success) setPublicData(res); }).getPublicData(publicAlias);
+                        }
+                    }}
+                />
+            </div>
+        );
     }
 
     if (mode === 'client') return (
