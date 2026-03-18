@@ -201,7 +201,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                             {!isEditingAlias ? (
                                 <div className="flex flex-col sm:flex-row items-center gap-3">
                                     <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm">
-                                        <span className="text-gray-400">turnos.haceclick-ai.com/</span>
+                                        <span className="text-gray-400">salones.haceclick-ai.com/#/</span>
                                         <strong className="text-blue-900 ml-0.5">{agentConfig.tenantAlias || 'tu-local'}</strong>
                                     </div>
                                     <button type="button" onClick={startAliasEdit} className="w-full sm:w-auto bg-blue-100 text-blue-700 px-6 py-3 rounded-lg font-bold hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
@@ -211,7 +211,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                             ) : (
                                 <div className="flex flex-col sm:flex-row items-center gap-2 animate-fade-in">
                                     <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner">
-                                        <span className="text-gray-400 text-sm font-mono whitespace-nowrap">turnos.haceclick-ai.com/</span>
+                                        <span className="text-gray-400 text-sm font-mono whitespace-nowrap">salones.haceclick-ai.com/#/</span>
                                         <input 
                                             type="text" autoFocus
                                             className="outline-none font-bold text-blue-900 font-mono w-full bg-transparent ml-0.5" 
