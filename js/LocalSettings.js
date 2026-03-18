@@ -92,9 +92,8 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
 
         const performFinalSave = (finalLogoUrl) => {
             const updatedBranding = { ...branding, logoBase64: finalLogoUrl, id: 'branding', adminEmail: targetEmail };
-            const updatedAgent = { ...agentConfig, id: 'agent_config', adminEmail: targetEmail };
+            const updatedAgent = { ...agentConfig, id: 'agent_config', adminEmail: targetEmail, tenantAlias: agentConfig.tenantAlias };
             const updatedMessages = { ...messagesConfig, id: 'messages_config', adminEmail: targetEmail };
-
             const newSettings = [updatedBranding, updatedAgent, updatedMessages];
             
             setSettings(newSettings);
