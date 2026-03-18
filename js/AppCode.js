@@ -558,7 +558,10 @@ const SuperAdminPanel = ({ notify, user }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-sm">
-                                {tenants.map((client, i) => (
+                                {/* FILTRO ACTUALIZADO PARA DOS ADMINS */}
+                                {tenants
+                                    .filter(client => !client.email.includes('haceclick.ai') && !client.email.includes('matias.bote@gmail'))
+                                    .map((client, i) => (
                                     <tr key={i} className="hover:bg-gray-50 transition-colors">
                                         <td className="p-4 font-bold text-gray-800">
                                             {editingId === client.sheetId 
