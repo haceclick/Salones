@@ -386,7 +386,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     >
                         <Icon name="external-link" size={18}/> Portal Clientes
                     </button>
-                    <button onClick={() => setReminderModal(true)} className="bg-primary text-brand-text px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-md">
+                    <button onClick={() => setReminderModal(true)} className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-md">
                         <Icon name="message-square" size={18}/> Enviar Avisos
                     </button>
                 </div>
