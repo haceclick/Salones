@@ -518,18 +518,24 @@
                     </div>
                 </div>
 
-                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" */}
-                <div className="mt-8 mb-4 flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-opacity duration-300">
-                    <a 
-                        href="https://haceclick-ai.com/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 hover:text-[#008395] transition-colors"
-                        title="Obtén este sistema para tu negocio"
-                    >
-                        <Icon name="zap" size={12} className="text-[#008395]" /> 
-                        Powered by <span className="text-[#008395]">HaceClick.ai</span>
-                    </a>
+                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" CON LOGO OFICIAL */}
+                <div className="mt-10 mb-6 flex flex-col items-center justify-center transition-opacity duration-300 opacity-60 hover:opacity-100">
+                    <div className="flex items-center gap-2">
+                        <p className="text-[9px] font-bold tracking-[0.2em] text-gray-400 mt-1">POWERED BY |</p>
+                        <a 
+                            href="https://haceclick-ai.com/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            title="Obtén este sistema para tu negocio"
+                            className="transform hover:scale-105 transition-transform"
+                        >
+                            <img 
+                                src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" 
+                                alt="HaceClick.ai" 
+                                className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300" 
+                            />
+                        </a>
+                    </div>
                 </div>
 
                 {/* MODAL DE SEGURIDAD INTERNO */}
