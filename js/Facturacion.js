@@ -3,6 +3,16 @@ const Recharts = window.Recharts || {};
 const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } = Recharts;
 
 const Billing = ({ appointments = [], clients = [], treatments = [], professionals = [], settings = [], notify, user }) => {
+    
+    // 1. Extraemos los componentes de forma segura AQUÍ ADENTRO
+    const Lib = window.Recharts || {};
+    const { 
+        LineChart, Line, BarChart, Bar, XAxis, YAxis, 
+        CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell 
+    } = Lib;
+
+    // 2. Verificación de seguridad rápida
+    const hasCharts = !!window.Recharts;
     const [dateRange, setDateRange] = useState('month'); 
     const [profFilter, setProfFilter] = useState('ALL');
     const [paymentFilter, setPaymentFilter] = useState('ALL'); 
