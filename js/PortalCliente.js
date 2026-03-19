@@ -33,7 +33,10 @@
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [reschedulingId, setReschedulingId] = useState(null);
-
+    
+    // --- ESTADO PARA EL MODAL DE SEGURIDAD ---
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
+        
     // --- LECTURA DE CONFIGURACIÓN ---
     const agentConfig = (settings || []).find(s => s.id === 'agent_config') || {};
     const brandingConfig = (settings || []).find(s => s.id === 'branding') || {};
@@ -172,20 +175,18 @@
         return Array.from(slotsSet).sort();
     }, [date, treatmentId, profId, appointments, treatments, professionals, reschedulingId]);
 
-    // ✅ LOGIN CORREGIDO (CON INTERACTIVIDAD)
     const handleLogin = (e) => {
         e.preventDefault();
         const cleanPhone = String(phone).replace(/\D/g, '');
         if(cleanPhone.length < 8) return notify("Ingresa un teléfono válido", "error");
         
-        // Verificación de seguridad
         if(!actualAlias) return notify("Error: El sistema no detectó a qué local intentas acceder.", "error");
 
-        setIsCheckingLogin(true); // <--- ACTIVAMOS EL BOTÓN
+        setIsCheckingLogin(true); 
 
         window.google.script.run
             .withSuccessHandler(res => {
-                setIsCheckingLogin(false); // <--- DESACTIVAMOS EL BOTÓN
+                setIsCheckingLogin(false); 
                 if (res.success && res.exists) {
                     setCurrentUser(res.client);
                     setIsLoggedIn(true);
@@ -204,12 +205,11 @@
             .checkClientPublic(actualAlias, cleanPhone); 
     };
 
-    // ✅ REGISTRO CORREGIDO (CON INTERACTIVIDAD)
     const handleRegister = (e) => {
         e.preventDefault();
         if(!actualAlias) return notify("Error: Local no identificado.", "error");
         
-        setIsSavingProfile(true); // <--- ACTIVAMOS EL BOTÓN
+        setIsSavingProfile(true); 
         
         const newClient = {
             id: 'CLI-' + Date.now(),
@@ -222,7 +222,7 @@
         
         window.google.script.run
             .withSuccessHandler(res => {
-                setIsSavingProfile(false); // <--- DESACTIVAMOS EL BOTÓN
+                setIsSavingProfile(false); 
                 if (res.success) {
                     setCurrentUser(newClient);
                     setIsRegistering(false);
@@ -254,12 +254,11 @@
         setCategory(''); setTreatmentId(''); setProfId('any'); setDate(''); setTime('');
     };
 
-    // ✅ RESERVA CORREGIDA
     const handleBook = () => {
         if (!treatmentId || !date || !time) return notify("Completa todos los campos", "error");
         if(!actualAlias) return notify("Error: Falta el identificador del local", "error");
         
-        setIsBooking(true); // Bloqueamos el botón inmediatamente
+        setIsBooking(true); 
 
         const [year, month, day] = date.split('-').map(Number);
         const [hours, minutes] = time.split(':').map(Number);
@@ -271,7 +270,7 @@
             treatmentId: treatmentId,
             professionalId: profId || 'any',
             date: isoDate,
-            status: 'pending_payment', // <--- ASÍ DEBE QUEDAR (Borrando la condición)
+            status: 'pending_payment', 
             origin: 'web'
         };
 
@@ -323,13 +322,18 @@
                             <p className="text-brand-text-light text-sm mb-8">Ingresa con tu WhatsApp.</p>
                             <input type="tel" required placeholder="Ej: 1155554444" className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg text-center text-lg outline-none focus:border-[var(--color-primary)] transition-colors" value={phone} onChange={e => setPhone(e.target.value)} />
                             
-                            {/* BOTÓN LOGIN INTERACTIVO */}
                             <button type="submit" disabled={isCheckingLogin} className={`w-full text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isCheckingLogin ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
                                 {isCheckingLogin ? (
                                     <span className="flex items-center justify-center gap-2">
                                         <Icon name="loader" size={18} className="animate-spin" /> Verificando...
                                     </span>
                                 ) : "Ingresar"}
+                            </button>
+                            
+                            {/* SELLO DE CONFIANZA */}
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[#008395] transition-colors w-full">
+                                <Icon name="shield-check" size={14} /> 
+                                <span className="underline decoration-dashed underline-offset-2">Protegido por HaceClick.ai</span>
                             </button>
                         </form>
                     ) : (
@@ -354,14 +358,44 @@
                             <div className="flex gap-2 pt-2">
                                 <button type="button" onClick={()=>setIsRegistering(false)} className="w-1/3 bg-gray-100 py-3 rounded-brand font-bold text-gray-600 hover:bg-gray-200 transition-colors">Atrás</button>
                                 
-                                {/* BOTÓN REGISTRO INTERACTIVO */}
                                 <button type="submit" disabled={isSavingProfile} className={`w-2/3 text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isSavingProfile ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
                                     {isSavingProfile ? "Creando..." : "Crear Perfil"}
                                 </button>
                             </div>
+                            
+                            {/* SELLO DE CONFIANZA */}
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[#008395] transition-colors w-full">
+                                <Icon name="shield-check" size={14} /> 
+                                <span className="underline decoration-dashed underline-offset-2">Tus datos están encriptados y seguros</span>
+                            </button>
                         </form>
                     )}
                 </div>
+                
+                {/* MODAL DE SEGURIDAD INTERNO */}
+                {showSecurityModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4 animate-fade-in">
+                        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4 border-[#008395]">
+                            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                    <Icon name="shield-check" className="text-[#008395]"/> Tu Privacidad
+                                </h3>
+                                <button onClick={() => setShowSecurityModal(false)} className="text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2 rounded-full shadow-sm">
+                                    <Icon name="x" size={18}/>
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-5 overflow-y-auto max-h-[60vh] custom-scrollbar text-left">
+                                <p className="text-sm text-gray-600 mb-2">Nos tomamos muy en serio la seguridad de tu información. Así es como <strong>HaceClick.ai</strong> protege tus datos en este local:</p>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="server" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Infraestructura Enterprise</h4><p className="text-xs text-gray-500 mt-1">Este sistema corre sobre servidores nativos de Google Cloud, utilizando los mismos protocolos de encriptación (AES-256) que Gmail y Drive.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="database" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Bases de Datos Aisladas</h4><p className="text-xs text-gray-500 mt-1">A diferencia de otras apps, tus datos no se mezclan con los de otros comercios. Este local tiene una base de datos privada e impenetrable para terceros.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="lock" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Privacidad Absoluta</h4><p className="text-xs text-gray-500 mt-1">Tus datos le pertenecen 100% al local donde estás reservando. HaceClick.ai solo provee la tecnología; nunca leemos, compartimos ni vendemos tu información.</p></div></div>
+                            </div>
+                            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-center">
+                                <button onClick={() => setShowSecurityModal(false)} className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">Entendido</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -463,17 +497,23 @@
                             </div>
                         </div>
                     </div>
-                    <div className="mt-8 flex justify-end">
+                    <div className="mt-8 flex flex-col items-center justify-center">
                         <button 
                             disabled={!time || isBooking} 
                             onClick={handleBook} 
-                            className={`px-8 py-3 rounded-brand font-bold text-white shadow-lg transition-all ${(!time || isBooking) ? 'bg-gray-300 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:scale-105'}`}
+                            className={`w-full md:w-auto px-12 py-3 rounded-brand font-bold text-white shadow-lg transition-all ${(!time || isBooking) ? 'bg-gray-300 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:scale-105'}`}
                         >
                             {isBooking ? (
                                 <span className="flex items-center gap-2">
                                     <Icon name="loader" size={18} className="animate-spin" /> Procesando...
                                 </span>
                             ) : (reschedulingId ? 'Confirmar Cambio' : 'Solicitar Turno')}
+                        </button>
+
+                        {/* SELLO DE CONFIANZA */}
+                        <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[#008395] transition-colors w-full">
+                            <Icon name="shield-check" size={14} /> 
+                            <span className="underline decoration-dashed underline-offset-2">Transacción segura protegida por HaceClick.ai</span>
                         </button>
                     </div>
                 </div>
@@ -491,6 +531,31 @@
                         Powered by <span className="text-[#008395]">HaceClick.ai</span>
                     </a>
                 </div>
+
+                {/* MODAL DE SEGURIDAD INTERNO */}
+                {showSecurityModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4 animate-fade-in">
+                        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4 border-[#008395]">
+                            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                    <Icon name="shield-check" className="text-[#008395]"/> Tu Privacidad
+                                </h3>
+                                <button onClick={() => setShowSecurityModal(false)} className="text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2 rounded-full shadow-sm">
+                                    <Icon name="x" size={18}/>
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-5 overflow-y-auto max-h-[60vh] custom-scrollbar text-left">
+                                <p className="text-sm text-gray-600 mb-2">Nos tomamos muy en serio la seguridad de tu información. Así es como <strong>HaceClick.ai</strong> protege tus datos en este local:</p>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="server" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Infraestructura Enterprise</h4><p className="text-xs text-gray-500 mt-1">Este sistema corre sobre servidores nativos de Google Cloud, utilizando los mismos protocolos de encriptación (AES-256) que Gmail y Drive.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="database" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Bases de Datos Aisladas</h4><p className="text-xs text-gray-500 mt-1">A diferencia de otras apps, tus datos no se mezclan con los de otros comercios. Este local tiene una base de datos privada e impenetrable para terceros.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="lock" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Privacidad Absoluta</h4><p className="text-xs text-gray-500 mt-1">Tus datos le pertenecen 100% al local donde estás reservando. HaceClick.ai solo provee la tecnología; nunca leemos, compartimos ni vendemos tu información.</p></div></div>
+                            </div>
+                            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-center">
+                                <button onClick={() => setShowSecurityModal(false)} className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">Entendido, volver a mi reserva</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>
