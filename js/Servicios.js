@@ -134,7 +134,10 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             </button>
 
             {/* BOTÓN CATEGORÍAS */}
-             <button onClick={() => setIsCatManagerOpen(true)} className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors">
+             <button 
+                onClick={() => setIsCatManagerOpen(true)} 
+                className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors"
+            >
                 <Icon name="list" /> Categorías
              </button>
 
@@ -146,7 +149,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     setIsModalOpen(true); 
                 }} 
                 className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-medium hover:bg-primary-dark transition-all"
-                >
+            >
                 <Icon name="plus" /> Manual
             </button>
           </div>
@@ -192,12 +195,6 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             )}
         </div>
 
-        {/* --- MODALES --- (Resto del código de modales queda igual) */}
-        {/* Aquí van los modales que incluiste en tu código... el de Categorías, Servicio Rápido, etc. */}
-      </div>
-    );
-};
-
         {/* --- MODAL 1: GESTOR DE CATEGORÍAS (SIMPLE) --- */}
         {isCatManagerOpen && (
             <div className="fixed inset-0 bg-brand-text/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -208,7 +205,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     </div>
                     <div className="flex gap-2 mb-6">
                         <input autoFocus className="border border-brand-border p-2 rounded-brand flex-1 outline-none focus:border-primary bg-brand-bg" placeholder="Ej: Manos, Pies..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCategory()} />
-                        <button onClick={handleAddCategory} className="bg-primary text-brand-text px-3 rounded-brand hover:text-white transition-colors"><Icon name="plus"/></button>
+                        <button onClick={handleAddCategory} className="bg-primary text-[var(--color-primary-text)] px-3 rounded-brand hover:opacity-90 transition-opacity"><Icon name="plus"/></button>
                     </div>
                     <div className="space-y-2 max-h-60 overflow-auto pr-2 custom-scrollbar">
                         {categories.map(cat => (
@@ -346,7 +343,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-brand-border">
                             <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-brand-text-light font-medium hover:text-brand-text transition-colors">Cancelar</button>
-                            <button type="submit" className="px-6 py-2 bg-primary text-brand-text rounded-brand font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark hover:text-white transition-all">Guardar</button>
+                            <button type="submit" className="px-6 py-2 bg-primary text-[var(--color-primary-text)] rounded-brand font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Guardar</button>
                         </div>
                     </form>
                 </div>
@@ -414,7 +411,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             </div>
         )}
 
-        {/* MODAL CONFIRMAR BORRADO (ESTÁTICO Y CENTRADO) */}
+        {/* --- MODAL CONFIRMAR BORRADO --- */}
         {confirmDelete.open && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
                 <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100 transform transition-all">
