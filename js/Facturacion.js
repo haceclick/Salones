@@ -1,4 +1,6 @@
-const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } = window.Recharts;
+// Obtenemos Recharts de forma segura (si no existe, devuelve un objeto vacío para que no explote)
+const Recharts = window.Recharts || {};
+const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } = Recharts;
 
 const Billing = ({ appointments = [], clients = [], treatments = [], professionals = [], settings = [], notify, user }) => {
     const [dateRange, setDateRange] = useState('month'); 
@@ -128,31 +130,31 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 </div>
             </header>
 
-            {/* 1. SECCIÓN FILTROS (COLAPSABLE) */}
+            {/* 1. SECCIÓN FILTROS */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('filtros')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="filter" size={18} className="text-primary"/> Filtros de Búsqueda</span>
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="filter" size={18} className="text-[var(--color-primary)]"/> Filtros de Búsqueda</span>
                     <Icon name={openSections.filtros ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
                 </button>
                 {openSections.filtros && (
                     <div className="p-6 pt-0 grid grid-cols-1 md:grid-cols-4 gap-4 animate-fade-in">
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Período</label>
-                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option><option value="all">Todo</option></select>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option><option value="all">Todo</option></select>
                         </div>
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Profesional</label>
-                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
                         </div>
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
-                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}><option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option></select>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}><option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option></select>
                         </div>
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Buscar Cliente</label>
-                            <input type="text" placeholder="Nombre..." className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
+                            <input type="text" placeholder="Nombre..." className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* 2. TARJETAS DE MÉTRICAS (COLAPSABLE) */}
+            {/* 2. TARJETAS DE MÉTRICAS */}
             <div className="mb-6 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('metricas')} className="w-full p-2 mb-2 flex justify-between items-center text-gray-500 hover:text-gray-800 transition-colors">
                     <span className="text-xs font-bold uppercase tracking-widest">Resumen Financiero</span>
@@ -168,7 +170,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                             <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Comisiones a Pagar</p>
                             <p className="text-2xl font-black text-red-500">-${statsData.totalComisiones.toLocaleString()}</p>
                         </div>
-                        {/* NUEVA TARJETA: GANANCIA REAL LOCAL */}
                         <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-200 shadow-md transform hover:scale-[1.02] transition-transform">
                             <p className="text-[10px] font-bold text-green-600 uppercase mb-1">Ganancia Neta Local</p>
                             <p className="text-3xl font-black text-green-700">${statsData.netoLocal.toLocaleString()}</p>
@@ -180,51 +181,62 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 )}
             </div>
 
-            {/* 3. GRÁFICAS DE EVOLUCIÓN (NUEVA SECCIÓN COLAPSABLE) */}
+            {/* 3. GRÁFICAS DE EVOLUCIÓN (A PRUEBA DE FALLOS) */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('graficas')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
                     <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="bar-chart-2" size={18} className="text-blue-500"/> Análisis de Evolución</span>
                     <Icon name={openSections.graficas ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
                 </button>
                 {openSections.graficas && (
-                    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-                        {/* Gráfica 1: Bruto vs Neto */}
-                        <div className="h-64 w-full">
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Evolución de Ganancias (Bruto vs Neto)</p>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={statsData.chartTimeline}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                    <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                                    <Legend iconType="circle" />
-                                    <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                                    <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        {/* Gráfica 2: Ganancia por Profesional */}
-                        <div className="h-64 w-full">
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Rendimiento Neto por Profesional</p>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={statsData.chartProfs}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                    <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
-                                    <Bar dataKey="valor" name="Ganancia para Local" radius={[10, 10, 0, 0]}>
-                                        {statsData.chartProfs.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--color-primary)' : '#3b82f6'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                    <div className="p-6 animate-fade-in">
+                        {/* VALIDACIÓN: ¿Existe la librería de gráficas? */}
+                        {!window.Recharts ? (
+                            <div className="p-8 bg-red-50 border border-red-200 rounded-xl text-center">
+                                <Icon name="alert-circle" size={32} className="mx-auto text-red-500 mb-2"/>
+                                <p className="font-bold text-red-700">Falta la librería de Gráficas</p>
+                                <p className="text-xs text-red-600 mt-1">Por favor, agrega el script de <b>Recharts</b> en tu HTML principal para poder ver las estadísticas.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Gráfica 1 */}
+                                <div className="h-64 w-full">
+                                    <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Evolución de Ganancias (Bruto vs Neto)</p>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={statsData.chartTimeline}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                            <Legend iconType="circle" />
+                                            <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                            <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                {/* Gráfica 2 */}
+                                <div className="h-64 w-full">
+                                    <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Rendimiento Neto por Profesional</p>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={statsData.chartProfs}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                            <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
+                                            <Bar dataKey="valor" name="Ganancia Neta" radius={[10, 10, 0, 0]}>
+                                                {statsData.chartProfs.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--color-primary)' : '#3b82f6'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* 4. REPORTE DETALLADO (COLAPSABLE) */}
+            {/* 4. REPORTE DETALLADO */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('reporte')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
                     <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="list" size={18} className="text-orange-500"/> Detalle de Operaciones</span>
@@ -232,7 +244,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 </button>
                 {openSections.reporte && (
                     <div id="report-area" className="p-8 md:p-12 animate-fade-in bg-white">
-                        {/* El contenido de la tabla que ya tenías pero optimizado para el reporte */}
                         <div className="flex justify-between items-start border-b border-gray-100 pb-10 mb-10">
                              <div className="flex items-center gap-6">
                                 {localLogo ? <img src={localLogo} className="h-16 w-auto object-contain" /> : <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400">S</div>}
@@ -240,7 +251,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                     <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
                                         {profFilter === 'ALL' ? 'Reporte General de Caja' : 'Liquidación Profesional'}
                                     </h1>
-                                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+                                    <p className="text-[10px] font-bold text-[var(--color-primary)] uppercase tracking-[0.2em]">
                                         {profFilter === 'ALL' ? 'Administración Local' : professionals.find(p=>p.id===profFilter)?.name}
                                     </p>
                                 </div>
@@ -270,7 +281,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                             const treatment = treatments.find(t => t.id === appt.treatmentId);
                                             const client = clients.find(c => c.id === appt.clientId);
                                             const price = Number(appt.finalAmount || treatment?.price || 0);
-                                            // ... misma lógica de cálculo de comisión para la tabla ...
                                             const professional = professionals.find(p => p.id === appt.professionalId);
                                             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
                                             const treatmentCategory = treatment?.category || '';
