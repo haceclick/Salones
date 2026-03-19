@@ -4,9 +4,25 @@ const { useState, useEffect, useMemo, useRef } = React;
 const MP_LINK_BASE = "https://link.mercadopago.com.ar/tuntocio"; 
 const LOGO_URL = "https://drive.google.com/thumbnail?id=1AJcuAG9Z6Cs62mGWBMdIu1G-ykL4_h_5&sz=w1000";
 
-const Icon = ({ name, size = 18, className = "", onClick }) => {
-  React.useEffect(() => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); }, [name]);
-  return <i data-lucide={name} onClick={onClick} className={className} style={{ width: size, height: size, cursor: onClick ? 'pointer' : 'inherit', display: 'inline-block' }}></i>;
+const Icon = ({ name, size = 24, className = '', style = {} }) => {
+    const ref = React.useRef(null);
+    
+    React.useEffect(() => {
+        // Le decimos a Lucide que dibuje el ícono SOLO adentro de este span
+        if (window.lucide && ref.current) {
+            window.lucide.createIcons({ root: ref.current });
+        }
+    }, [name]); // Si cambia el nombre del icono, se vuelve a dibujar
+
+    return (
+        <span 
+            ref={ref} 
+            className={`inline-flex items-center justify-center ${className}`} 
+            style={style}
+            // Esto oculta el interior a React, evitando el error 'removeChild'
+            dangerouslySetInnerHTML={{ __html: `<i data-lucide="${name}" style="width:${size}px; height:${size}px; stroke-width:2;"></i>` }}
+        />
+    );
 };
 
 const Logo = ({ className = "" }) => <img src={LOGO_URL} alt="Logo" className={`object-contain drop-shadow-sm ${className}`} style={{ width: 'auto', maxHeight: '120px' }} />;
