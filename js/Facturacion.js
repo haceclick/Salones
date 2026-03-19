@@ -191,46 +191,58 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 )}
             </div>
 
-            {/* 3. GRÁFICAS DE EVOLUCIÓN (A PRUEBA DE FALLOS) */}
+            {/* 3. GRÁFICAS DE EVOLUCIÓN (REVISADO Y BLINDADO) */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('graficas')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
-                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="bar-chart-2" size={18} className="text-blue-500"/> Análisis de Evolución</span>
+                    <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <Icon name="bar-chart-2" size={18} className="text-blue-500"/> 
+                        Análisis de Evolución
+                    </span>
                     <Icon name={openSections.graficas ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
                 </button>
+                
                 {openSections.graficas && (
                     <div className="p-6 animate-fade-in">
-                        {/* VALIDACIÓN: ¿Existe la librería de gráficas? */}
-                        {!window.Recharts ? (
-                            <div className="p-8 bg-red-50 border border-red-200 rounded-xl text-center">
-                                <Icon name="alert-circle" size={32} className="mx-auto text-red-500 mb-2"/>
-                                <p className="font-bold text-red-700">Falta la librería de Gráficas</p>
-                                <p className="text-xs text-red-600 mt-1">Por favor, agrega el script de <b>Recharts</b> en tu HTML principal para poder ver las estadísticas.</p>
+                        {/* ✅ Usamos hasCharts que es la constante definida arriba */}
+                        {!hasCharts ? (
+                            <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed flex flex-col items-center">
+                                <Icon name="loader" size={32} className="animate-spin text-gray-300 mb-2"/>
+                                <p className="text-gray-500 text-sm">Preparando motor de estadísticas...</p>
+                                <p className="text-[10px] text-gray-400 mt-1 italic">Si esto demora, verifica tu conexión a internet.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Gráfica 1 */}
+                                {/* Gráfica 1: Evolución Temporal */}
                                 <div className="h-64 w-full">
-                                    <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Evolución de Ganancias (Bruto vs Neto)</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">
+                                        Evolución de Ganancias (Bruto vs Neto)
+                                    </p>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={statsData.chartTimeline}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                                            <Legend iconType="circle" />
-                                            <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                                            <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                                            <Tooltip 
+                                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
+                                                itemStyle={{fontSize: '12px', fontWeight: 'bold'}}
+                                            />
+                                            <Legend iconType="circle" wrapperStyle={{fontSize: '10px', paddingTop: '10px'}} />
+                                            <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4, fill: 'var(--color-primary)'}} activeDot={{r: 6}} />
+                                            <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981'}} activeDot={{r: 6}} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </div>
-                                {/* Gráfica 2 */}
+            
+                                {/* Gráfica 2: Rendimiento por Profesional */}
                                 <div className="h-64 w-full">
-                                    <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Rendimiento Neto por Profesional</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">
+                                        Rendimiento Neto por Profesional
+                                    </p>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={statsData.chartProfs}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
                                             <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
                                             <Bar dataKey="valor" name="Ganancia Neta" radius={[10, 10, 0, 0]}>
                                                 {statsData.chartProfs.map((entry, index) => (
