@@ -277,6 +277,34 @@ const AgentBuilderWrapper = (props) => {
 };
 
 
+// --- FUNCIÓN MATEMÁTICA DE CONTRASTE (YIQ) ---
+// Decide si el texto debe ser claro u oscuro dependiendo del fondo
+const getContrastColor = (hexcolor) => {
+    if (!hexcolor) return '#ffffff'; // Por defecto blanco
+    
+    // Le quitamos el # si lo tiene
+    hexcolor = hexcolor.replace("#", "");
+    
+    // Si el cliente puso un hex de 3 letras (ej: #FFF), lo pasamos a 6 (#FFFFFF)
+    if (hexcolor.length === 3) {
+        hexcolor = hexcolor.split('').map(c => c + c).join('');
+    }
+    
+    // Convertimos a RGB
+    const r = parseInt(hexcolor.substr(0, 2), 16);
+    const g = parseInt(hexcolor.substr(2, 2), 16);
+    const b = parseInt(hexcolor.substr(4, 2), 16);
+    
+    // Ecuación YIQ para medir el brillo percibido por el ojo humano
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    
+    // Si el brillo es mayor a 128 (es un color claro) -> Letra Oscura
+    // Si el brillo es menor a 128 (es un color oscuro) -> Letra Blanca
+    return (yiq >= 128) ? '#1e293b' : '#ffffff'; 
+};
+
+
+
 // --- 4. APP PRINCIPAL ---
 const App = () => {
     // --- ESTADOS ---
@@ -452,10 +480,22 @@ const App = () => {
         if (targetBranding && targetBranding.primaryColor) {
             setBrandConfig(targetBranding);
             const root = document.documentElement;
+            
+            // 1. Colores de fondo que eligió el cliente
             root.style.setProperty('--color-primary', targetBranding.primaryColor);
             root.style.setProperty('--color-sidebar-bg', targetBranding.sidebarBg);
+            
+            // 2. 🔥 LA MAGIA: Calculamos el contraste perfecto para los textos
+            const autoPrimaryText = getContrastColor(targetBranding.primaryColor);
+            const autoSidebarActiveText = getContrastColor(targetBranding.sidebarBg);
+
+            // 3. Inyectamos los textos inteligentes
+            // El texto secundario del menú lo dejamos a elección del cliente (o gris por defecto)
             root.style.setProperty('--color-sidebar-text', targetBranding.sidebarText || '#9ca3af');
-            root.style.setProperty('--color-sidebar-active', targetBranding.sidebarActive || '#ffffff');
+            
+            // Pero el texto ACTIVO y el texto de los BOTONES los forzamos para que siempre se lean perfecto
+            root.style.setProperty('--color-sidebar-active', autoSidebarActiveText);
+            root.style.setProperty('--color-primary-text', autoPrimaryText);
         }
     }, [data, publicData, currentUser, mode, tenantId]);
 
