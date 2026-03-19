@@ -142,7 +142,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     setIsModalOpen(true); 
                 }} 
                 className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-medium hover:bg-primary-dark transition-all"
-            >
+                >
                 <Icon name="plus" /> Manual
             </button>
           </div>
