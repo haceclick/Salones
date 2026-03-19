@@ -1,6 +1,5 @@
-
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto (Agregamos los campos de transferencia y tipo de depósito)
+    // 1. Valores por defecto
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
@@ -28,6 +27,14 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
     const [hasLoadedInit, setHasLoadedInit] = useState(false); 
     const [isEditingAlias, setIsEditingAlias] = useState(false);
     const [tempAlias, setTempAlias] = useState('');
+
+    // ✅ NUEVO: ESTADO PARA EL ACORDEÓN (Inicia con 'negocio' abierto)
+    const [openSection, setOpenSection] = useState('negocio');
+
+    const toggleSection = (sectionName) => {
+        // Si hace clic en el que ya está abierto, lo cierra. Si no, abre el nuevo.
+        setOpenSection(prev => prev === sectionName ? null : sectionName);
+    };
 
     // 3. EL ARREGLO DEL "RADAR"
     useEffect(() => {
@@ -155,215 +162,256 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg">
             <header className="mb-8"><h2 className="text-3xl font-bold text-gray-800">Ajustes del Local</h2></header>
-            <form onSubmit={handleSave} className="w-full space-y-8">
+            <form onSubmit={handleSave} className="w-full space-y-4"> {/* Reducido el space-y para que los acordeones queden más juntos */}
                 
-                {/* 1. BRANDING */}
-                <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-border">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b pb-4"><Icon name="palette" className="text-[var(--color-primary)]"/> Identidad Visual</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-1 border-r pr-6">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Logo</label>
-                            <input type="text" placeholder="URL..." className="w-full border p-2.5 rounded-lg text-xs mb-3" value={branding.logoBase64 || ''} onChange={(e) => setBranding({...branding, logoBase64: e.target.value})} />
-                            <div className="relative h-32 w-full border-2 border-dashed rounded-xl flex items-center justify-center bg-gray-50">
-                                {branding.logoBase64 ? (
-                                    <><button type="button" onClick={() => setBranding({...branding, logoBase64: ''})} className="absolute top-2 right-2 text-red-400 bg-white rounded-full p-1"><Icon name="x" size={16}/></button><img src={branding.logoBase64} className="max-h-24 object-contain" /></>
+                {/* 1. NEGOCIO Y PAGOS */}
+                <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
+                    <button 
+                        type="button" 
+                        onClick={() => toggleSection('negocio')}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'negocio' ? 'border-b border-gray-100' : ''}`}
+                    >
+                        <h3 className="font-bold text-lg flex items-center gap-2"><Icon name="store" className="text-[var(--color-primary)]"/> Negocio y Pagos</h3>
+                        <Icon name={openSection === 'negocio' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
+                    </button>
+                    
+                    {openSection === 'negocio' && (
+                        <div className="p-6 space-y-6 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Nombre Comercial</label><input type="text" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.businessName || ''} onChange={e => setAgentConfig({...agentConfig, businessName: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">WhatsApp</label><input type="tel" placeholder="Ej: 5491112345678" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.whatsapp || ''} onChange={e => setAgentConfig({...agentConfig, whatsapp: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Dirección Física</label><input type="text" placeholder="Ej: Av. Santa Fe 1234" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.address || ''} onChange={e => setAgentConfig({...agentConfig, address: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Link Google Maps</label><input type="url" placeholder="https://maps.app.goo.gl/..." className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.mapsUrl || ''} onChange={e => setAgentConfig({...agentConfig, mapsUrl: e.target.value})} /></div>
+                            </div>
+
+                            {/* ENLACE PÚBLICO */}
+                            <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                                <h4 className="font-bold text-sm text-blue-900 mb-2 flex items-center gap-2"><Icon name="link" size={16}/> Enlace Público de Reservas</h4>
+                                <p className="text-xs text-blue-700 mb-4">Este es el link que compartirás en tu Instagram. Asegúrate de configurarlo correctamente.</p>
+                                
+                                {!isEditingAlias ? (
+                                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                                        <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm">
+                                            <span className="text-gray-400">salones.haceclick-ai.com/?local=</span>
+                                            <strong className="text-blue-900 ml-0.5">{agentConfig.tenantAlias || 'tu-local'}</strong>
+                                        </div>
+                                        <button type="button" onClick={startAliasEdit} className="w-full sm:w-auto bg-blue-100 text-blue-700 px-6 py-3 rounded-lg font-bold hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
+                                            <Icon name="edit-2" size={16}/> Editar
+                                        </button>
+                                    </div>
                                 ) : (
-                                    <div className="text-center cursor-pointer relative"><input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" /><Icon name="upload-cloud" size={24} className="mx-auto text-gray-400"/><p className="text-[10px]">Subir Logo</p></div>
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 animate-fade-in">
+                                        <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner">
+                                            <span className="text-gray-400 text-sm font-mono whitespace-nowrap">salones.haceclick-ai.com/?local=</span>
+                                            <input 
+                                                type="text" autoFocus
+                                                className="outline-none font-bold text-blue-900 font-mono w-full bg-transparent ml-0.5" 
+                                                value={tempAlias} onChange={handleAliasTyping} placeholder="ej: peluqueria-marcela" 
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 w-full sm:w-auto">
+                                            <button type="button" onClick={() => setIsEditingAlias(false)} className="flex-1 sm:flex-none bg-gray-200 text-gray-600 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors" title="Cancelar">
+                                                <Icon name="x" size={20} className="mx-auto"/>
+                                            </button>
+                                            <button type="button" onClick={confirmAliasEdit} className="flex-1 sm:flex-none bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-600 shadow-md transition-colors flex items-center justify-center gap-2">
+                                                <Icon name="check" size={18}/> Fijar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* COBRO DE SEÑAS MEJORADO */}
+                            <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
+                                        <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={agentConfig.requireDeposit || false} onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} className="sr-only peer"/>
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                                    </label>
+                                </div>
+
+                                {agentConfig.requireDeposit && (
+                                    <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
+                                        
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
+                                            <input type="number" className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.depositAmount || ''} onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} placeholder="Ej: 2000" />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Método de Cobro</label>
+                                            <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setAgentConfig({...agentConfig, depositType: 'link'})}
+                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${(!agentConfig.depositType || agentConfig.depositType === 'link') ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                                >
+                                                    Link de Pago
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setAgentConfig({...agentConfig, depositType: 'transfer'})}
+                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${agentConfig.depositType === 'transfer' ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                                >
+                                                    Transferencia
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                            {(!agentConfig.depositType || agentConfig.depositType === 'link') ? (
+                                                <div className="animate-fade-in">
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Link de Pago (MercadoPago, Stripe...)</label>
+                                                    <input type="url" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.paymentUrl || ''} onChange={e => setAgentConfig({...agentConfig, paymentUrl: e.target.value})} placeholder="https://..." />
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Alias / CBU</label>
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferAlias || ''} onChange={e => setAgentConfig({...agentConfig, transferAlias: e.target.value})} placeholder="mi.alias.mp" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre del Titular</label>
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferName || ''} onChange={e => setAgentConfig({...agentConfig, transferName: e.target.value})} placeholder="Juan Pérez" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">CUIT / CUIL</label>
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferCuit || ''} onChange={e => setAgentConfig({...agentConfig, transferCuit: e.target.value})} placeholder="20-12345678-9" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
-                        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
-                            <div className="flex items-center gap-4"><input type="color" value={branding.primaryColor} onChange={(e) => setBranding({...branding, primaryColor: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold">Color Primario</p></div></div>
-                            <div className="flex items-center gap-4"><input type="color" value={branding.sidebarBg} onChange={(e) => setBranding({...branding, sidebarBg: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold">Fondo Sidebar</p></div></div>
-                            <div className="flex items-center gap-4"><input type="color" value={branding.sidebarText} onChange={(e) => setBranding({...branding, sidebarText: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold">Texto Sidebar</p></div></div>
-                            <div className="flex items-center gap-4"><input type="color" value={branding.sidebarActive} onChange={(e) => setBranding({...branding, sidebarActive: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold">Texto Activo</p></div></div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* 2. NEGOCIO Y SAAS */}
-                <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-border">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b pb-4"><Icon name="store" className="text-[var(--color-primary)]"/> Negocio y Pagos</h3>
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-xs font-bold text-gray-500 mb-2">Nombre Comercial</label><input type="text" className="w-full border p-3 rounded-lg" value={agentConfig.businessName || ''} onChange={e => setAgentConfig({...agentConfig, businessName: e.target.value})} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 mb-2">WhatsApp</label><input type="tel" placeholder="Ej: 5491112345678" className="w-full border p-3 rounded-lg" value={agentConfig.whatsapp || ''} onChange={e => setAgentConfig({...agentConfig, whatsapp: e.target.value})} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 mb-2">Dirección Física</label><input type="text" placeholder="Ej: Av. Santa Fe 1234" className="w-full border p-3 rounded-lg" value={agentConfig.address || ''} onChange={e => setAgentConfig({...agentConfig, address: e.target.value})} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 mb-2">Link Google Maps</label><input type="url" placeholder="https://maps.app.goo.gl/..." className="w-full border p-3 rounded-lg" value={agentConfig.mapsUrl || ''} onChange={e => setAgentConfig({...agentConfig, mapsUrl: e.target.value})} /></div>
-                        </div>
+                {/* 2. IDENTIDAD DE MARCA */}
+                <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
+                    <button 
+                        type="button" 
+                        onClick={() => toggleSection('branding')}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'branding' ? 'border-b border-gray-100' : ''}`}
+                    >
+                        <h3 className="font-bold text-lg flex items-center gap-2"><Icon name="palette" className="text-[var(--color-primary)]"/> Identidad de Marca</h3>
+                        <Icon name={openSection === 'branding' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
+                    </button>
 
-                        {/* ENLACE PÚBLICO */}
-                        <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
-                            <h4 className="font-bold text-sm text-blue-900 mb-2 flex items-center gap-2"><Icon name="link" size={16}/> Enlace Público de Reservas</h4>
-                            <p className="text-xs text-blue-700 mb-4">Este es el link que compartirás en tu Instagram. Asegúrate de configurarlo correctamente.</p>
-                            
-                            {!isEditingAlias ? (
-                                <div className="flex flex-col sm:flex-row items-center gap-3">
-                                    <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm">
-                                        <span className="text-gray-400">salones.haceclick-ai.com/?local=</span>
-                                        <strong className="text-blue-900 ml-0.5">{agentConfig.tenantAlias || 'tu-local'}</strong>
-                                    </div>
-                                    <button type="button" onClick={startAliasEdit} className="w-full sm:w-auto bg-blue-100 text-blue-700 px-6 py-3 rounded-lg font-bold hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
-                                        <Icon name="edit-2" size={16}/> Editar
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col sm:flex-row items-center gap-2 animate-fade-in">
-                                    <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner">
-                                        <span className="text-gray-400 text-sm font-mono whitespace-nowrap">salones.haceclick-ai.com/?local=</span>
-                                        <input 
-                                            type="text" autoFocus
-                                            className="outline-none font-bold text-blue-900 font-mono w-full bg-transparent ml-0.5" 
-                                            value={tempAlias} onChange={handleAliasTyping} placeholder="ej: peluqueria-marcela" 
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 w-full sm:w-auto">
-                                        <button type="button" onClick={() => setIsEditingAlias(false)} className="flex-1 sm:flex-none bg-gray-200 text-gray-600 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors" title="Cancelar">
-                                            <Icon name="x" size={20} className="mx-auto"/>
-                                        </button>
-                                        <button type="button" onClick={confirmAliasEdit} className="flex-1 sm:flex-none bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-600 shadow-md transition-colors flex items-center justify-center gap-2">
-                                            <Icon name="check" size={18}/> Fijar
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* COBRO DE SEÑAS MEJORADO */}
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
-                                    <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked={agentConfig.requireDeposit || false} onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} className="sr-only peer"/>
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                                </label>
-                            </div>
-
-                            {agentConfig.requireDeposit && (
-                                <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
-                                    
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
-                                        <input type="number" className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.depositAmount || ''} onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} placeholder="Ej: 2000" />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Método de Cobro</label>
-                                        <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
-                                            <button 
-                                                type="button"
-                                                onClick={() => setAgentConfig({...agentConfig, depositType: 'link'})}
-                                                className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${(!agentConfig.depositType || agentConfig.depositType === 'link') ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                                            >
-                                                Link de Pago
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                onClick={() => setAgentConfig({...agentConfig, depositType: 'transfer'})}
-                                                className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${agentConfig.depositType === 'transfer' ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                                            >
-                                                Transferencia
-                                            </button>
+                    {openSection === 'branding' && (
+                        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+                            <div className="lg:col-span-1 border-r pr-6">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Logo</label>
+                                <input type="text" placeholder="URL..." className="w-full border p-2.5 rounded-lg text-xs mb-3 outline-none focus:border-[var(--color-primary)]" value={branding.logoBase64 || ''} onChange={(e) => setBranding({...branding, logoBase64: e.target.value})} />
+                                <div className="relative h-32 w-full border-2 border-dashed rounded-xl flex items-center justify-center bg-gray-50">
+                                    {branding.logoBase64 ? (
+                                        <><button type="button" onClick={() => setBranding({...branding, logoBase64: ''})} className="absolute top-2 right-2 text-red-400 bg-white rounded-full p-1 shadow-sm hover:text-red-600"><Icon name="x" size={16}/></button><img src={branding.logoBase64} className="max-h-24 object-contain" /></>
+                                    ) : (
+                                        <div className="text-center cursor-pointer relative w-full h-full flex flex-col items-center justify-center">
+                                            <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                            <Icon name="upload-cloud" size={24} className="mx-auto text-gray-400"/>
+                                            <p className="text-[10px] text-gray-500 mt-1">Subir Logo</p>
                                         </div>
-                                    </div>
-
-                                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                        {(!agentConfig.depositType || agentConfig.depositType === 'link') ? (
-                                            <div className="animate-fade-in">
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Link de Pago (MercadoPago, Stripe...)</label>
-                                                <input type="url" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.paymentUrl || ''} onChange={e => setAgentConfig({...agentConfig, paymentUrl: e.target.value})} placeholder="https://..." />
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Alias / CBU</label>
-                                                    <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferAlias || ''} onChange={e => setAgentConfig({...agentConfig, transferAlias: e.target.value})} placeholder="mi.alias.mp" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre del Titular</label>
-                                                    <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferName || ''} onChange={e => setAgentConfig({...agentConfig, transferName: e.target.value})} placeholder="Juan Pérez" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">CUIT / CUIL</label>
-                                                    <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferCuit || ''} onChange={e => setAgentConfig({...agentConfig, transferCuit: e.target.value})} placeholder="20-12345678-9" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
+                                    )}
                                 </div>
-                            )}
+                            </div>
+                            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                                <div className="flex items-center gap-4"><input type="color" value={branding.primaryColor} onChange={(e) => setBranding({...branding, primaryColor: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold text-gray-700">Color Primario</p></div></div>
+                                <div className="flex items-center gap-4"><input type="color" value={branding.sidebarBg} onChange={(e) => setBranding({...branding, sidebarBg: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold text-gray-700">Fondo Sidebar</p></div></div>
+                                <div className="flex items-center gap-4"><input type="color" value={branding.sidebarText} onChange={(e) => setBranding({...branding, sidebarText: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold text-gray-700">Texto Sidebar</p></div></div>
+                                <div className="flex items-center gap-4"><input type="color" value={branding.sidebarActive} onChange={(e) => setBranding({...branding, sidebarActive: e.target.value})} className="w-12 h-12 rounded-lg cursor-pointer" /><div><p className="text-sm font-bold text-gray-700">Texto Activo</p></div></div>
+                            </div>
                         </div>
-
-                    </div>
+                    )}
                 </div>
 
                 {/* 3. PLANTILLAS DE WHATSAPP */}
-                <div className="bg-white p-6 rounded-brand shadow-sm border-t-4 border-[#25D366]">
-                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-[#25D366]">
-                        <Icon name="message-circle" className="text-[#25D366]"/> Plantillas de WhatsApp
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-6 pb-4 border-b border-gray-100">Personaliza los mensajes automáticos. Los datos del cliente y del turno se completarán solos.</p>
+                <div className={`bg-white rounded-brand shadow-sm border ${openSection === 'whatsapp' ? 'border-[#25D366]' : 'border-brand-border'} overflow-hidden transition-all`}>
+                    <button 
+                        type="button" 
+                        onClick={() => toggleSection('whatsapp')}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'whatsapp' ? 'border-b border-[#25D366]/20' : ''}`}
+                    >
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#25D366]"><Icon name="message-circle"/> Plantillas de WhatsApp</h3>
+                        <Icon name={openSection === 'whatsapp' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
+                    </button>
 
-                    <div className="space-y-6">
-                        <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
-                            <label className="block text-xs font-bold text-green-800 uppercase mb-2">👋 Bienvenida a Nuevos Clientes</label>
-                            <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*!</div>
-                            <textarea rows="3" className="w-full border-2 border-green-200 p-3 rounded-lg outline-none focus:border-[#25D366] text-gray-700 resize-none" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
+                    {openSection === 'whatsapp' && (
+                        <div className="p-6 space-y-6 animate-fade-in bg-green-50/20">
+                            <p className="text-xs text-gray-500 mb-2 border-b border-green-100 pb-4">Personaliza los mensajes automáticos. Los datos del cliente y del turno se completarán solos.</p>
+
+                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">👋 Bienvenida a Nuevos Clientes</label>
+                                <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*!</div>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">✅ Confirmación de Turno</label>
+                                <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te confirmamos tu turno para *[Servicio]* el *[Día]* a las *[Hora]*.</div>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
+                                <div className="text-sm text-gray-400 mt-2 italic">[Link de Google Maps] + [Link de Calendario]</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">❌ Rechazo / Reprogramación</label>
+                                <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te escribimos de *[Tu Local]*.</div>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">🎂 Saludo de Cumpleaños</label>
+                                <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! En este día especial te deseamos un ¡MUY FELIZ CUMPLEAÑOS!</div>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
+                            </div>
                         </div>
-                        <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
-                            <label className="block text-xs font-bold text-green-800 uppercase mb-2">✅ Confirmación de Turno</label>
-                            <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te confirmamos tu turno para *[Servicio]* el *[Día]* a las *[Hora]*.</div>
-                            <textarea rows="2" className="w-full border-2 border-green-200 p-3 rounded-lg outline-none focus:border-[#25D366] text-gray-700 resize-none" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
-                            <div className="text-sm text-gray-400 mt-2 italic">[Link de Google Maps] + [Link de Calendario]</div>
-                        </div>
-                        <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
-                            <label className="block text-xs font-bold text-green-800 uppercase mb-2">❌ Rechazo / Reprogramación</label>
-                            <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te escribimos de *[Tu Local]*.</div>
-                            <textarea rows="3" className="w-full border-2 border-green-200 p-3 rounded-lg outline-none focus:border-[#25D366] text-gray-700 resize-none" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
-                        </div>
-                        <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
-                            <label className="block text-xs font-bold text-green-800 uppercase mb-2">🎂 Saludo de Cumpleaños</label>
-                            <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! En este día especial te deseamos un ¡MUY FELIZ CUMPLEAÑOS!</div>
-                            <textarea rows="2" className="w-full border-2 border-green-200 p-3 rounded-lg outline-none focus:border-[#25D366] text-gray-700 resize-none" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* 4. EMAIL MARKETING */}
-                <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-border">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b pb-4"><Icon name="mail" className="text-orange-500"/> Campaña de Email Masivo</h3>
-                    
-                    <div className="space-y-4 mb-6">
-                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-2.5 rounded-lg focus:border-orange-400 outline-none" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
-                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-2.5 rounded-lg focus:border-orange-400 outline-none resize-none" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
-                    </div>
+                <div className={`bg-white rounded-brand shadow-sm border ${openSection === 'email' ? 'border-orange-400' : 'border-brand-border'} overflow-hidden transition-all`}>
+                    <button 
+                        type="button" 
+                        onClick={() => toggleSection('email')}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'email' ? 'border-b border-orange-100' : ''}`}
+                    >
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-orange-500"><Icon name="mail"/> Email Marketing Masivo</h3>
+                        <Icon name={openSection === 'email' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
+                    </button>
 
-                    <div className="bg-orange-50 p-6 rounded-xl border border-orange-100">
-                        {emailGroups.length === 0 ? (
-                            <button type="button" onClick={handlePreparePromo} className="bg-orange-500 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
-                        ) : (
-                            <div className="space-y-4">
-                                <p className="text-xs text-orange-800">Se han creado {emailGroups.length} grupos de 50 correos. Haz clic en cada uno para abrir tu correo:</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {emailGroups.map((group, index) => (
-                                        <div key={index} className="flex shadow-sm">
-                                            <a href={getGmailLink(group)} target="_blank" rel="noopener noreferrer" className="bg-white border border-orange-300 text-orange-700 px-4 py-2 rounded-l-lg font-bold text-xs no-underline hover:bg-orange-100 flex items-center gap-1 transition-colors"><Icon name="mail" size={14}/> Abrir en Gmail (G{index + 1})</a>
-                                            <button type="button" onClick={() => { navigator.clipboard.writeText(group.join(',')); notify("Correos copiados. Pégalos en CCO/BCC de tu correo.", "success"); }} className="bg-white border-y border-r border-orange-300 text-orange-700 px-3 py-2 rounded-r-lg hover:bg-orange-100 transition-colors" title="Copiar lista de correos"><Icon name="copy" size={14}/></button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button type="button" onClick={() => setEmailGroups([])} className="text-xs text-orange-500 hover:text-orange-700 font-bold underline">Reiniciar lista de envío</button>
+                    {openSection === 'email' && (
+                        <div className="p-6 animate-fade-in">
+                            <div className="space-y-4 mb-6">
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-3 rounded-lg focus:border-orange-400 outline-none transition-colors" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-3 rounded-lg focus:border-orange-400 outline-none resize-none transition-colors" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
                             </div>
-                        )}
-                    </div>
+
+                            <div className="bg-orange-50 p-6 rounded-xl border border-orange-200">
+                                {emailGroups.length === 0 ? (
+                                    <button type="button" onClick={handlePreparePromo} className="bg-orange-500 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-sm"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <p className="text-xs text-orange-800 font-medium">Se han creado {emailGroups.length} grupos de 50 correos. Haz clic en cada uno para abrir tu correo:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {emailGroups.map((group, index) => (
+                                                <div key={index} className="flex shadow-sm hover:shadow-md transition-shadow rounded-lg">
+                                                    <a href={getGmailLink(group)} target="_blank" rel="noopener noreferrer" className="bg-white border border-orange-300 text-orange-700 px-4 py-2 rounded-l-lg font-bold text-xs no-underline hover:bg-orange-50 flex items-center gap-1 transition-colors"><Icon name="mail" size={14}/> Abrir en Gmail (G{index + 1})</a>
+                                                    <button type="button" onClick={() => { navigator.clipboard.writeText(group.join(',')); notify("Correos copiados. Pégalos en CCO/BCC de tu correo.", "success"); }} className="bg-white border-y border-r border-orange-300 text-orange-700 px-3 py-2 rounded-r-lg hover:bg-orange-50 transition-colors" title="Copiar lista de correos"><Icon name="copy" size={14}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button type="button" onClick={() => setEmailGroups([])} className="text-xs text-orange-600 hover:text-orange-800 font-bold underline decoration-orange-300 underline-offset-2">Reiniciar lista de envío</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
-                <div className="pt-10 pb-20 flex justify-end">
-                    <button type="submit" disabled={isSaving} className="bg-[var(--color-primary)] text-white px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform">{isSaving ? "Guardando..." : "Guardar Todo"}</button>
+                <div className="pt-10 pb-20 flex justify-end sticky bottom-0 z-10 p-4">
+                    <button type="submit" disabled={isSaving} className="bg-[var(--color-primary)] text-white px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform w-full md:w-auto">{isSaving ? "Guardando..." : "Guardar Todo"}</button>
                 </div>
             </form>
         </div>
