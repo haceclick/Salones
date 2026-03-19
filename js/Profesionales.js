@@ -115,7 +115,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                         </button>
                     </div>
                     
-                    <button onClick={openNew} className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl font-bold shadow-md transition-transform hover:scale-105 flex items-center gap-2">
+                    <button onClick={openNew} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-6 py-3 rounded-xl font-bold shadow-md transition-transform hover:scale-105 flex items-center gap-2">
                         <Icon name="plus" size={18} /> Agregar
                     </button>
                 </div>
