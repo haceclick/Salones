@@ -72,32 +72,50 @@ const SuperAdminPanel = ({ notify, user }) => {
             updatedMsgs = [...messages, { ...msgForm, id: 'SYS-' + Date.now(), date: new Date().toISOString(), type: 'admin_manual' }];
         }
         
+        // 🛡️ CORRECCIÓN: Lo pasamos a Texto JSON para que Google no se atragante
+        const payloadStr = JSON.stringify(updatedMsgs);
+        
         google.script.run
             .withSuccessHandler(res => {
                 setSendingMsg(false);
-                if (res.success) {
-                    notify(res.message, "success");
+                if (res && res.success) {
+                    notify(res.message || "Aviso publicado correctamente", "success");
                     setMessages(updatedMsgs);
                     setMsgForm({ target: 'ALL', title: '', message: '' }); 
                     setEditingMsgId(null);
+                    setOpenSection('avisos');
                 } else {
-                    notify(res.message, "error");
+                    // Si falla pero no hay mensaje, mostramos este genérico
+                    notify(res?.message || "Error al procesar en el servidor (Revisa Código.gs)", "error");
                 }
             })
-            .saveGlobalMessagesList(user.email, updatedMsgs);
+            // 🛡️ CORRECCIÓN: Agregamos el atajador de errores críticos
+            .withFailureHandler(err => {
+                setSendingMsg(false);
+                notify("Fallo de conexión: " + (err.message || err.toString()), "error");
+            })
+            .saveGlobalMessagesList(user.email, payloadStr); // Enviamos el JSON
     };
 
     const handleDeleteMsg = (id) => {
         const updatedMsgs = messages.filter(m => m.id !== id);
         notify("Borrando mensaje...", "info");
+        
+        const payloadStr = JSON.stringify(updatedMsgs);
+
         google.script.run
             .withSuccessHandler(res => {
-                if (res.success) {
+                if (res && res.success) {
                     notify("Aviso eliminado.", "success");
                     setMessages(updatedMsgs);
+                } else {
+                    notify(res?.message || "No se pudo eliminar el aviso.", "error");
                 }
             })
-            .saveGlobalMessagesList(user.email, updatedMsgs);
+            .withFailureHandler(err => {
+                notify("Error al borrar: " + (err.message || err.toString()), "error");
+            })
+            .saveGlobalMessagesList(user.email, payloadStr);
     };
 
     const startEditMsg = (m) => {
