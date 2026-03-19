@@ -125,9 +125,14 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             <p className="text-brand-text-light">Gestión de precios y tiempos</p>
           </div>
           <div className="flex gap-3">
-             <button onClick={() => setIsSocialMode(true)} className="bg-secondary text-brand-text px-4 py-2.5 rounded-brand font-bold shadow-lg shadow-secondary/20 flex items-center gap-2 hover:animate-pulse transition-all">
-                <Icon name="camera" /> Redes
-             </button>
+            <button 
+                onClick={() => setIsSocialMode(true)} 
+                className="bg-secondary text-brand-text px-4 py-2.5 rounded-brand font-bold shadow-lg shadow-secondary/20 flex items-center gap-2 hover:animate-pulse transition-all"
+            >
+                {/* Cambiamos "camera" por "instagram" */}
+                <Icon name="instagram" size={18} /> 
+                <span>Redes</span>
+            </button>
              <button onClick={() => setIsCatManagerOpen(true)} className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors">
                 <Icon name="list" /> Categorías
              <button 
