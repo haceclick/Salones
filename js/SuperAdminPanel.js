@@ -72,12 +72,13 @@ const SuperAdminPanel = ({ notify, user }) => {
             updatedMsgs = [...messages, { ...msgForm, id: 'SYS-' + Date.now(), date: new Date().toISOString(), type: 'admin_manual' }];
         }
         
-        // 🛡️ CORRECCIÓN: Lo pasamos a Texto JSON para que Google no se atragante
+        // 🛡️ EL TRUCO: Convertimos el Array a Texto (String) ANTES de enviarlo por el puente
         const payloadStr = JSON.stringify(updatedMsgs);
         
         google.script.run
             .withSuccessHandler(res => {
                 setSendingMsg(false);
+                // Validamos que 'res' exista antes de leer res.success
                 if (res && res.success) {
                     notify(res.message || "Aviso publicado correctamente", "success");
                     setMessages(updatedMsgs);
@@ -85,16 +86,14 @@ const SuperAdminPanel = ({ notify, user }) => {
                     setEditingMsgId(null);
                     setOpenSection('avisos');
                 } else {
-                    // Si falla pero no hay mensaje, mostramos este genérico
-                    notify(res?.message || "Error al procesar en el servidor (Revisa Código.gs)", "error");
+                    notify(res?.message || "Error al guardar en el Excel Maestro.", "error");
                 }
             })
-            // 🛡️ CORRECCIÓN: Agregamos el atajador de errores críticos
             .withFailureHandler(err => {
                 setSendingMsg(false);
-                notify("Fallo de conexión: " + (err.message || err.toString()), "error");
+                notify("Fallo de conexión con Google: " + (err.message || err.toString()), "error");
             })
-            .saveGlobalMessagesList(user.email, payloadStr); // Enviamos el JSON
+            .saveGlobalMessagesList(user.email, payloadStr); // Enviamos el payloadStr
     };
 
     const handleDeleteMsg = (id) => {
