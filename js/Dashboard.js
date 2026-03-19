@@ -96,18 +96,17 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const getClientLink = () => {
+        // 1. Si el dueño configuró un link específico en Settings, usamos ese
         if (agentConfig?.schedulerUrl) return agentConfig.schedulerUrl;
         
-        // 🔥 TRUCO: Forzamos la URL directa de Google Script para evadir el bloqueo del Iframe
-        let scriptUrl = window.SCRIPT_URL || window.location.href.split('?')[0].split('#')[0];
-        scriptUrl = scriptUrl.replace(/\/dev$/, '/exec');
-        
+        // 2. Si no, armamos el link limpio con tu dominio oficial
+        const baseDomain = "https://salones.haceclick-ai.com/";
         const alias = agentConfig?.tenantAlias;
+        
         if (alias) {
-            // Genera: https://script.google.com/.../exec?local=amara
-            return `${scriptUrl}?local=${alias}`;
+            return `${baseDomain}?local=${alias}`;
         }
-        return scriptUrl;
+        return baseDomain;
     };
 
     const openWhatsAppApp = (phone, text) => {
