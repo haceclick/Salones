@@ -265,7 +265,16 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             <Icon name="lock" size={18}/> Bloquear
                         </button>
                     )}
-                    <button onClick={() => { setEditingApptId(null); setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), date: '', time: '', status: 'confirmed' }); setIsCreateOpen(true); }} className="bg-[var(--color-primary)] hover:opacity-90 text-white px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md"><Icon name="plus" size={18}/> Nuevo</button>
+                    <button 
+                        onClick={() => { 
+                            setEditingApptId(null); 
+                            setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), date: '', time: '', status: 'confirmed' }); 
+                            setIsCreateOpen(true); 
+                        }} 
+                        className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-text)] px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md"
+                    >
+                        <Icon name="plus" size={18}/> Nuevo
+                    </button>                
                 </div>
             </header>
 
