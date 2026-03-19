@@ -314,6 +314,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     // --- ESTADO PARA OCULTAR AVISOS AL INSTANTE ---
     const [hiddenNotifs, setHiddenNotifs] = useState([]);
 
+    // 1. AVISOS DEL SISTEMA (Solo Súper Admin)
     const allNotifs = useMemo(() => {
         const formattedAdminMessages = (adminMessages || []).map(msg => {
             const cleanTitle = typeof msg.title === 'object' ? (msg.title.title || "Aviso") : (msg.title || "Aviso");
@@ -327,11 +328,17 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 id: msg.id || Date.now() + Math.random()
             };
         });
-        const combined = [...(notifications || []), ...formattedAdminMessages];
-        
-        // Filtramos para que no muestre los que acabamos de ocultar
-        return combined.filter(n => !hiddenNotifs.includes(String(n.id)));
-    }, [notifications, adminMessages, hiddenNotifs]);
+        // Ya no mezclamos las notificaciones locales, solo dejamos las del Admin
+        return formattedAdminMessages.filter(n => !hiddenNotifs.includes(String(n.id)));
+    }, [adminMessages, hiddenNotifs]);
+
+    // 2. NUEVOS CLIENTES (Van a ir a Solicitudes Web)
+    const newClientNotifs = useMemo(() => {
+        return (notifications || []).filter(n => n.type === 'new_client' && !hiddenNotifs.includes(String(n.id)));
+    }, [notifications, hiddenNotifs]);
+    
+    // Calculamos el total para la alerta de Solicitudes Web
+    const totalPendingRequests = pendingApps.length + newClientNotifs.length;
 
     const reminderAppts = useMemo(() => {
         if(!remDate) return [];
@@ -430,18 +437,53 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-8">
-                    {/* SOLICITUDES WEB */}
+                    {/* SOLICITUDES WEB Y NUEVOS CLIENTES */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="globe" className="text-yellow-600"/> Solicitudes Web</h3>
-                            {pendingApps.length > 0 && <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse uppercase">Pendientes</span>}
+                            {totalPendingRequests > 0 && <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse uppercase">{totalPendingRequests} Pendientes</span>}
                         </div>
-                        {pendingApps.length === 0 ? 
+                        {totalPendingRequests === 0 ? 
                             (<div key="empty-pending" className="text-center py-8 text-brand-text-light flex flex-col items-center">
                                 <Icon name="check-circle" size={40} className="mb-2 opacity-30"/>
                                 <p>Sin solicitudes pendientes.</p>
                             </div>) : 
                             (<div key="list-pending" className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                
+                                {/* A. RENDERIZAMOS LOS CLIENTES NUEVOS PRIMERO */}
+                                {newClientNotifs.map(n => (
+                                    <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 group">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                                <p className="font-bold text-lg text-gray-800">{n.clientName}</p>
+                                                <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1"><Icon name="phone" size={12}/> {n.clientPhone}</p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="text-[10px] font-bold uppercase px-2 py-1 rounded text-green-800 bg-green-200 animate-pulse">
+                                                    Nuevo Registro
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 pt-3 border-t border-green-200">
+                                            <button onClick={() => {
+                                                const welcomeText = msgConfig.welcome || '¡Qué alegría sumarte a nuestro local! En breve revisaremos la solicitud de tu turno.';
+                                                const text = `¡Hola *${n.clientName}*! 👋\n\n${welcomeText}`;
+                                                openWhatsAppApp(n.clientPhone.replace(/\D/g, ''), text);
+                                                handleDismissNotif(n.id);
+                                            }} className="flex-1 bg-green-500 text-white py-2 rounded-brand text-xs font-bold hover:bg-green-600 flex justify-center items-center gap-1 shadow-sm transition-colors">
+                                                <Icon name="message-circle" size={14}/> <span>Saludar</span>
+                                            </button>
+                                            <button onClick={() => {
+                                                handleDismissNotif(n.id);
+                                                notify("Cliente marcado como saludado", "success");
+                                            }} className="flex-1 bg-white border border-green-300 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-50 transition-colors">
+                                                <Icon name="check" size={14}/> <span>Ya Saludado</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* B. RENDERIZAMOS LOS TURNOS PENDIENTES DESPUÉS */}
                                 {pendingApps.map(a => { 
                                     const clientName = a.clientId?.startsWith('CHAT') ? a.clientNameTemp : clients.find(c=>c.id===a.clientId)?.name;
                                     const tr = treatments.find(t => t.id === a.treatmentId);
@@ -461,7 +503,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1">
                                                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${isAwaiting ? 'text-orange-800 bg-orange-200 animate-pulse' : 'text-yellow-800 bg-yellow-200'}`}>
-                                                        {isAwaiting ? 'Esperando Seña' : 'Reserva'}
+                                                        {isAwaiting ? 'Esperando Seña' : 'Reserva Turno'}
                                                     </span>
                                                     {!isAwaiting && needsProf && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 rounded animate-pulse">Falta Asignar</span>}
                                                 </div>
@@ -538,49 +580,29 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
                 
                 <div className="space-y-8">
-                    {/* AVISOS Y ALTAS DE CLIENTES */}
+                    {/* AVISOS DEL SISTEMA */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="bell"/> Avisos del Sistema</h3>
                         </div>
                         {allNotifs.length === 0 ? 
-                            (<div key="empty-notif" className="p-6 bg-brand-bg rounded-brand border border-brand-border text-center text-sm text-brand-text-light italic">No hay mensajes pendientes.</div>) : 
+                            (<div key="empty-notif" className="p-6 bg-brand-bg rounded-brand border border-brand-border text-center text-sm text-brand-text-light italic">No hay mensajes del administrador.</div>) : 
                             (<div key="list-notif" className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                 {allNotifs.map((n) => {
-                                    const isAdmin = n.type === 'admin_manual';
                                     const isRead = readNotifs.includes(String(n.id));
                                     
-                                    let cardClasses = "";
-                                    if (isAdmin) {
-                                        cardClasses = isRead ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-400';
-                                    } else {
-                                        cardClasses = n.type === 'new_client' ? 'bg-green-50 border-green-500' : 'bg-blue-50 border-blue-400';
-                                    }
-
                                     return (
-                                        <div key={n.id} className={`p-4 rounded-brand border-l-4 relative transition-all ${cardClasses}`}>
+                                        <div key={n.id} className={`p-4 rounded-brand border-l-4 relative transition-all ${isRead ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-400'}`}>
                                             
-                                            {/* Botón de X SOLO para notificaciones del sistema */}
-                                            {!isAdmin && (
-                                                <button 
-                                                    onClick={() => { 
-                                                        handleDismissNotif(n.id);
-                                                        notify("Aviso descartado", "info");
-                                                    }} 
-                                                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
-                                                    title="Quitar aviso"
-                                                >
-                                                    <Icon name="x" size={14}/>
-                                                </button>
-                                            )}
-
                                             <div className="flex justify-between items-start gap-4">
                                                 <div>
-                                                    <p className={`font-bold text-sm flex items-center gap-1 ${isAdmin && isRead ? 'text-gray-500' : 'text-brand-text'}`}>
-                                                        {isAdmin && <Icon name="info" size={14} className={isRead ? "text-gray-400" : "text-blue-500"}/>} 
+                                                    <p className={`font-bold text-sm flex items-center gap-1 ${isRead ? 'text-gray-500' : 'text-brand-text'}`}>
+                                                        <Icon name="info" size={14} className={isRead ? "text-gray-400" : "text-blue-500"}/> 
                                                         {String(n.title || "")}
                                                     </p>
-                                                    <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isAdmin && isRead ? 'text-gray-400' : 'text-brand-text-light'}`}>
+                                                    
+                                                    {/* Usamos el formateador de negritas que creamos recién */}
+                                                    <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isRead ? 'text-gray-400' : 'text-brand-text-light'}`}>
                                                         {n.message.split(/(\*.*?\*)/g).map((part, i) => 
                                                             part.startsWith('*') && part.endsWith('*') 
                                                                 ? <strong key={i} className="font-bold text-gray-900">{part.slice(1, -1)}</strong> 
@@ -589,8 +611,8 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                     </p>
                                                 </div>
 
-                                                {/* Botón de LEÍDO solo para ADMIN */}
-                                                {isAdmin && !isRead && (
+                                                {/* Botón de LEÍDO */}
+                                                {!isRead && (
                                                     <button 
                                                         onClick={() => setReadNotifs(prev => [...prev, String(n.id)])}
                                                         className="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-50 transition-colors shadow-sm shrink-0 flex items-center gap-1"
@@ -598,34 +620,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                         <Icon name="check" size={12}/> Marcar Leído
                                                     </button>
                                                 )}
-                                                {isAdmin && isRead && (
+                                                {isRead && (
                                                     <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 shrink-0 bg-gray-100 px-2 py-1 rounded">
                                                         <Icon name="check-check" size={12}/> Leído
                                                     </span>
                                                 )}
                                             </div>
-                                            
-                                            {/* Botones de acción para Nuevo Cliente */}
-                                            {n.type === 'new_client' && (
-                                                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-green-100">
-                                                    <button onClick={() => {
-                                                        const welcomeText = msgConfig.welcome || '¡Qué alegría sumarte a nuestro local! En breve revisaremos la solicitud de tu turno.';
-                                                        const text = `¡Hola *${n.clientName}*! 👋\n\n${welcomeText}`;
-                                                        openWhatsAppApp(n.clientPhone.replace(/\D/g, ''), text);
-                                                        
-                                                        handleDismissNotif(n.id);
-                                                    }} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition-colors flex items-center gap-1 shadow-sm">
-                                                        <Icon name="message-circle" size={14}/> Saludar
-                                                    </button>
-                                                    
-                                                    <button onClick={() => {
-                                                        handleDismissNotif(n.id);
-                                                        notify("Cliente marcado como saludado", "success");
-                                                    }} className="bg-white border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-50 transition-colors flex items-center gap-1 shadow-sm">
-                                                        <Icon name="check" size={14}/> Ya saludado
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
                                     )
                                 })}
