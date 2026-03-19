@@ -274,320 +274,6 @@ const AgentBuilderWrapper = (props) => {
     return <Component {...props} />;
 };
 
-// --- 3. SUPER ADMIN PANEL ---
-const SuperAdminPanel = ({ notify, user }) => {
-    const [form, setForm] = useState({ email: '', pass: '', name: '', rubro: '' });
-    const [loading, setLoading] = useState(false);
-    
-    const [messages, setMessages] = useState([]);
-    const [msgForm, setMsgForm] = useState({ target: 'ALL', title: '', message: '' });
-    const [sendingMsg, setSendingMsg] = useState(false);
-    const [editingMsgId, setEditingMsgId] = useState(null);
-
-    const [tenants, setTenants] = useState([]);
-    const [loadingList, setLoadingList] = useState(false);
-    const [editingId, setEditingId] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', pass: '' });
-    const [deleteTarget, setDeleteTarget] = useState(null);
-
-    useEffect(() => { 
-        loadTenants(); 
-        loadMessages();
-    }, []);
-
-    const loadTenants = () => {
-        setLoadingList(true);
-        google.script.run
-            .withSuccessHandler(res => {
-                setLoadingList(false);
-                if (res.success) setTenants(res.clients);
-            })
-            .getAllTenants(user.email);
-    };
-
-    const loadMessages = () => {
-        google.script.run
-            .withSuccessHandler(res => {
-                if (res.success) setMessages(res.messages || []);
-            })
-            .getGlobalMessages(user.email);
-    };
-
-    const handleCreate = (e) => {
-        e.preventDefault();
-        setLoading(true);
-        google.script.run
-            .withSuccessHandler(res => {
-                setLoading(false);
-                if(res.success) {
-                    notify(res.message, "success");
-                    setForm({ email: '', pass: '', name: '', rubro: '' });
-                    loadTenants(); 
-                } else notify(res.message, "error");
-            })
-            .createNewTenant(form.email, form.pass, form.name, form.rubro, user.email);
-    };
-
-    const handleSaveMsg = (e) => {
-        e.preventDefault();
-        setSendingMsg(true);
-        notify(editingMsgId ? "Actualizando aviso..." : "Enviando aviso...", "info");
-        
-        let updatedMsgs;
-        if (editingMsgId) {
-            updatedMsgs = messages.map(m => m.id === editingMsgId ? { ...msgForm, id: editingMsgId, date: m.date, type: 'admin_manual' } : m);
-        } else {
-            updatedMsgs = [...messages, { ...msgForm, id: 'SYS-' + Date.now(), date: new Date().toISOString(), type: 'admin_manual' }];
-        }
-        
-        google.script.run
-            .withSuccessHandler(res => {
-                setSendingMsg(false);
-                if (res.success) {
-                    notify(res.message, "success");
-                    setMessages(updatedMsgs);
-                    setMsgForm({ target: 'ALL', title: '', message: '' }); 
-                    setEditingMsgId(null);
-                } else {
-                    notify(res.message, "error");
-                }
-            })
-            .saveGlobalMessagesList(user.email, updatedMsgs);
-    };
-
-    const handleDeleteMsg = (id) => {
-        const updatedMsgs = messages.filter(m => m.id !== id);
-        notify("Borrando mensaje...", "info");
-        google.script.run
-            .withSuccessHandler(res => {
-                if (res.success) {
-                    notify("Aviso eliminado.", "success");
-                    setMessages(updatedMsgs);
-                }
-            })
-            .saveGlobalMessagesList(user.email, updatedMsgs);
-    };
-
-    const startEditMsg = (m) => {
-        setMsgForm({ target: m.target, title: m.title, message: m.message });
-        setEditingMsgId(m.id);
-        document.getElementById('msg-form').scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const confirmDelete = () => {
-        if (!deleteTarget) return;
-        const { id } = deleteTarget;
-        setDeleteTarget(null);
-        notify("Eliminando acceso...", "info");
-        google.script.run
-            .withSuccessHandler(res => {
-                if(res.success) {
-                    notify(res.message, "success");
-                    loadTenants();
-                } else notify(res.message, "error");
-            })
-            .deleteTenant(user.email, id);
-    };
-
-    const startEdit = (client) => {
-        setEditingId(client.sheetId);
-        setEditForm({ name: client.businessName, pass: client.password });
-    };
-
-    const saveEdit = (sheetId) => {
-        notify("Guardando...", "info");
-        google.script.run
-            .withSuccessHandler(res => {
-                if(res.success) {
-                    notify(res.message, "success");
-                    setEditingId(null);
-                    loadTenants();
-                } else notify(res.message, "error");
-            })
-            .updateTenant(user.email, sheetId, editForm.name, editForm.pass);
-    };
-
-    return (
-        <div className="p-8 max-w-6xl mx-auto space-y-10 relative">
-            
-            {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                        <div className="text-center">
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">¿Eliminar Acceso?</h3>
-                            <p className="text-gray-500 text-sm mb-6">
-                                Se borrará el acceso para <strong>{deleteTarget.name}</strong>.<br/>
-                                <span className="text-xs text-red-500">El archivo de Excel quedará en Drive por seguridad.</span>
-                            </p>
-                            <div className="flex gap-3">
-                                <button onClick={() => setDeleteTarget(null)} className="flex-1 py-3 rounded-xl border font-bold text-gray-600">Cancelar</button>
-                                <button onClick={confirmDelete} className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold">Sí, Eliminar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-6">Alta de Nuevo Cliente</h2>
-                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
-                        <form onSubmit={handleCreate} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Empresa</label>
-                                    <input required className="w-full border p-3 rounded-xl outline-none focus:border-gray-400" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} placeholder="Nombre comercial"/>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Rubro</label>
-                                    <select required className="w-full border p-3 rounded-xl outline-none bg-white focus:border-gray-400" value={form.rubro} onChange={e=>setForm({...form, rubro: e.target.value})}>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="Estetica">Estética</option>
-                                        <option value="Barberia">Barbería</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Email Dueño</label>
-                                    <input required type="email" className="w-full border p-3 rounded-xl outline-none focus:border-gray-400" value={form.email} onChange={e=>setForm({...form, email: e.target.value})} placeholder="ejemplo@correo.com"/>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Contraseña</label>
-                                    <input required className="w-full border p-3 rounded-xl outline-none focus:border-gray-400" value={form.pass} onChange={e=>setForm({...form, pass: e.target.value})} placeholder="Clave temporal"/>
-                                </div>
-                            </div>
-                            <div className="pt-4">
-                                <button disabled={loading} className="w-full bg-[#1e293b] text-white p-4 rounded-xl font-bold shadow-lg hover:bg-black transition-colors">
-                                    {loading ? "Creando..." : "Generar Empresa y Base de Datos"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div id="msg-form">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2"><Icon name="message-square" className="text-blue-500"/> Notificaciones</h2>
-                    <div className="bg-blue-50 p-6 rounded-2xl shadow-lg border border-blue-100">
-                        <form onSubmit={handleSaveMsg} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Destinatario</label>
-                                    <select required className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white text-blue-900 focus:border-blue-400" value={msgForm.target} onChange={e=>setMsgForm({...msgForm, target:e.target.value})}>
-                                        <option value="ALL">📢 A Todas las Empresas</option>
-                                        <optgroup label="Específico">
-                                            {tenants.map(t => <option key={t.sheetId} value={t.sheetId}>{t.businessName}</option>)}
-                                        </optgroup>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Título del Aviso</label>
-                                    <input required type="text" className="w-full border border-blue-200 p-3 rounded-xl outline-none focus:border-blue-400 text-blue-900" value={msgForm.title} onChange={e=>setMsgForm({...msgForm, title:e.target.value})} placeholder="Ej: Nueva Función"/>
-                                </div>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Mensaje</label>
-                                <textarea required className="w-full border border-blue-200 p-3 rounded-xl outline-none resize-none focus:border-blue-400 text-blue-900" rows="3" value={msgForm.message} onChange={e=>setMsgForm({...msgForm, message:e.target.value})} placeholder="Escribe el mensaje aquí..."></textarea>
-                            </div>
-                            <div className="pt-2 flex gap-2">
-                                {editingMsgId && <button type="button" onClick={() => {setEditingMsgId(null); setMsgForm({target:'ALL', title:'', message:''})}} className="w-1/3 border border-blue-300 text-blue-700 p-3 rounded-xl font-bold hover:bg-blue-100 transition-colors">Cancelar</button>}
-                                <button disabled={sendingMsg} className="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                                    <Icon name={editingMsgId ? "save" : "send"} size={18}/> {sendingMsg ? "Procesando..." : (editingMsgId ? "Guardar Cambios" : "Publicar Aviso")}
-                                </button>
-                            </div>
-                        </form>
-                        
-                        {messages.length > 0 && (
-                            <div className="mt-6 pt-4 border-t border-blue-200">
-                                <p className="text-[10px] font-bold uppercase text-blue-800 mb-3">Avisos Activos</p>
-                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                    {messages.map(m => (
-                                        <div key={m.id} className="bg-white p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
-                                            <div className="overflow-hidden pr-2">
-                                                <div className="flex items-center gap-2">
-                                                    {m.target === 'ALL' 
-                                                        ? <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 rounded font-bold uppercase">GLOBAL</span> 
-                                                        : <span className="bg-gray-100 text-gray-600 text-[9px] px-1.5 rounded font-bold uppercase truncate max-w-[100px]">{tenants.find(t=>t.sheetId===m.target)?.businessName || 'Específico'}</span>
-                                                    }
-                                                    <span className="font-bold text-sm text-blue-900 truncate">{m.title}</span>
-                                                </div>
-                                                <p className="text-xs text-gray-500 truncate mt-0.5">{m.message}</p>
-                                            </div>
-                                            <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={()=>startEditMsg(m)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Icon name="edit-2" size={14}/></button>
-                                                <button onClick={()=>handleDeleteMsg(m.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Icon name="trash-2" size={14}/></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <div className="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Empresas Activas ({tenants.length})</h2>
-                        <p className="text-sm text-gray-500 mt-1">Listado de bases de datos operativas en el servidor.</p>
-                    </div>
-                    <button onClick={loadTenants} className="p-3 bg-white rounded-xl shadow-sm border text-gray-600 hover:text-blue-600 transition-colors">
-                        <Icon name="refresh-cw" size={18} className={loadingList ? "animate-spin" : ""} />
-                    </button>
-                </div>
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b text-[10px] uppercase text-gray-400 font-bold">
-                                <tr>
-                                    <th className="p-4">Empresa</th>
-                                    <th className="p-4">Email Dueño</th>
-                                    <th className="p-4">Contraseña App</th>
-                                    <th className="p-4 text-center">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y text-sm">
-                                {tenants
-                                    .filter(client => !client.email.includes('haceclick.ai') && !client.email.includes('matias.bote'))
-                                    .map((client, i) => (
-                                    <tr key={i} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 font-bold text-gray-800">
-                                            {editingId === client.sheetId 
-                                                ? <input className="border border-blue-300 p-1.5 rounded w-full outline-none" value={editForm.name} onChange={e=>setEditForm({...editForm, name:e.target.value})}/> 
-                                                : client.businessName}
-                                        </td>
-                                        <td className="p-4 text-gray-500">{client.email}</td>
-                                        <td className="p-4 font-mono text-gray-600">
-                                            {editingId === client.sheetId 
-                                                ? <input className="border border-blue-300 p-1.5 rounded w-24 outline-none" value={editForm.pass} onChange={e=>setEditForm({...editForm, pass:e.target.value})}/> 
-                                                : <span className="bg-gray-100 px-2 py-1 rounded">{client.password}</span>}
-                                        </td>
-                                        <td className="p-4 flex justify-center gap-2">
-                                            {editingId === client.sheetId ? (
-                                                <>
-                                                    <button onClick={()=>saveEdit(client.sheetId)} className="p-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors" title="Guardar"><Icon name="check" size={16}/></button>
-                                                    <button onClick={()=>setEditingId(null)} className="p-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Cancelar"><Icon name="x" size={16}/></button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button onClick={()=>startEdit(client)} className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Editar"><Icon name="edit-2" size={16}/></button>
-                                                    <button onClick={()=>setDeleteTarget({id:client.sheetId, name:client.businessName})} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Borrar"><Icon name="trash-2" size={16}/></button>
-                                                    <a href={`https://docs.google.com/spreadsheets/d/${client.sheetId}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-50 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-lg transition-colors" title="Abrir Base de Datos"><Icon name="sheet" size={16}/></a>
-                                                </>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // --- 4. SOPORTE ---
 const SupportPanel = ({ settings, saveSettings, user, notify }) => {
     const canConfigure = user?.role === 'admin' || user?.isSuperAdmin;
@@ -761,7 +447,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                         e.preventDefault();
                                         if(!config.supportEmail) { notify("El administrador no configuró un correo de soporte.", "error"); return; }
                                         const body = e.target.mensaje.value;
-                                        // ✅ CORRECCIÓN: usamos estado React en lugar de manipular el DOM
                                         const btn = e.target.querySelector('button[type="submit"]');
                                         if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
                                         google.script.run
@@ -852,7 +537,6 @@ const App = () => {
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
     };
 
-    // ✅ NUEVA: handleLogin — procesa el usuario después del login exitoso
     const handleLogin = (userOrComp) => {
         if (userOrComp.email) {
             localStorage.setItem('adminEmail', userOrComp.email);
@@ -860,7 +544,7 @@ const App = () => {
         if (userOrComp.spreadsheetId) {
             localStorage.setItem('targetDbId', userOrComp.spreadsheetId);
         }
-        // Si es el panel maestro, va directo a superadmin sin cargar datos de local
+        
         if (userOrComp.isMasterPanel) {
             setCurrentUser(userOrComp);
             setCurrentView('superadmin');
@@ -869,14 +553,12 @@ const App = () => {
         setCurrentUser(userOrComp);
     };
 
-    // ✅ NUEVA: refreshData (CON ANTÍDOTO PARA MEMORIA CORRUPTA)
     const refreshData = () => {
         const emailToUse = currentUser?.adminEmail || currentUser?.email || tenantId;
         if (!emailToUse) return;
 
         let dbId = localStorage.getItem('targetDbId');
         
-        // 🛡️ ESCUDO: Si el ID guardado es un correo electrónico o está mal, lo borramos
         if (dbId && (dbId.includes('@') || dbId.length < 20)) {
             localStorage.removeItem('targetDbId');
             dbId = null;
@@ -907,16 +589,13 @@ const App = () => {
             .getAllData(emailToUse, dbId);
     };
 
-    // ✅ NUEVA: save — guarda cualquier colección en el backend
     const save = (type, dataToSave) => {
         window.isSavingData = true;
         const emailToUse = currentUser?.adminEmail || currentUser?.email;
         if (!emailToUse) return;
 
-        // Recuperamos el ID específico de la memoria
         const specificId = localStorage.getItem('targetDbId');
 
-        // Actualización local inmediata
         setData(prev => ({ ...prev, [type]: dataToSave }));
 
         google.script.run
@@ -931,17 +610,16 @@ const App = () => {
                 addToast('Error de conexión al guardar', 'error');
                 console.error('save error:', err);
             })
-            .saveData(emailToUse, type, JSON.stringify(dataToSave), specificId); // <--- AHORA SÍ PASAMOS EL ID AL FINAL
+            .saveData(emailToUse, type, JSON.stringify(dataToSave), specificId);
     };
 
     // --- EFFECTS ---
-    // EFECTO 1: DETECTIVE DE URL
     useEffect(() => { 
         const initPortal = (aliasStr) => {
             const alias = aliasStr.replace('#/', '').replace('?local=', '').replace('/', '').toLowerCase();
             if (!alias) { setLoadingData(false); return; }
             
-            setPublicAlias(alias); // <--- GUARDAMOS EL ALIAS AQUÍ
+            setPublicAlias(alias);
             setMode('public_portal');
             setLoadingData(true);
             
@@ -973,7 +651,6 @@ const App = () => {
         }
     }, []);
 
-    // EFECTO 2: CARGA INICIAL cuando hay usuario o tenantId
     useEffect(() => {
         if (currentUser || (mode === 'client' && tenantId)) {
             setLoadingData(true);
@@ -981,7 +658,6 @@ const App = () => {
         }
     }, [currentUser, tenantId]);
 
-    // EFECTO 3: RADAR — refresca datos en background cada 60 segundos
     useEffect(() => {
         if (!currentUser || currentUser.isMasterPanel || mode === 'client' || mode === 'public_portal') return;
         const RADAR_INTERVAL = 60000;
@@ -998,12 +674,10 @@ const App = () => {
         };
     }, [currentUser, mode, tenantId]);
 
-    // EFECTO 4: BRANDING (CORREGIDO PARA DB AISLADAS)
     useEffect(() => {
         let targetSettings = (mode === 'public_portal' && publicData) ? publicData.settings : data.settings;
         if (!targetSettings || !Array.isArray(targetSettings)) return;
         
-        // Ya no filtramos por correo porque el Excel local SOLO tiene la data de este local
         let targetBranding = targetSettings.find(s => s.id === 'branding' || s.primaryColor);
 
         if (targetBranding && targetBranding.primaryColor) {
@@ -1016,18 +690,18 @@ const App = () => {
         }
     }, [data, publicData, currentUser, mode, tenantId]);
 
-// --- 4. RENDERIZADO (ORDEN DE PRIORIDAD) ---
+// --- 4. RENDERIZADO ---
 
-    if (loadingData) return <div className="h-screen flex items-center justify-center bg-white"><img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" /></div>;
+    if (loadingData) return <div className="h-[100dvh] flex items-center justify-center bg-white"><img src="https://i.postimg.cc/rFq103qv/SOLO-LAMPARA-SIN-FONDO.png" className="h-24 animate-bounce" /></div>;
 
-    if (mode === 'public_error') return <div className="h-screen flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
+    if (mode === 'public_error') return <div className="h-[100dvh] flex items-center justify-center bg-brand-bg text-red-500 font-bold p-10 text-center">{publicError || 'Local no encontrado'}</div>;
 
     if (mode === 'public_portal' && publicData) {
         return (
-            <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+            <div className="flex h-[100dvh] bg-brand-bg font-sans overflow-hidden">
                 <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
                 <ClientPortal 
-                    alias={publicAlias} // <--- ¡ESTA ES LA LÍNEA MÁGICA QUE FALTABA!
+                    alias={publicAlias}
                     appointments={publicData.appointments} 
                     treatments={publicData.treatments} 
                     professionals={publicData.professionals} 
@@ -1045,7 +719,7 @@ const App = () => {
     }
 
     if (mode === 'client') return (
-        <div className="flex h-screen bg-brand-bg font-sans overflow-hidden">
+        <div className="flex h-[100dvh] bg-brand-bg font-sans overflow-hidden">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
             <ClientPortal 
                 {...data} 
@@ -1058,9 +732,8 @@ const App = () => {
         </div>
     );
 
-    // ✅ handleLogin está definida arriba, ya no da el error
     if (!currentUser) return (
-        <div className="flex h-screen bg-gray-100 font-sans overflow-hidden text-center">
+        <div className="flex h-[100dvh] bg-gray-100 font-sans overflow-hidden text-center">
             <ToastContainer toasts={toasts} removeToast={id => setToasts(p => p.filter(t => t.id !== id))} />
             <LoginScreen notify={addToast} onLogin={handleLogin} />
         </div>
@@ -1096,10 +769,10 @@ const App = () => {
                     {currentView === 'superadmin'   && <SuperAdminPanel notify={addToast} user={currentUser} />}
                 </div>
                  <footer className="w-full pt-8 pb-20 md:pb-8 mt-auto flex items-center justify-center border-t border-gray-100 bg-gray-50/30 shrink-0">
-                    <div className="flex items-center gap-2 opacity-50">
+                    <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
                         <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400">POWERED BY |</p>
                         <a href="https://haceclick-ai.com/" target="_blank" rel="noopener noreferrer">
-                            <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 object-contain" />
+                            <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300" />
                         </a>
                     </div>
                 </footer>
