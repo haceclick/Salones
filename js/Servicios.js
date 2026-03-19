@@ -130,10 +130,16 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
              </button>
              <button onClick={() => setIsCatManagerOpen(true)} className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors">
                 <Icon name="list" /> Categorías
-             </button>
-             <button onClick={() => { setEditingId(null); setFormData({category:categories[0]?.name||'',subCategory:'',price:'',duration:'30', hasMargin: false, margin: '15'}); setIsModalOpen(true); }} className="bg-primary text-brand-text px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-medium hover:bg-primary-dark hover:text-white transition-all">
+             <button 
+                onClick={() => { 
+                    setEditingId(null); 
+                    setFormData({category:categories[0]?.name||'',subCategory:'',price:'',duration:'30', hasMargin: false, margin: '15'}); 
+                    setIsModalOpen(true); 
+                }} 
+                className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-medium hover:bg-primary-dark transition-all"
+            >
                 <Icon name="plus" /> Manual
-             </button>
+            </button>
           </div>
         </header>
 
