@@ -477,6 +477,21 @@
                         </button>
                     </div>
                 </div>
+
+                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" */}
+                <div className="mt-8 mb-4 flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-opacity duration-300">
+                    <a 
+                        href="https://haceclick-ai.com/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 hover:text-[#008395] transition-colors"
+                        title="Obtén este sistema para tu negocio"
+                    >
+                        <Icon name="zap" size={12} className="text-[#008395]" /> 
+                        Powered by <span className="text-[#008395]">HaceClick.ai</span>
+                    </a>
+                </div>
+
             </div>
         </div>
     );
