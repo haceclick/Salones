@@ -1,13 +1,19 @@
     <style>
-      :root {
-        --color-primary: #14b8a6;
-        --color-primary-dark: #0f766e;
-        --color-secondary: #9EC5FF;
-        --color-accent: #F2C9D6;
-        --color-bg: #F6F8FC;
-        --color-border: #E2E6F0;
-        --color-text: #2B2F3A;
-      }
+        :root {
+          --color-primary: #14b8a6;
+          --color-primary-dark: #0f766e;
+          --color-secondary: #9EC5FF;
+          --color-accent: #F2C9D6;
+          --color-bg: #F6F8FC;
+          --color-border: #E2E6F0;
+          --color-text: #2B2F3A;
+          
+          /* 👇 Agregamos estas para evitar el error de "undefined" al cargar 👇 */
+          --color-primary-text: #ffffff;
+          --color-sidebar-bg: #111827;
+          --color-sidebar-text: #9ca3af;
+          --color-sidebar-active: #ffffff;
+        }
       * { -webkit-tap-highlight-color: transparent; }
       html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; width: 100%; }
       body { font-family: 'Inter', sans-serif; background-color: var(--color-bg); color: var(--color-text); }
