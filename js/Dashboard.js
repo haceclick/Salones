@@ -432,7 +432,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 <DashCard icon={<Icon name="calendar" size={20} className="text-brand-text" />} color="bg-primary/30" label="Turnos Hoy" value={todaysApps.length} />
                 <DashCard icon={<Icon name="bell" size={20} className="text-brand-text" />} color="bg-yellow-100" label="Reservas Web" value={pendingApps.length} />
                 <DashCard icon={<Icon name="users" size={20} className="text-brand-text" />} color="bg-secondary" label="Clientes" value={clients.length} />
-                <DashCard icon={<Icon name="clock" size={20} className="text-brand-text" />} color="bg-brand-border" label="Próximo" value={nextAppt ? new Date(nextAppt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--'} />
+                <DashCard 
+                    icon={<Icon name="clock" size={20} className="text-brand-text" />} 
+                    color="bg-brand-border" 
+                    label="Próximo" 
+                    value={nextAppt ? new Date(nextAppt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Libre'} 
+                />
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
