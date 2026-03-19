@@ -356,7 +356,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     );
 
     return (
-        <div className="p-4 md:p-8 space-y-8 bg-brand-bg overflow-y-auto h-full relative">
+        <div className="p-4 md:p-8 pb-12 space-y-8 bg-brand-bg relative">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 {/* ... Tus botones del header se quedan exactamente igual aquí ... */}
                 <div>
