@@ -580,7 +580,13 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                         {isAdmin && <Icon name="info" size={14} className={isRead ? "text-gray-400" : "text-blue-500"}/>} 
                                                         {String(n.title || "")}
                                                     </p>
-                                                    <p className={`text-xs mt-1 ${isAdmin && isRead ? 'text-gray-400' : 'text-brand-text-light'}`}>{n.message}</p>
+                                                    <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isAdmin && isRead ? 'text-gray-400' : 'text-brand-text-light'}`}>
+                                                        {n.message.split(/(\*.*?\*)/g).map((part, i) => 
+                                                            part.startsWith('*') && part.endsWith('*') 
+                                                                ? <strong key={i} className="font-bold text-gray-900">{part.slice(1, -1)}</strong> 
+                                                                : part
+                                                        )}
+                                                    </p>
                                                 </div>
 
                                                 {/* Botón de LEÍDO solo para ADMIN */}
