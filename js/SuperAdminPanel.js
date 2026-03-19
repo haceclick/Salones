@@ -73,58 +73,45 @@ const SuperAdminPanel = ({ notify, user }) => {
         }
         
         const payloadStr = JSON.stringify(updatedMsgs);
-        
-        // 🛡️ Aseguramos que el email del admin no viaje vacío
         const adminMail = user?.email || localStorage.getItem('adminEmail') || '';
 
         google.script.run
             .withSuccessHandler(res => {
                 setSendingMsg(false);
-                
-                // 🚨 EL DETECTOR: Vemos qué respondió Google realmente
-                console.log("Respuesta cruda de Google:", res);
-                
                 if (res && res.success) {
-                    notify(res.message || "Aviso publicado correctamente", "success");
+                    notify(res.message, "success");
                     setMessages(updatedMsgs);
                     setMsgForm({ target: 'ALL', title: '', message: '' }); 
                     setEditingMsgId(null);
                     setOpenSection('avisos');
-                } else if (res && !res.success) {
-                    // Si Google responde un error (ej: No autorizado)
-                    notify(res.message || "Error devuelto por Google", "error");
                 } else {
-                    // Si Google responde "vacío" (Versión vieja congelada)
-                    alert("⚠️ DETECTOR: Google no devolvió ningún mensaje. Tu página web sigue leyendo una versión vieja del Código.gs que no tiene los 'return'. Debes hacer una Nueva Implementación.");
-                    notify("Error al guardar en el Excel Maestro.", "error");
+                    notify(res?.message || "Error al publicar el aviso", "error");
                 }
             })
             .withFailureHandler(err => {
                 setSendingMsg(false);
-                notify("Fallo de conexión con Google: " + (err.message || err.toString()), "error");
+                notify("Fallo de red: " + err.toString(), "error");
             })
-            .saveGlobalMessagesList(adminMail, payloadStr);
+            .publishSystemMessages(adminMail, payloadStr); // <--- NOMBRE NUEVO
     };
 
     const handleDeleteMsg = (id) => {
         const updatedMsgs = messages.filter(m => m.id !== id);
-        notify("Borrando mensaje...", "info");
+        notify("Cancelando transmisión...", "info");
         
         const payloadStr = JSON.stringify(updatedMsgs);
+        const adminMail = user?.email || localStorage.getItem('adminEmail') || '';
 
         google.script.run
             .withSuccessHandler(res => {
                 if (res && res.success) {
-                    notify("Aviso eliminado.", "success");
+                    notify("Aviso eliminado", "success");
                     setMessages(updatedMsgs);
                 } else {
-                    notify(res?.message || "No se pudo eliminar el aviso.", "error");
+                    notify(res?.message || "No se pudo eliminar", "error");
                 }
             })
-            .withFailureHandler(err => {
-                notify("Error al borrar: " + (err.message || err.toString()), "error");
-            })
-            .saveGlobalMessagesList(user.email, payloadStr);
+            .publishSystemMessages(adminMail, payloadStr); // <--- NOMBRE NUEVO
     };
 
     const startEditMsg = (m) => {
