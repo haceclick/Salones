@@ -243,10 +243,12 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                         {(user?.email || "?").charAt(0)}
                     </div>
                     <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate" style={{ color: brandConfig.sidebarActive || '#ffffff' }}>
+                        {/* 👇 Cambiamos sidebarActive por sidebarText aquí 👇 */}
+                        <p className="text-xs font-semibold truncate" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
                             {user?.email}
                         </p>
-                        <p className="text-[9px] uppercase tracking-widest opacity-40 font-bold" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
+                        {/* Le subimos un poco la opacidad (de 40 a 60) para que el rol se lea mejor con ese mismo color */}
+                        <p className="text-[9px] uppercase tracking-widest opacity-60 font-bold" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
                             {user?.role}
                         </p>
                     </div>
