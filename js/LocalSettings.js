@@ -224,24 +224,34 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                             {/* COBRO DE SEÑAS MEJORADO */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={agentConfig.requireDeposit || false} onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} className="sr-only peer"/>
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                                    </label>
-                                </div>
-
-                                {agentConfig.requireDeposit && (
-                                    <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
-                                        
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
-                                            <input type="number" className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.depositAmount || ''} onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} placeholder="Ej: 2000" />
+                                            <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
+                                            <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
                                         </div>
-
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={agentConfig.requireDeposit || false} 
+                                                onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} 
+                                                className="sr-only peer"
+                                            />
+                                            {/* El switch ahora usa el color primario de forma dinámica al activarse */}
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                                        </label>
+                                    </div>
+                                
+                                    {agentConfig.requireDeposit && (
+                                        <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
+                                                <input 
+                                                    type="number" 
+                                                    className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition-all" 
+                                                    value={agentConfig.depositAmount || ''} 
+                                                    onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} 
+                                                    placeholder="Ej: 2000" 
+                                                />
+                                            </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Método de Cobro</label>
                                             <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
@@ -255,7 +265,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                                 <button 
                                                     type="button"
                                                     onClick={() => setAgentConfig({...agentConfig, depositType: 'transfer'})}
-                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${agentConfig.depositType === 'transfer' ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${agentConfig.depositType === 'transfer' ? 'bg-[var(--color-primary)] text-[var(--color-primary-text)]' : 'text-gray-500 hover:bg-gray-50'}`}
                                                 >
                                                     Transferencia
                                                 </button>
@@ -411,8 +421,13 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                 </div>
                 
                 <div className="pt-10 pb-20 flex justify-end sticky bottom-0 z-10 p-4">
-                    <button type="submit" disabled={isSaving} className="bg-[var(--color-primary)] text-white px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform w-full md:w-auto">{isSaving ? "Guardando..." : "Guardar Todo"}</button>
-                </div>
+                <button 
+                    type="submit" 
+                    disabled={isSaving} 
+                    className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform w-full md:w-auto"
+                >
+                    {isSaving ? "Guardando..." : "Guardar Todo"}
+                </button>                </div>
             </form>
         </div>
     );
