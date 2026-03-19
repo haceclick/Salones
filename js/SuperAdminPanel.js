@@ -92,7 +92,7 @@ const SuperAdminPanel = ({ notify, user }) => {
                 setSendingMsg(false);
                 notify("Fallo de red: " + err.toString(), "error");
             })
-            .publishSystemMessages(adminMail, payloadStr); // <--- NOMBRE NUEVO
+            .saveGlobalMessagesList(adminMail, payloadStr);
     };
 
     const handleDeleteMsg = (id) => {
@@ -111,7 +111,7 @@ const SuperAdminPanel = ({ notify, user }) => {
                     notify(res?.message || "No se pudo eliminar", "error");
                 }
             })
-            .publishSystemMessages(adminMail, payloadStr); // <--- NOMBRE NUEVO
+            .saveGlobalMessagesList(adminMail, payloadStr); 
     };
 
     const startEditMsg = (m) => {
