@@ -1066,8 +1066,8 @@ const App = () => {
         </div>
     );
 
-    return (
-        <div className="flex h-screen bg-gray-50 font-sans overflow-hidden relative">
+   return (
+        <div className="flex h-[100dvh] bg-gray-50 font-sans overflow-hidden relative">
             <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
             <button className="md:hidden fixed top-4 right-4 z-50 bg-white p-2 rounded-lg shadow-md border" onClick={()=>setIsSidebarOpen(!isSidebarOpen)}>
                 <Icon name={isSidebarOpen ? "x" : "menu"} />
@@ -1095,7 +1095,7 @@ const App = () => {
                     {currentView === 'agent'        && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
                     {currentView === 'superadmin'   && <SuperAdminPanel notify={addToast} user={currentUser} />}
                 </div>
-                <footer className="w-full py-8 mt-10 flex items-center justify-center border-t border-gray-100 bg-gray-50/30">
+                 <footer className="w-full pt-8 pb-20 md:pb-8 mt-auto flex items-center justify-center border-t border-gray-100 bg-gray-50/30 shrink-0">
                     <div className="flex items-center gap-2 opacity-50">
                         <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400">POWERED BY |</p>
                         <a href="https://haceclick-ai.com/" target="_blank" rel="noopener noreferrer">
