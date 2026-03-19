@@ -1,4 +1,3 @@
-
 // --- COMPONENTE SERVICIOS / TREATMENTS (OPTIMIZADO, CON PRECIOS Y MÁRGENES) ---
 const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories = [], setCategories, saveCategories, notify, settings }) => {
     
@@ -61,7 +60,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
 
         setCategories(updatedCats);
         setTreatments(updatedTreatments);
-        setNewSub({ name: '', price: '', duration: '30', hasMargin: false, margin: '15' });
+        setNewSub({ name: '', price: '', duration: '30', hasMargin: false, margin: '15' }); 
         
         saveCategories(updatedCats);
         saveTreatments(updatedTreatments);
@@ -125,16 +124,21 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             <p className="text-brand-text-light">Gestión de precios y tiempos</p>
           </div>
           <div className="flex gap-3">
+            {/* BOTÓN REDES */}
             <button 
                 onClick={() => setIsSocialMode(true)} 
                 className="bg-secondary text-brand-text px-4 py-2.5 rounded-brand font-bold shadow-lg shadow-secondary/20 flex items-center gap-2 hover:animate-pulse transition-all"
             >
-                {/* Cambiamos "camera" por "instagram" */}
                 <Icon name="instagram" size={18} /> 
                 <span>Redes</span>
             </button>
+
+            {/* BOTÓN CATEGORÍAS */}
              <button onClick={() => setIsCatManagerOpen(true)} className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors">
                 <Icon name="list" /> Categorías
+             </button>
+
+             {/* BOTÓN MANUAL */}
              <button 
                 onClick={() => { 
                     setEditingId(null); 
@@ -187,6 +191,12 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                 </div>
             )}
         </div>
+
+        {/* --- MODALES --- (Resto del código de modales queda igual) */}
+        {/* Aquí van los modales que incluiste en tu código... el de Categorías, Servicio Rápido, etc. */}
+      </div>
+    );
+};
 
         {/* --- MODAL 1: GESTOR DE CATEGORÍAS (SIMPLE) --- */}
         {isCatManagerOpen && (
