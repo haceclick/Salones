@@ -72,28 +72,38 @@ const SuperAdminPanel = ({ notify, user }) => {
             updatedMsgs = [...messages, { ...msgForm, id: 'SYS-' + Date.now(), date: new Date().toISOString(), type: 'admin_manual' }];
         }
         
-        // 🛡️ EL TRUCO: Convertimos el Array a Texto (String) ANTES de enviarlo por el puente
         const payloadStr = JSON.stringify(updatedMsgs);
         
+        // 🛡️ Aseguramos que el email del admin no viaje vacío
+        const adminMail = user?.email || localStorage.getItem('adminEmail') || '';
+
         google.script.run
             .withSuccessHandler(res => {
                 setSendingMsg(false);
-                // Validamos que 'res' exista antes de leer res.success
+                
+                // 🚨 EL DETECTOR: Vemos qué respondió Google realmente
+                console.log("Respuesta cruda de Google:", res);
+                
                 if (res && res.success) {
                     notify(res.message || "Aviso publicado correctamente", "success");
                     setMessages(updatedMsgs);
                     setMsgForm({ target: 'ALL', title: '', message: '' }); 
                     setEditingMsgId(null);
                     setOpenSection('avisos');
+                } else if (res && !res.success) {
+                    // Si Google responde un error (ej: No autorizado)
+                    notify(res.message || "Error devuelto por Google", "error");
                 } else {
-                    notify(res?.message || "Error al guardar en el Excel Maestro.", "error");
+                    // Si Google responde "vacío" (Versión vieja congelada)
+                    alert("⚠️ DETECTOR: Google no devolvió ningún mensaje. Tu página web sigue leyendo una versión vieja del Código.gs que no tiene los 'return'. Debes hacer una Nueva Implementación.");
+                    notify("Error al guardar en el Excel Maestro.", "error");
                 }
             })
             .withFailureHandler(err => {
                 setSendingMsg(false);
                 notify("Fallo de conexión con Google: " + (err.message || err.toString()), "error");
             })
-            .saveGlobalMessagesList(user.email, payloadStr); // Enviamos el payloadStr
+            .saveGlobalMessagesList(adminMail, payloadStr);
     };
 
     const handleDeleteMsg = (id) => {
