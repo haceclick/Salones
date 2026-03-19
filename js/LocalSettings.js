@@ -1,10 +1,11 @@
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto
+    // 1. Valores por defecto (✅ AGREGAMOS reschedulePolicy)
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
         requireDeposit: false, depositType: 'link', depositAmount: '', paymentUrl: '', 
-        transferAlias: '', transferName: '', transferCuit: '' 
+        transferAlias: '', transferName: '', transferCuit: '',
+        reschedulePolicy: '24' // 24 horas por defecto
     };
     const defaultMsg = { 
         id: 'messages_config', 
@@ -28,7 +29,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
     const [isEditingAlias, setIsEditingAlias] = useState(false);
     const [tempAlias, setTempAlias] = useState('');
 
-    // ✅ NUEVO: ESTADO PARA EL ACORDEÓN (Inicia con 'negocio' abierto)
+    // ESTADO PARA EL ACORDEÓN (Inicia con 'negocio' abierto)
     const [openSection, setOpenSection] = useState('negocio');
 
     const toggleSection = (sectionName) => {
@@ -162,7 +163,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg">
             <header className="mb-8"><h2 className="text-3xl font-bold text-gray-800">Ajustes del Local</h2></header>
-            <form onSubmit={handleSave} className="w-full space-y-4"> {/* Reducido el space-y para que los acordeones queden más juntos */}
+            <form onSubmit={handleSave} className="w-full space-y-4">
                 
                 {/* 1. NEGOCIO Y PAGOS */}
                 <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
@@ -221,44 +222,44 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 )}
                             </div>
 
-                            {/* COBRO DE SEÑAS MEJORADO */}
+                            {/* TARJETA UNIFICADA: COBROS Y POLÍTICAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
+                                {/* SUB-SECCIÓN A: COBRO DE SEÑAS */}
                                 <div className="flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
-                                            <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
-                                        </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={agentConfig.requireDeposit || false} 
-                                                onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} 
-                                                className="sr-only peer"
-                                            />
-                                            {/* El switch ahora usa el color primario de forma dinámica al activarse */}
-                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                                        </label>
+                                    <div>
+                                        <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
+                                        <p className="text-[10px] text-gray-500 mt-1">Solicita un pago anticipado para confirmar los turnos.</p>
                                     </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={agentConfig.requireDeposit || false} 
+                                            onChange={e => setAgentConfig({...agentConfig, requireDeposit: e.target.checked})} 
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                                    </label>
+                                </div>
                                 
-                                    {agentConfig.requireDeposit && (
-                                        <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
-                                                <input 
-                                                    type="number" 
-                                                    className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition-all" 
-                                                    value={agentConfig.depositAmount || ''} 
-                                                    onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} 
-                                                    placeholder="Ej: 2000" 
-                                                />
-                                            </div>
+                                {agentConfig.requireDeposit && (
+                                    <div className="mt-5 pt-5 border-t border-gray-200 animate-fade-in space-y-5">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
+                                            <input 
+                                                type="number" 
+                                                className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition-all" 
+                                                value={agentConfig.depositAmount || ''} 
+                                                onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} 
+                                                placeholder="Ej: 2000" 
+                                            />
+                                        </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Método de Cobro</label>
                                             <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
                                                 <button 
                                                     type="button"
                                                     onClick={() => setAgentConfig({...agentConfig, depositType: 'link'})}
-                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${(!agentConfig.depositType || agentConfig.depositType === 'link') ? 'bg-[var(--color-primary)] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                                    className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-bold transition-colors ${(!agentConfig.depositType || agentConfig.depositType === 'link') ? 'bg-[var(--color-primary)] text-[var(--color-primary-text)]' : 'text-gray-500 hover:bg-gray-50'}`}
                                                 >
                                                     Link de Pago
                                                 </button>
@@ -297,6 +298,30 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                         </div>
                                     </div>
                                 )}
+
+                                {/* ✅ NUEVA SUB-SECCIÓN B: POLÍTICA DE REPROGRAMACIÓN */}
+                                <div className="mt-6 pt-5 border-t border-gray-200">
+                                    <div className="mb-3">
+                                        <h4 className="font-bold text-sm text-gray-800 flex items-center gap-1"><Icon name="calendar" size={16}/> Política de Reprogramación</h4>
+                                        <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo desde el portal.</p>
+                                    </div>
+                                    <div className="w-full md:w-1/2">
+                                        <select 
+                                            className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none bg-white text-sm font-medium text-gray-800 shadow-sm transition-all"
+                                            value={agentConfig.reschedulePolicy || '24'}
+                                            onChange={e => setAgentConfig({...agentConfig, reschedulePolicy: e.target.value})}
+                                        >
+                                            <option value="0">En cualquier momento (Sin límite)</option>
+                                            <option value="12">Hasta 12 horas antes del turno</option>
+                                            <option value="24">Hasta 24 horas antes del turno</option>
+                                            <option value="48">Hasta 48 horas antes del turno</option>
+                                            <option value="72">Hasta 72 horas antes del turno</option>
+                                            <option value="disabled">No permitir reprogramar</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {/* FIN NUEVA SUB-SECCIÓN */}
+
                             </div>
                         </div>
                     )}
@@ -421,13 +446,14 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                 </div>
                 
                 <div className="pt-10 pb-20 flex justify-end sticky bottom-0 z-10 p-4">
-                <button 
-                    type="submit" 
-                    disabled={isSaving} 
-                    className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform w-full md:w-auto"
-                >
-                    {isSaving ? "Guardando..." : "Guardar Todo"}
-                </button>                </div>
+                    <button 
+                        type="submit" 
+                        disabled={isSaving} 
+                        className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-12 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform w-full md:w-auto"
+                    >
+                        {isSaving ? "Guardando..." : "Guardar Todo"}
+                    </button>                
+                </div>
             </form>
         </div>
     );
