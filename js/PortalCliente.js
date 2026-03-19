@@ -311,7 +311,10 @@
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-screen w-full flex items-center justify-center bg-brand-bg p-4">
+            // Agregamos "flex-col" para que la tarjeta y el footer se apilen verticalmente
+            <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg p-4">
+                
+                {/* LA TARJETA BLANCA DE LOGIN/REGISTRO */}
                 <div className="bg-white p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center">
                     <div className="flex justify-center mb-6">
                         {brandingConfig.logoBase64 ? <img src={brandingConfig.logoBase64} className="h-24 w-auto object-contain" /> : <div className="w-16 h-16 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-2xl">S</div>}
@@ -371,8 +374,28 @@
                         </form>
                     )}
                 </div>
-                
-                {/* MODAL DE SEGURIDAD INTERNO */}
+
+                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" EN EL LOGIN */}
+                <div className="mt-8 flex flex-col items-center justify-center transition-opacity duration-300 opacity-60 hover:opacity-100">
+                    <div className="flex items-center gap-2">
+                        <p className="text-[9px] font-bold tracking-[0.2em] text-gray-500 mt-1">POWERED BY |</p>
+                        <a 
+                            href="https://haceclick-ai.com/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            title="Obtén este sistema para tu negocio"
+                            className="transform hover:scale-105 transition-transform"
+                        >
+                            <img 
+                                src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" 
+                                alt="HaceClick.ai" 
+                                className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300" 
+                            />
+                        </a>
+                    </div>
+                </div>
+
+                {/* MODAL DE SEGURIDAD (Para que funcione si hacen clic en el sello antes de loguearse) */}
                 {showSecurityModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4 animate-fade-in">
                         <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4 border-[#008395]">
@@ -396,6 +419,7 @@
                         </div>
                     </div>
                 )}
+
             </div>
         );
     }
