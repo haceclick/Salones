@@ -1,10 +1,23 @@
-// --- COMPONENTE FACTURACIÓN (DISEÑO BLANCO PURO + WHATSAPP NATIVO) ---
+const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } = window.Recharts;
+
 const Billing = ({ appointments = [], clients = [], treatments = [], professionals = [], settings = [], notify, user }) => {
     const [dateRange, setDateRange] = useState('month'); 
     const [profFilter, setProfFilter] = useState('ALL');
     const [paymentFilter, setPaymentFilter] = useState('ALL'); 
     const [searchClient, setSearchClient] = useState(''); 
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Estados para ocultar/mostrar secciones
+    const [openSections, setOpenSections] = useState({
+        filtros: true,
+        metricas: true,
+        graficas: true,
+        reporte: true
+    });
+
+    const toggleSection = (section) => {
+        setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
 
     const branding = settings?.find(s => s.id === 'branding') || {};
     const localLogo = branding.logoBase64 || "";
@@ -31,223 +44,270 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 return name.toLowerCase().includes(searchClient.toLowerCase());
             });
         }
-        return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort ascendente para gráficas
     }, [appointments, dateRange, profFilter, paymentFilter, searchClient, clients]);
 
-    let totalFacturado = 0;
-    let totalComisiones = 0;
+    // Procesamiento de datos para métricas y gráficas
+    const statsData = useMemo(() => {
+        let totalBruto = 0;
+        let totalComisiones = 0;
+        const dailyMap = {};
+        const profMap = {};
 
-    const tableData = filteredAppointments.map(appt => {
-        const client = clients.find(c => c.id === appt.clientId);
-        const treatment = treatments.find(t => t.id === appt.treatmentId);
-        const professional = professionals.find(p => p.id === appt.professionalId);
-        const price = Number(treatment?.price || 0);
-        const collectedAmount = Number(appt.finalAmount || price); 
-        const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
-        const treatmentCategory = treatment?.category || '';
-        
-        let rate = 0;
-        if (hasComm) {
-            if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) {
-                rate = Number(professional.commissionRates[treatmentCategory]);
-            } else if (professional?.commissionRate) {
-                rate = Number(professional.commissionRate);
+        filteredAppointments.forEach(appt => {
+            const treatment = treatments.find(t => t.id === appt.treatmentId);
+            const professional = professionals.find(p => p.id === appt.professionalId);
+            const price = Number(appt.finalAmount || treatment?.price || 0);
+            
+            // Lógica de Comisión
+            const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
+            const treatmentCategory = treatment?.category || '';
+            let rate = 0;
+            if (hasComm) {
+                if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) {
+                    rate = Number(professional.commissionRates[treatmentCategory]);
+                } else if (professional?.commissionRate) {
+                    rate = Number(professional.commissionRate);
+                }
             }
-        }
-        const commissionAmount = hasComm ? (price * (rate / 100)) : 0;
-        totalFacturado += price;
-        totalComisiones += commissionAmount;
+            const comm = price * (rate / 100);
+            const gananciaLocal = price - comm;
 
-        return { 
-            id: appt.id, date: appt.date,
-            clientName: client?.name || (appt.clientId?.startsWith('CHAT') ? appt.clientNameTemp : 'Consumidor Final'),
-            treatmentName: treatment?.name || 'Servicio',
-            profName: professional?.name || 'Sin Asignar',
-            paymentMethod: appt.paymentMethod || 'cash',
-            price, collectedAmount, rate, commissionAmount 
+            totalBruto += price;
+            totalComisiones += comm;
+
+            // Datos para gráfica de evolución (por día)
+            const dateKey = new Date(appt.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+            if (!dailyMap[dateKey]) dailyMap[dateKey] = { day: dateKey, bruto: 0, neto: 0 };
+            dailyMap[dateKey].bruto += price;
+            dailyMap[dateKey].neto += gananciaLocal;
+
+            // Datos para gráfica por profesional
+            const pName = professional?.name || 'Sin Asignar';
+            if (!profMap[pName]) profMap[pName] = { name: pName, valor: 0 };
+            profMap[pName].valor += gananciaLocal;
+        });
+
+        return {
+            totalBruto,
+            totalComisiones,
+            netoLocal: totalBruto - totalComisiones,
+            chartTimeline: Object.values(dailyMap),
+            chartProfs: Object.values(profMap)
         };
-    });
+    }, [filteredAppointments, treatments, professionals]);
 
     const handleSendReceipt = () => {
         if (!user || !user.email) return notify("Error: Usuario no identificado", "error");
         setIsGenerating(true);
-
-        google.script.run
-            .withSuccessHandler((base64Logo) => {
-                const logoImg = document.querySelector('#report-area img');
-                if (logoImg && base64Logo) logoImg.src = base64Logo;
-
-                setTimeout(() => {
-                    const element = document.getElementById('report-area');
-                    const opt = {
-                        margin: 10,
-                        filename: 'temp.pdf',
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    };
-
-                    window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
-                        if (!pdfData) { setIsGenerating(false); return notify("Error al generar PDF", "error"); }
-                        
-                        const prof = professionals.find(p => p.id === profFilter);
-                        const profNameClean = prof ? prof.name.toUpperCase().replace(/\s+/g, '_') : 'GENERAL';
-                        const timeStamp = new Date().toISOString().split('T')[0];
-                        const customFileName = `LIQUIDACION_${profNameClean}_${timeStamp}.pdf`;
-
-                        google.script.run
-                            .withSuccessHandler((res) => {
-                                setIsGenerating(false);
-                                if (res.success) {
-                                    notify("¡Liquidación enviada!", "success");
-                                    const cleanPhone = String(prof?.phone || "").replace(/\D/g, '');
-                                    const message = `Hola *${prof?.name || 'Profesional'}*! 🌟\n\nTe adjunto el detalle de tu liquidación generada hoy.\n\n📄 *Ver PDF:* ${res.url}\n\nMuchas gracias!`;
-                                    window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
-                                } else { notify(res.message, "error"); }
-                            })
-                            .uploadReceiptToDrive(user.email, pdfData, customFileName);
-                    });
-                }, 500);
-            })
-            .getLogoAsBase64(user.email);
+        google.script.run.withSuccessHandler((base64Logo) => {
+            const logoImg = document.querySelector('#report-area img');
+            if (logoImg && base64Logo) logoImg.src = base64Logo;
+            setTimeout(() => {
+                const element = document.getElementById('report-area');
+                window.html2pdf().from(element).save();
+                setIsGenerating(false);
+            }, 500);
+        }).getLogoAsBase64(user.email);
     };
 
     return (
-        <div className="p-4 md:p-8 bg-white min-h-full overflow-y-auto">
+        <div className="p-4 md:p-8 bg-gray-50 min-h-full overflow-y-auto custom-scrollbar">
             
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 print:hidden">
-                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Facturación</h2>
+                <div>
+                    <h2 className="text-3xl font-black text-gray-900 tracking-tight">Caja y Liquidaciones</h2>
+                    <p className="text-gray-500 text-sm">Control de ingresos, comisiones y rentabilidad.</p>
+                </div>
                 <div className="flex gap-2">
-                    {/* Botón Secundario (Fantasma) */}
-                    <button onClick={handleSendReceipt} disabled={isGenerating} className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm bg-white border border-gray-200 text-gray-700 hover:border-gray-400 transition-all">
+                    <button onClick={handleSendReceipt} disabled={isGenerating} className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
                         <Icon name={isGenerating ? "loader" : "file-text"} className={isGenerating ? "animate-spin" : ""}/>
-                        {isGenerating ? "Procesando..." : "Enviar Liquidación"}
+                        {isGenerating ? "Generando..." : "Descargar PDF"}
                     </button>
-                    {/* Botón Primario con Contraste Inteligente */}
-                    <button onClick={() => window.print()} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-3 rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                        <Icon name="printer" size={18}/>
-                    </button>
+                    <button onClick={() => window.print()} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-3 rounded-xl shadow-md"><Icon name="printer" size={18}/></button>
                 </div>
             </header>
 
-            {/* FILTROS */}
-            <div className="bg-white p-6 border-b border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 print:hidden">
-                <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Período</label>
-                    <select className="w-full border border-gray-200 p-3 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option><option value="all">Todo</option></select>
-                </div>
-                <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Profesional</label>
-                    <select className="w-full border border-gray-200 p-3 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                </div>
-                <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
-                    <select className="w-full border border-gray-200 p-3 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}><option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option></select>
-                </div>
-                <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Cliente</label>
-                    <input type="text" placeholder="Buscar..." className="w-full border border-gray-200 p-3 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
-                </div>
+            {/* 1. SECCIÓN FILTROS (COLAPSABLE) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden transition-all">
+                <button onClick={() => toggleSection('filtros')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="filter" size={18} className="text-primary"/> Filtros de Búsqueda</span>
+                    <Icon name={openSections.filtros ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
+                </button>
+                {openSections.filtros && (
+                    <div className="p-6 pt-0 grid grid-cols-1 md:grid-cols-4 gap-4 animate-fade-in">
+                        <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Período</label>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option><option value="all">Todo</option></select>
+                        </div>
+                        <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Profesional</label>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                        </div>
+                        <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}><option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option></select>
+                        </div>
+                        <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Buscar Cliente</label>
+                            <input type="text" placeholder="Nombre..." className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-primary" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* ÁREA DE REPORTE */}
-            <div id="report-area" className="w-full bg-white p-8 md:p-12 rounded-[2.5rem] border-2 border-[var(--color-primary)] shadow-sm print:p-0 print:border-0 transition-all">
-                
-                {/* CABECERA */}
-                <div className="flex justify-between items-start border-b border-gray-100 pb-10 mb-10">
-                    <div className="flex items-center gap-6">
-                        {localLogo ? <img src={localLogo} className="h-20 w-auto object-contain" /> : <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-gray-400 text-2xl uppercase">{branding.businessName?.charAt(0) || 'S'}</div>}
-                        <div>
-                            <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
-                                {profFilter === 'ALL' ? 'Libro de Caja' : 'Liquidación Profesional'}
-                            </h1>
-                            <p className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-[0.2em]">
-                                {profFilter === 'ALL' ? 'Administración General' : professionals.find(p=>p.id===profFilter)?.name}
-                            </p>
+            {/* 2. TARJETAS DE MÉTRICAS (COLAPSABLE) */}
+            <div className="mb-6 overflow-hidden transition-all">
+                <button onClick={() => toggleSection('metricas')} className="w-full p-2 mb-2 flex justify-between items-center text-gray-500 hover:text-gray-800 transition-colors">
+                    <span className="text-xs font-bold uppercase tracking-widest">Resumen Financiero</span>
+                    <Icon name={openSections.metricas ? "eye-off" : "eye"} size={16}/>
+                </button>
+                {openSections.metricas && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Ingreso Bruto</p>
+                            <p className="text-2xl font-black text-gray-900">${statsData.totalBruto.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Comisiones a Pagar</p>
+                            <p className="text-2xl font-black text-red-500">-${statsData.totalComisiones.toLocaleString()}</p>
+                        </div>
+                        {/* NUEVA TARJETA: GANANCIA REAL LOCAL */}
+                        <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-200 shadow-md transform hover:scale-[1.02] transition-transform">
+                            <p className="text-[10px] font-bold text-green-600 uppercase mb-1">Ganancia Neta Local</p>
+                            <p className="text-3xl font-black text-green-700">${statsData.netoLocal.toLocaleString()}</p>
+                            <div className="mt-2 h-1 w-full bg-green-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-green-600" style={{ width: `${(statsData.netoLocal / statsData.totalBruto * 100) || 0}%` }}></div>
+                            </div>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Generado</p>
-                        <p className="font-bold text-gray-900 text-sm">{new Date().toLocaleDateString('es-ES', {day:'2-digit', month:'long', year:'numeric'})}</p>
-                    </div>
-                </div>
+                )}
+            </div>
 
-                {/* TARJETAS SUTILES */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    {profFilter === 'ALL' && (
-                        <div className="p-6 bg-white rounded-2xl border border-gray-100">
-                            <p className="text-[9px] font-bold text-gray-500 uppercase mb-2">Ingresos Brutos</p>
-                            <p className="text-3xl font-black text-gray-900">${totalFacturado.toLocaleString()}</p>
+            {/* 3. GRÁFICAS DE EVOLUCIÓN (NUEVA SECCIÓN COLAPSABLE) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden transition-all">
+                <button onClick={() => toggleSection('graficas')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="bar-chart-2" size={18} className="text-blue-500"/> Análisis de Evolución</span>
+                    <Icon name={openSections.graficas ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
+                </button>
+                {openSections.graficas && (
+                    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+                        {/* Gráfica 1: Bruto vs Neto */}
+                        <div className="h-64 w-full">
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Evolución de Ganancias (Bruto vs Neto)</p>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={statsData.chartTimeline}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                    <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                    <Legend iconType="circle" />
+                                    <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                    <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </div>
-                    )}
-                    <div className="p-6 bg-white rounded-2xl border-2 border-green-500/20 shadow-sm">
-                        <p className="text-[9px] font-bold text-green-600 uppercase mb-2">
-                            {profFilter === 'ALL' ? 'Total Comisiones' : 'Total a Cobrar'}
-                        </p>
-                        <p className="text-3xl font-black text-green-700">${totalComisiones.toLocaleString()}</p>
-                    </div>
-                    {profFilter === 'ALL' && (
-                        <div className="p-6 bg-white rounded-2xl border border-gray-100">
-                            <p className="text-[9px] font-bold text-gray-500 uppercase mb-2">Utilidad local</p>
-                            <p className="text-3xl font-black text-gray-900">${(totalFacturado - totalComisiones).toLocaleString()}</p>
+                        {/* Gráfica 2: Ganancia por Profesional */}
+                        <div className="h-64 w-full">
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Rendimiento Neto por Profesional</p>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={statsData.chartProfs}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                    <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
+                                    <Bar dataKey="valor" name="Ganancia para Local" radius={[10, 10, 0, 0]}>
+                                        {statsData.chartProfs.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--color-primary)' : '#3b82f6'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                    )}
-                </div>
-
-                {/* TABLA */}
-                {/* TABLA: TAMAÑO DE LETRA AUMENTADO */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3 border-l-4 border-[var(--color-primary)] pl-4 mb-6">
-                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest">Detalle de Cobranzas y Comisiones</h3>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left bg-white">
-                            <thead>
-                                <tr className="text-[11px] uppercase text-gray-500 font-bold border-b border-gray-300">
-                                    <th className="pb-4 px-2">Fecha / Hora</th>
-                                    <th className="pb-4 px-2">Cliente / Servicio</th>
-                                    <th className="pb-4 px-2">Medio</th>
-                                    <th className="pb-4 px-2 text-right">Cobrado</th>
-                                    <th className="pb-4 px-2 text-right text-black">Com. %</th>
-                                    <th className="pb-4 px-2 text-right text-black">Com. $</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white">
-                                {tableData.length === 0 ? (
-                                    <tr><td colSpan="6" className="py-10 text-center text-gray-400 italic text-sm">Sin registros para el período seleccionado.</td></tr>
-                                ) : (
-                                    tableData.map(row => (
-                                        <tr key={row.id} className="text-sm border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors">
-                                            <td className="py-5 px-2 text-gray-900 font-medium whitespace-nowrap leading-tight">
-                                                {new Date(row.date).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}<br/>
-                                                <span className="text-xs text-gray-500 font-normal">{new Date(row.date).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})} hs</span>
-                                            </td>
-                                            <td className="py-5 px-2">
-                                                <p className="font-bold text-gray-900 text-base">{row.clientName}</p>
-                                                <p className="text-xs text-gray-600">{row.treatmentName}</p>
-                                            </td>
-                                            <td className="py-5 px-2">
-                                                <span className="text-[10px] font-bold uppercase text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                                                    {row.paymentMethod === 'transfer' ? 'Transferencia' : 'Efectivo'}
-                                                </span>
-                                            </td>
-                                            <td className="py-5 px-2 text-right font-bold text-gray-900 text-base">${row.collectedAmount.toLocaleString()}</td>
-                                            <td className="py-5 px-2 text-right text-gray-900 font-medium">{row.rate}%</td>
-                                            <td className="py-5 px-2 text-right font-black text-gray-900 text-base">${row.commissionAmount.toLocaleString()}</td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                            <tfoot className="bg-white border-t-2 border-black">
-                                <tr>
-                                    <td colSpan="5" className="py-8 px-4 text-right text-xs font-bold uppercase text-gray-500">Total a Liquidar:</td>
-                                    <td className="py-8 px-4 text-right text-2xl font-black text-black">${totalComisiones.toLocaleString()}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+                )}
+            </div>
 
-                {/* PIE DE PÁGINA */}
-                <div className="text-center pt-16 mt-16 border-t border-dashed border-gray-200 bg-white">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.5em]">Documento Oficial de Liquidación - {branding.businessName || 'Software HaceClick AI'}</p>
-                </div>
+            {/* 4. REPORTE DETALLADO (COLAPSABLE) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
+                <button onClick={() => toggleSection('reporte')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="list" size={18} className="text-orange-500"/> Detalle de Operaciones</span>
+                    <Icon name={openSections.reporte ? "chevron-up" : "chevron-down"} size={18} className="text-gray-400"/>
+                </button>
+                {openSections.reporte && (
+                    <div id="report-area" className="p-8 md:p-12 animate-fade-in bg-white">
+                        {/* El contenido de la tabla que ya tenías pero optimizado para el reporte */}
+                        <div className="flex justify-between items-start border-b border-gray-100 pb-10 mb-10">
+                             <div className="flex items-center gap-6">
+                                {localLogo ? <img src={localLogo} className="h-16 w-auto object-contain" /> : <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400">S</div>}
+                                <div>
+                                    <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
+                                        {profFilter === 'ALL' ? 'Reporte General de Caja' : 'Liquidación Profesional'}
+                                    </h1>
+                                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+                                        {profFilter === 'ALL' ? 'Administración Local' : professionals.find(p=>p.id===profFilter)?.name}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Generado</p>
+                                <p className="font-bold text-gray-900 text-xs">{new Date().toLocaleDateString('es-ES', {day:'2-digit', month:'long', year:'numeric'})}</p>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[11px] uppercase text-gray-400 font-bold border-b border-gray-200">
+                                        <th className="pb-4 px-2">Fecha</th>
+                                        <th className="pb-4 px-2">Cliente / Servicio</th>
+                                        <th className="pb-4 px-2 text-right">Cobrado</th>
+                                        <th className="pb-4 px-2 text-right">Com. $</th>
+                                        <th className="pb-4 px-2 text-right text-gray-800">Neto Local</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredAppointments.length === 0 ? (
+                                        <tr><td colSpan="5" className="py-10 text-center text-gray-300 italic text-sm">No hay registros para mostrar.</td></tr>
+                                    ) : (
+                                        filteredAppointments.map(appt => {
+                                            const treatment = treatments.find(t => t.id === appt.treatmentId);
+                                            const client = clients.find(c => c.id === appt.clientId);
+                                            const price = Number(appt.finalAmount || treatment?.price || 0);
+                                            // ... misma lógica de cálculo de comisión para la tabla ...
+                                            const professional = professionals.find(p => p.id === appt.professionalId);
+                                            const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
+                                            const treatmentCategory = treatment?.category || '';
+                                            let rate = 0;
+                                            if (hasComm) {
+                                                if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) rate = Number(professional.commissionRates[treatmentCategory]);
+                                                else if (professional?.commissionRate) rate = Number(professional.commissionRate);
+                                            }
+                                            const comm = price * (rate / 100);
+
+                                            return (
+                                                <tr key={appt.id} className="text-sm border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                                    <td className="py-4 px-2 text-gray-600 tabular-nums">
+                                                        {new Date(appt.date).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}
+                                                    </td>
+                                                    <td className="py-4 px-2">
+                                                        <p className="font-bold text-gray-900">{client?.name || appt.clientNameTemp || 'Consumidor'}</p>
+                                                        <p className="text-[10px] text-gray-500">{treatment?.name || 'Servicio'}</p>
+                                                    </td>
+                                                    <td className="py-4 px-2 text-right font-medium text-gray-900">${price.toLocaleString()}</td>
+                                                    <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
+                                                    <td className="py-4 px-2 text-right font-black text-green-700">${(price - comm).toLocaleString()}</td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="border-t-2 border-gray-900">
+                                        <td colSpan="4" className="py-6 text-right font-bold uppercase text-gray-500 text-[10px]">Utilidad Final del Período:</td>
+                                        <td className="py-6 text-right text-2xl font-black text-green-700">${statsData.netoLocal.toLocaleString()}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
