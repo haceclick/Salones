@@ -1,15 +1,13 @@
-// --- COMPONENTE DASHBOARD (TONOS PASTEL Y CUMPLEAÑOS DE EQUIPO) ---
-const Dashboard = ({ clients, appointments, professionals, treatments, settings, notifications = [], adminMessages = [], saveAppointments, saveNotifications, notify, goToAgenda, refreshData }) => {
+// --- COMPONENTE DASHBOARD (MODO LECTURA PARA PROFESIONALES) ---
+const Dashboard = ({ clients, appointments, professionals, treatments, settings, notifications = [], adminMessages = [], saveAppointments, saveNotifications, notify, goToAgenda, refreshData, user }) => {
     const today = new Date();
     
-    // ESTADO PARA EL BOTÓN DE ACTUALIZAR
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    // 🔥 VERIFICACIÓN DE ROL 🔥
+    const isProfessional = user?.role === 'professional';
 
-    // ESTADOS PARA MODALES
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [selectedPendingAppt, setSelectedPendingAppt] = useState(null);
     const [approvalProfId, setApprovalProfId] = useState(''); 
-    
-    // ESTADOS PARA CENTRAL DE AVISOS Y CRM
     const [reminderModal, setReminderModal] = useState(false);
     const [remDate, setRemDate] = useState(today.toISOString().split('T')[0]);
     const [remTreatment, setRemTreatment] = useState('ALL');
@@ -29,12 +27,16 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };    
 
     const [waModal, setWaModal] = useState({ open: false, phone: '', text: '', loading: false });
+    
     const todaysApps = appointments.filter(a => { 
         const d = new Date(a.date); 
         return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && a.status !== 'cancelled' && a.status !== 'blocked' && a.status !== 'holiday'; 
     }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    const groupedTodaysApps = todaysApps.reduce((acc, appt) => {
+    // Si es profesional, filtramos para que en "Agenda de Hoy" solo vea SUS turnos
+    const myTodaysApps = isProfessional ? todaysApps.filter(a => a.professionalId === user?.profId) : todaysApps;
+
+    const groupedTodaysApps = myTodaysApps.reduce((acc, appt) => {
         const prof = professionals.find(p => p.id === appt.professionalId);
         const profName = prof ? prof.name : 'Sin Asignar';
         if (!acc[profName]) acc[profName] = [];
@@ -50,18 +52,20 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         const now = new Date();
         const bufferTime = new Date(now.getTime() - (2 * 60 * 60 * 1000)); 
         
-        return appointments.filter(a => {
+        let unclosed = appointments.filter(a => {
             if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'holiday' || a.status === 'blocked') {
                 return false;
             }
             const apptDate = new Date(a.date);
             return apptDate < bufferTime;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
-    }, [appointments]);
+        
+        if (isProfessional) unclosed = unclosed.filter(a => a.professionalId === user?.profId);
+        return unclosed;
+    }, [appointments, isProfessional, user]);
 
-    const nextAppt = todaysApps.find(a => new Date(a.date) > new Date());
+    const nextAppt = myTodaysApps.find(a => new Date(a.date) > new Date());
 
-    // --- ✅ NUEVO: LÓGICA UNIFICADA DE CUMPLEAÑOS ---
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
     
@@ -81,7 +85,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
 
     const birthdayPeople = [...birthdayProfs, ...birthdayClients];
 
-    // LECTURA DE CONFIGURACIONES GLOBALES
     const agentConfig = settings && Array.isArray(settings) ? settings.find(s => s.id === 'agent_config') : null;
     const msgConfig = settings && Array.isArray(settings) ? settings.find(s => s.id === 'messages_config') || {} : {};
     const businessName = agentConfig?.businessName || 'nuestro equipo';
@@ -130,6 +133,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirm = (apptId, forcedProfId = null) => {
+        if (isProfessional) return; // Bloqueo de seguridad
         const appt = appointments.find(a => a.id === apptId);
         const finalProfId = forcedProfId || appt.professionalId;
         const client = clients.find(c => c.id === appt.clientId);
@@ -148,6 +152,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirmDeposit = (e, appt) => {
+        if (isProfessional) return;
         e.stopPropagation();
         const updated = appointments.map(a => a.id === appt.id ? { ...a, status: 'confirmed_paid' } : a);
         saveAppointments(updated);
@@ -180,6 +185,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleQuickConfirm = (e, appt) => {
+        if (isProfessional) return;
         e.stopPropagation();
         if (appt.professionalId === 'any' || appt.professionalId === 'ALL' || !appt.professionalId) {
             notify("⚠️ Debes asignar un profesional antes de confirmar.", "warning");
@@ -195,6 +201,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleReject = (apptId) => {
+        if (isProfessional) return;
         const appt = appointments.find(a => a.id === apptId);
         const client = clients.find(c => c.id === appt?.clientId);
         
@@ -356,13 +363,17 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     >
                         <Icon name="external-link" size={18}/> Portal Clientes
                     </button>
-                    <button onClick={() => setReminderModal(true)} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 transition-all shadow-md hover:opacity-90">
-                        <Icon name="message-square" size={18}/> Enviar Avisos
-                    </button>
+                    
+                    {/* Solo Dueño o Admin pueden enviar recordatorios masivos */}
+                    {!isProfessional && (
+                        <button onClick={() => setReminderModal(true)} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 transition-all shadow-md hover:opacity-90">
+                            <Icon name="message-square" size={18}/> Enviar Avisos
+                        </button>
+                    )}
                 </div>
             </header>
 
-            {/* --- ALERTA DE SERVICIOS SIN CERRAR (TONOS PASTEL) --- */}
+            {/* --- ALERTA DE SERVICIOS SIN CERRAR --- */}
             {unclosedAppts.length > 0 && (
                 <div className="bg-red-50 border border-red-200 p-4 md:p-6 rounded-brand shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
                     <div className="flex items-start md:items-center gap-4">
@@ -371,7 +382,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         </div>
                         <div>
                             <h4 className="font-bold text-red-700 text-lg leading-tight">¡Tienes {unclosedAppts.length} {unclosedAppts.length === 1 ? 'servicio sin cerrar' : 'servicios sin cerrar'}!</h4>
-                            <p className="text-sm text-red-600/80 mt-1">Quedaron turnos pasados como "Confirmados". Ciérralos para mantener tu caja al día:</p>
+                            <p className="text-sm text-red-600/80 mt-1">Quedaron turnos pasados como "Confirmados". {isProfessional ? 'Avísale a tu administrador para que los cierre.' : 'Ciérralos para mantener tu caja al día:'}</p>
                             
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                                 {unclosedAppts.slice(0, 4).map(a => {
@@ -398,9 +409,9 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-                <DashCard icon={<Icon name="calendar" size={20} className="text-brand-text" />} color="bg-blue-50" label="Turnos Hoy" value={todaysApps.length} />
-                <DashCard icon={<Icon name="bell" size={20} className="text-brand-text" />} color="bg-yellow-50" label="Reservas Web" value={pendingApps.length} />
-                <DashCard icon={<Icon name="users" size={20} className="text-brand-text" />} color="bg-green-50" label="Clientes" value={clients.length} />
+                <DashCard icon={<Icon name="calendar" size={20} className="text-brand-text" />} color="bg-blue-50" label="Turnos Hoy" value={myTodaysApps.length} />
+                <DashCard icon={<Icon name="bell" size={20} className="text-brand-text" />} color="bg-yellow-50" label="Reservas Web" value={isProfessional ? '-' : pendingApps.length} />
+                <DashCard icon={<Icon name="users" size={20} className="text-brand-text" />} color="bg-green-50" label="Clientes" value={isProfessional ? '-' : clients.length} />
                 <DashCard 
                     icon={<Icon name="clock" size={20} className="text-brand-text" />} 
                     color="bg-gray-100" 
@@ -420,12 +431,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         {totalPendingRequests === 0 ? 
                             (<div key="empty-pending" className="text-center py-8 text-brand-text-light flex flex-col items-center">
                                 <Icon name="check-circle" size={40} className="mb-2 opacity-30"/>
-                                <p>Sin solicitudes pendientes.</p>
+                                <p>{isProfessional ? 'Solo el administrador puede ver las solicitudes web.' : 'Sin solicitudes pendientes.'}</p>
                             </div>) : 
                             (<div key="list-pending" className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 
                                 {/* A. RENDERIZAMOS LOS CLIENTES NUEVOS PRIMERO */}
-                                {newClientNotifs.map(n => (
+                                {!isProfessional && newClientNotifs.map(n => (
                                     <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-sm transition-all group">
                                         <div className="flex items-center justify-between mb-3">
                                             <div>
@@ -464,14 +475,17 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     const needsProf = a.professionalId === 'any' || a.professionalId === 'ALL' || !a.professionalId;
                                     const isAwaiting = a.status === 'awaiting_deposit';
 
+                                    // Si es profesional y no está asignado a él, no lo mostramos a menos que deba verlo (mejor los ocultamos)
+                                    if (isProfessional && a.professionalId !== user.profId && !needsProf) return null;
+
                                     return (
                                         <div key={a.id} 
                                              onClick={() => !isAwaiting ? openPendingModal(a) : null} 
-                                             className={`p-4 rounded-brand border cursor-pointer hover:shadow-sm transition-all group ${isAwaiting ? 'bg-orange-50 border-orange-200 cursor-default' : 'bg-yellow-50 border-yellow-200'}`}>
+                                             className={`p-4 rounded-brand border ${!isProfessional && !isAwaiting ? 'cursor-pointer hover:shadow-sm hover:-translate-y-0.5' : ''} transition-all group ${isAwaiting ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200'}`}>
                                             
                                             <div className="flex items-center justify-between mb-3">
                                                 <div>
-                                                    <p className={`font-bold text-lg transition-colors ${isAwaiting ? 'text-orange-700' : 'text-gray-800 group-hover:text-[var(--color-primary)]'}`}>{clientName}</p>
+                                                    <p className={`font-bold text-lg transition-colors ${isAwaiting ? 'text-orange-700' : 'text-gray-800'}`}>{clientName}</p>
                                                     <p className="text-xs text-gray-500 font-medium">{new Date(a.date).toLocaleDateString('es-ES', {weekday:'short', day:'numeric'})} - {new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</p>
                                                     {tr && <p className="text-[10px] text-gray-400 mt-0.5">{tr.name}</p>}
                                                 </div>
@@ -483,27 +497,30 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 </div>
                                             </div>
                                             
-                                            <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200/60' : 'border-yellow-200/60'}`}>
-                                                {isAwaiting ? (
-                                                    <>
-                                                        <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-100 flex justify-center items-center gap-1 shadow-sm transition-colors">
-                                                            <Icon name="check-circle" size={14}/> <span>Seña Recibida</span>
-                                                        </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-200 text-orange-600 py-2 rounded-brand text-xs font-bold hover:bg-orange-50 transition-colors">
-                                                            <span>Cancelar Turno</span>
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors border ${needsProf ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm'}`}>
-                                                            <Icon name={needsProf ? 'user-plus' : 'message-circle'} size={14}/> <span>{needsProf ? 'Asignar Prof.' : 'Confirmar'}</span>
-                                                        </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-200 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-red-50 transition-colors">
-                                                            <span>Eliminar</span>
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
+                                            {/* OCULTAMOS BOTONES DE ACCIÓN PARA PROFESIONALES */}
+                                            {!isProfessional && (
+                                                <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200/60' : 'border-yellow-200/60'}`}>
+                                                    {isAwaiting ? (
+                                                        <>
+                                                            <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-100 flex justify-center items-center gap-1 shadow-sm transition-colors">
+                                                                <Icon name="check-circle" size={14}/> <span>Seña Recibida</span>
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-200 text-orange-600 py-2 rounded-brand text-xs font-bold hover:bg-orange-50 transition-colors">
+                                                                <span>Cancelar Turno</span>
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors border ${needsProf ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm'}`}>
+                                                                <Icon name={needsProf ? 'user-plus' : 'message-circle'} size={14}/> <span>{needsProf ? 'Asignar Prof.' : 'Confirmar'}</span>
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-200 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                                <span>Eliminar</span>
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ) 
                                 })}
@@ -511,15 +528,15 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         }
                     </div>
 
-                    {/* TURNOS HOY */}
+                    {/* TURNOS HOY - CON ESTADOS REALES Y COLORES PASTEL */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="calendar"/> Agenda de Hoy</h3>
                         </div>
-                        {todaysApps.length === 0 ? 
+                        {myTodaysApps.length === 0 ? 
                             (<div key="empty-today" className="text-center py-12 text-brand-text-light flex flex-col items-center">
                                 <Icon name="coffee" size={48} className="mb-2 opacity-30"/>
-                                <p>No hay turnos para hoy.</p>
+                                <p>{isProfessional ? 'No tienes turnos programados para hoy.' : 'No hay turnos para hoy.'}</p>
                             </div>) : 
                             (<div key="list-today" className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {Object.keys(groupedTodaysApps).map(profName => (
@@ -533,7 +550,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 const tr = treatments.find(t => t.id === a.treatmentId);
                                                 const isCompleted = a.status === 'completed';
                                                 
-                                                // ✅ NUEVA LÓGICA: Determinar etiqueta y colores en base al estado real
                                                 let statusBadge = { text: 'PENDIENTE', style: 'bg-gray-100 text-gray-500 border border-gray-200' };
                                                 let rowBg = 'bg-white border-gray-200 hover:border-[var(--color-primary)]';
 
@@ -627,7 +643,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="gift" className="text-pink-500"/> Cumpleaños de Hoy</h3>
-                            {birthdayPeople.length > 0 && <span className="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">¡Hay festejos!</span>}
+                            {birthdayPeople.length > 0 && <span className="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase animate-pulse">¡Hay festejos!</span>}
                         </div>
                         {birthdayPeople.length === 0 ? 
                             (<div key="empty-birthdays" className="p-6 bg-brand-bg rounded-brand border border-brand-border text-center text-sm text-brand-text-light italic">No hay cumpleaños registrados para hoy.</div>) : 
@@ -641,11 +657,13 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                             <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><Icon name="phone" size={10}/> {person.phone || 'Sin número'}</p>
                                         </div>
                                         <div className="flex gap-2">
-                                            {!person.isProf && (
+                                            {/* Ocultar botones de enviar mensajes a clientes si es profesional */}
+                                            {!person.isProf && !isProfessional && (
                                                 <button onClick={() => setHistoryClient(person)} className="bg-white border border-pink-200 text-pink-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1 shadow-sm">
                                                     <Icon name="history" size={14}/> Historial
                                                 </button>
                                             )}
+                                            {/* El saludo sí lo pueden mandar, fomenta compañerismo */}
                                             <button onClick={() => sendBirthdayGreeting(person)} className="bg-pink-100 border border-pink-300 text-pink-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-200 transition-colors flex items-center gap-1 shadow-sm">
                                                 <Icon name="send" size={14}/> Saludar
                                             </button>
@@ -706,8 +724,22 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 );
             })()}
 
-            {/* MODAL: SOLICITUDES WEB */}
+            {/* MODAL: SOLICITUDES WEB (SI EL PROFESIONAL HACE CLIC, LE AVISAMOS QUE NO PUEDE) */}
             {selectedPendingAppt && (() => {
+                if (isProfessional) {
+                    return (
+                        <div className="fixed inset-0 bg-brand-text/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white p-8 rounded-brand w-full max-w-sm relative shadow-2xl animate-scale-in border border-brand-border text-center">
+                                <button onClick={()=>setSelectedPendingAppt(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
+                                <div className="w-16 h-16 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="lock" size={32}/></div>
+                                <h3 className="font-bold text-lg text-gray-800 mb-2">Acceso Restringido</h3>
+                                <p className="text-sm text-gray-500 mb-6">Solo los administradores del local pueden aprobar o modificar solicitudes de turnos web.</p>
+                                <button onClick={()=>setSelectedPendingAppt(null)} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">Entendido</button>
+                            </div>
+                        </div>
+                    );
+                }
+
                 const tr = treatments.find(t => t.id === selectedPendingAppt.treatmentId);
                 const client = clients.find(c => c.id === selectedPendingAppt.clientId);
                 const clientName = selectedPendingAppt.clientId?.startsWith('CHAT') ? selectedPendingAppt.clientNameTemp : client?.name;
@@ -758,7 +790,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             })()}
 
             {/* MODAL: CENTRAL DE AVISOS Y RECORDATORIOS */}
-            {reminderModal && (
+            {reminderModal && !isProfessional && (
                 <div className="fixed inset-0 bg-brand-text/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-6 md:p-8 rounded-brand w-full max-w-2xl relative shadow-2xl animate-scale-in border border-brand-border flex flex-col max-h-[90vh]">
                         <button onClick={()=>setReminderModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
@@ -836,7 +868,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
             )}
 
-            {/* MODAL: LANZADOR DE WHATSAPP (Anti-Bloqueo de Pop-ups y Emojis Seguros) */}
+            {/* MODAL: LANZADOR DE WHATSAPP */}
             {waModal.open && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
                     <div className="bg-white p-8 rounded-brand w-full max-w-sm text-center shadow-2xl animate-scale-in border-t-4 border-[#25D366]">
