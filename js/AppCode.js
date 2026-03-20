@@ -173,21 +173,40 @@ const LoginScreen = ({ onLogin, notify }) => {
     );
 };
 
-// --- 2. SIDEBAR ---
+// --- 2. COMPONENTE SIDEBAR ---
 const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig }) => {
 
     const menuItems = [
-        { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager'] },
+        { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager', 'professional'] },
         { id: 'agenda', label: 'Agenda', icon: 'calendar', roles: ['admin', 'manager', 'professional'] },
         { id: 'clients', label: 'Clientes', icon: 'users', roles: ['admin', 'manager'] },
         { id: 'professionals', label: 'Profesionales', icon: 'briefcase', roles: ['admin', 'manager'] },
         { id: 'treatments', label: 'Servicios', icon: 'tag', roles: ['admin', 'manager'] },
-        { id: 'billing', label: 'Facturación', icon: 'receipt', roles: ['admin', 'manager'] },
+        { id: 'billing', label: 'Facturación', icon: 'receipt', roles: ['admin', 'manager', 'professional'] },
         { id: 'stats', label: 'Estadísticas', icon: 'bar-chart-2', roles: ['admin', 'manager', 'professional'] },
         { id: 'settings', label: 'Configuración', icon: 'settings', roles: ['admin', 'manager'] },
         { id: 'agent', label: 'Agente IA', icon: 'bot', roles: ['admin'] },
         { id: 'superadmin', label: 'Admin Sistema', icon: 'shield-check', roles: ['admin', 'manager'], visible: user?.isSuperAdmin === true }
-    ].filter(item => item.roles.includes(user?.role) && (item.visible === undefined || item.visible === true));
+    ].filter(item => {
+        // 1. Validar si el rol básico tiene acceso
+        if (!item.roles.includes(user?.role)) return false;
+        
+        // 2. Validar restricciones explícitas (ej. SuperAdmin)
+        if (item.visible === false) return false;
+
+        // 3. 🔥 MAGIA DE PERMISOS PARA PROFESIONALES 🔥
+        if (user?.role === 'professional') {
+            // Verificamos si tiene el permiso específico encendido en su perfil
+            if (user.permissions && user.permissions[item.id] !== undefined) {
+                return user.permissions[item.id] === true;
+            }
+            // Fallback: Si es un profesional viejo sin permisos guardados, le damos acceso a agenda por defecto
+            return item.id === 'agenda';
+        }
+
+        // Si es Admin o Manager, pasa directo
+        return true;
+    });
 
     return (
         <div 
@@ -243,11 +262,9 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                         {(user?.email || "?").charAt(0)}
                     </div>
                     <div className="min-w-0">
-                        {/* 👇 Cambiamos sidebarActive por sidebarText aquí 👇 */}
                         <p className="text-xs font-semibold truncate" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
                             {user?.email}
                         </p>
-                        {/* Le subimos un poco la opacidad (de 40 a 60) para que el rol se lea mejor con ese mismo color */}
                         <p className="text-[9px] uppercase tracking-widest opacity-60 font-bold" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
                             {user?.role}
                         </p>
