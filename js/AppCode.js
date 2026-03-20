@@ -481,13 +481,22 @@ const App = () => {
         };
     }, [currentUser, mode, tenantId]);
 
+    // --- EFECTO DE APLICACIÓN DE MARCA (BRANDING) ---
     useEffect(() => {
         let targetSettings = (mode === 'public_portal' && publicData) ? publicData.settings : data.settings;
         if (!targetSettings || !Array.isArray(targetSettings)) return;
         
+        // Buscamos la entrada de marca (branding)
         let targetBranding = targetSettings.find(s => s.id === 'branding' || s.primaryColor);
 
         if (targetBranding && targetBranding.primaryColor) {
+            
+            // 👇 ESTA ES LA LÍNEA MÁGICA QUE SOLUCIONA EL PROBLEMA 👇
+            // Guardamos esta configuración como la "actual" en la memoria del navegador
+            localStorage.setItem('localBranding', JSON.stringify(targetBranding));
+            // 👆 FIN DE LA SOLUCIÓN 👆
+
+            // Actualizamos el estado y las variables CSS
             setBrandConfig(targetBranding);
             const root = document.documentElement;
             
@@ -500,7 +509,6 @@ const App = () => {
             const autoSidebarActiveText = getContrastColor(targetBranding.sidebarBg);
 
             // 3. Inyectamos los textos inteligentes
-            // El texto secundario del menú lo dejamos a elección del cliente (o gris por defecto)
             root.style.setProperty('--color-sidebar-text', targetBranding.sidebarText || '#9ca3af');
             
             // Pero el texto ACTIVO y el texto de los BOTONES los forzamos para que siempre se lean perfecto
