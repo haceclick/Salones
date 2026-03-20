@@ -1,5 +1,5 @@
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto (✅ AGREGAMOS reschedulePolicy)
+    // 1. Valores por defecto
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
@@ -222,9 +222,30 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 )}
                             </div>
 
-                            {/* TARJETA UNIFICADA: COBROS Y POLÍTICAS */}
+                            {/* POLÍTICA DE REPROGRAMACIÓN (TARJETA INDEPENDIENTE) */}
+                            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                                <div className="mb-3">
+                                    <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="calendar" size={16} className="text-gray-500"/> Política de Reprogramación</h4>
+                                    <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo por su cuenta desde el portal.</p>
+                                </div>
+                                <div className="w-full md:w-1/2">
+                                    <select 
+                                        className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none bg-gray-50 focus:bg-white text-sm font-medium text-gray-800 transition-all"
+                                        value={agentConfig.reschedulePolicy || '24'}
+                                        onChange={e => setAgentConfig({...agentConfig, reschedulePolicy: e.target.value})}
+                                    >
+                                        <option value="0">En cualquier momento (Sin límite)</option>
+                                        <option value="12">Hasta 12 horas antes del turno</option>
+                                        <option value="24">Hasta 24 horas antes del turno</option>
+                                        <option value="48">Hasta 48 horas antes del turno</option>
+                                        <option value="72">Hasta 72 horas antes del turno</option>
+                                        <option value="disabled">No permitir reprogramar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
-                                {/* SUB-SECCIÓN A: COBRO DE SEÑAS */}
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h4 className="font-bold text-sm text-gray-800">Cobro de Señas</h4>
@@ -298,30 +319,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                         </div>
                                     </div>
                                 )}
-
-                                {/* ✅ NUEVA SUB-SECCIÓN B: POLÍTICA DE REPROGRAMACIÓN */}
-                                <div className="mt-6 pt-5 border-t border-gray-200">
-                                    <div className="mb-3">
-                                        <h4 className="font-bold text-sm text-gray-800 flex items-center gap-1"><Icon name="calendar" size={16}/> Política de Reprogramación</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo desde el portal.</p>
-                                    </div>
-                                    <div className="w-full md:w-1/2">
-                                        <select 
-                                            className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none bg-white text-sm font-medium text-gray-800 shadow-sm transition-all"
-                                            value={agentConfig.reschedulePolicy || '24'}
-                                            onChange={e => setAgentConfig({...agentConfig, reschedulePolicy: e.target.value})}
-                                        >
-                                            <option value="0">En cualquier momento (Sin límite)</option>
-                                            <option value="12">Hasta 12 horas antes del turno</option>
-                                            <option value="24">Hasta 24 horas antes del turno</option>
-                                            <option value="48">Hasta 48 horas antes del turno</option>
-                                            <option value="72">Hasta 72 horas antes del turno</option>
-                                            <option value="disabled">No permitir reprogramar</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                {/* FIN NUEVA SUB-SECCIÓN */}
-
                             </div>
                         </div>
                     )}
