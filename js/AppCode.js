@@ -416,15 +416,13 @@ const App = () => {
             const alias = aliasStr.replace('#/', '').replace('?local=', '').replace('/', '').toLowerCase();
             if (!alias) { setLoadingData(false); return; }
             
-            // 👇 MAGIA DE CACHÉ: Verificamos si cambió el local 👇
+            // Magia de Caché: Verificamos si cambió el local
             const savedAlias = localStorage.getItem('last_visited_alias');
             if (savedAlias !== alias) {
-                // Si la URL es distinta a la última que visitamos, borramos el logo viejo de la memoria
                 localStorage.removeItem('localBranding'); 
                 localStorage.setItem('last_visited_alias', alias); 
-                setBrandConfig({ sidebarBg: '#1e293b', primaryColor: '#008395' }); // Reseteo visual
+                setBrandConfig({ sidebarBg: '#1e293b', primaryColor: '#008395' }); 
             }
-            // 👆 FIN MAGIA DE CACHÉ 👆
 
             setPublicAlias(alias);
             setMode('public_portal');
@@ -439,22 +437,48 @@ const App = () => {
                 .getPublicData(alias);
         };
 
-        const hash = window.location.hash;
-        const params = new URLSearchParams(window.location.search);
-        const localParam = params.get('local'); 
-        const viewParam = params.get('view');
+        // 🔥 LA SOLUCIÓN: Leemos la URL nativa de Google Apps Script 🔥
+        if (typeof google !== 'undefined' && google.script && google.script.url) {
+            google.script.url.getLocation(function(location) {
+                // Apps Script guarda los parámetros en un formato especial: location.parameters.nombre[0]
+                const localParam = location.parameters.local ? location.parameters.local[0] : null;
+                const viewParam = location.parameters.view ? location.parameters.view[0] : null;
+                const hash = location.hash;
 
-        if (localParam) {
-            initPortal(localParam);
-        } else if (hash && hash.startsWith('#/')) {
-            initPortal(hash);
+                if (localParam) {
+                    initPortal(localParam);
+                } else if (hash && hash.startsWith('amara')) { 
+                    initPortal(hash);
+                } else if (window.location.hash && window.location.hash.startsWith('#/')) {
+                    initPortal(window.location.hash);
+                } else {
+                    if (viewParam === 'client') {
+                        setMode('client');
+                        const t = location.parameters.tenant ? location.parameters.tenant[0] : null;
+                        if (t) setTenantId(t);
+                    }
+                    setLoadingData(false); 
+                }
+            });
         } else {
-            if (viewParam === 'client') {
-                setMode('client');
-                const t = params.get('tenant');
-                if (t) setTenantId(t);
+            // (Mantenemos esto por si corres la app fuera de Apps Script)
+            const hash = window.location.hash;
+            const params = new URLSearchParams(window.location.search);
+            const localParam = params.get('local'); 
+            const viewParam = params.get('view');
+
+            if (localParam) {
+                initPortal(localParam);
+            } else if (hash && hash.startsWith('#/')) {
+                initPortal(hash);
+            } else {
+                if (viewParam === 'client') {
+                    setMode('client');
+                    const t = params.get('tenant');
+                    if (t) setTenantId(t);
+                }
+                setLoadingData(false); 
             }
-            setLoadingData(false); 
         }
     }, []);
 
