@@ -105,101 +105,118 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         };
     }, [filteredAppointments, treatments, professionals]);
 
-    // ✅ NUEVO GENERADOR DE PDF BLINDADO CONTRA ERRORES CORS
+    // ✅ NUEVO GENERADOR DE PDF BLINDADO (Abre la sección si está cerrada)
     const handleDownloadPDF = () => {
         if (reportMode === 'prof' && !selectedProf) {
             return notify("Selecciona un profesional primero", "warning");
         }
 
-        setIsGenerating(true);
-        notify("Generando documento PDF...", "info");
-        
-        const element = document.getElementById('report-area');
-        const fileName = reportMode === 'local' 
-            ? `Caja_Local_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.pdf`
-            : `Liquidacion_${professionals.find(p=>p.id===selectedProf)?.name.replace(/\s+/g,'_')}.pdf`;
+        const tryGenerate = () => {
+            const element = document.getElementById('report-area');
+            // Si la tabla está oculta, la abrimos y reintentamos en 300ms
+            if (!element) {
+                setOpenSections(prev => ({ ...prev, reporte: true }));
+                setTimeout(tryGenerate, 300);
+                return;
+            }
 
-        const opt = {
-            margin:       10,
-            filename:     fileName,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false }, 
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            setIsGenerating(true);
+            notify("Generando documento PDF...", "info");
+            
+            const fileName = reportMode === 'local' 
+                ? `Caja_Local_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.pdf`
+                : `Liquidacion_${professionals.find(p=>p.id===selectedProf)?.name.replace(/\s+/g,'_')}.pdf`;
+
+            const opt = {
+                margin:       10,
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false }, 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            window.html2pdf().set(opt).from(element).save().then(() => {
+                setIsGenerating(false);
+                notify("PDF descargado correctamente", "success");
+            }).catch(err => {
+                console.error(err);
+                setIsGenerating(false);
+                notify("Error al generar el PDF. Intenta de nuevo.", "error");
+            });
         };
-
-        window.html2pdf().set(opt).from(element).save().then(() => {
-            setIsGenerating(false);
-            notify("PDF descargado correctamente", "success");
-        }).catch(err => {
-            setIsGenerating(false);
-            notify("Error al generar el PDF", "error");
-        });
+        
+        tryGenerate();
     };
 
-    // ✅ ENVÍO POR WHATSAPP (Genera PDF, sube a Drive y envía el Link)
+    // ✅ ENVÍO POR WHATSAPP CON AUTO-APERTURA DE TABLA
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
         const prof = professionals.find(p => p.id === selectedProf);
-        if (!prof?.phone) {
-            return notify("No tienes un teléfono guardado para " + (prof?.name || 'este profesional') + ". Agrégalo en la pestaña Profesionales.", "error");
-        }
-        if (!user || !user.email) {
-            return notify("Error: Usuario no identificado para subir el archivo", "error");
-        }
+        if (!prof?.phone) return notify("No tienes un teléfono guardado para este profesional.", "error");
+        if (!user || !user.email) return notify("Error: Usuario no identificado", "error");
 
-        setIsGenerating(true);
-        notify("Generando y subiendo PDF a la nube...", "info");
-        
-        const element = document.getElementById('report-area');
-        const profNameClean = prof.name.toUpperCase().replace(/\s+/g, '_');
-        const timeStamp = new Date().toISOString().split('T')[0];
-        const customFileName = `LIQUIDACION_${profNameClean}_${timeStamp}.pdf`;
-
-        const opt = {
-            margin:       10,
-            filename:     customFileName,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false }, 
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // 1. En lugar de descargar (.save), lo convertimos a datos base64 (.output)
-        window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
-            if (!pdfData) {
-                setIsGenerating(false);
-                return notify("Error al generar PDF", "error");
+        const tryUpload = () => {
+            const element = document.getElementById('report-area');
+            // Si la tabla está oculta, la abrimos y reintentamos en 300ms
+            if (!element) {
+                setOpenSections(prev => ({ ...prev, reporte: true }));
+                setTimeout(tryUpload, 300);
+                return;
             }
 
-            // 2. Enviamos los datos al backend para guardarlos en Drive
-            google.script.run
-                .withSuccessHandler((res) => {
-                    setIsGenerating(false);
-                    if (res.success) {
-                        notify("¡PDF subido y listo para enviar!", "success");
-                        
-                        const cleanPhone = String(prof.phone).replace(/\D/g, '');
-                        const total = statsData.totalComisiones || 0;
-                        
-                        // 3. Armamos el mensaje con el Saludo, el Total y el LINK de Drive
-                        const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
-                        
-                        // 4. Abrimos WhatsApp en la app nativa
-                        window.location.href = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
-                    } else { 
-                        notify("Error al subir a Drive: " + res.message, "error"); 
-                    }
-                })
-                .withFailureHandler((err) => {
-                    setIsGenerating(false);
-                    notify("Error de conexión al subir el archivo", "error");
-                })
-                .uploadReceiptToDrive(user.email, pdfData, customFileName);
+            setIsGenerating(true);
+            notify("Generando y subiendo PDF a la nube...", "info");
+            
+            const profNameClean = prof.name.toUpperCase().replace(/\s+/g, '_');
+            const timeStamp = new Date().toISOString().split('T')[0];
+            const customFileName = `LIQUIDACION_${profNameClean}_${timeStamp}.pdf`;
 
-        }).catch(err => {
-            setIsGenerating(false);
-            notify("Error al procesar el PDF", "error");
-        });
+            const opt = {
+                margin:       10,
+                filename:     customFileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false }, 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Usamos .output('datauristring') para convertir a código y subir a Google Drive
+            window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
+                if (!pdfData) {
+                    setIsGenerating(false);
+                    return notify("Error al convertir PDF", "error");
+                }
+
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        setIsGenerating(false);
+                        if (res.success) {
+                            notify("¡PDF subido y listo para enviar!", "success");
+                            
+                            const cleanPhone = String(prof.phone).replace(/\D/g, '');
+                            const total = statsData.totalComisiones || 0;
+                            
+                            const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
+                            
+                            window.location.href = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
+                        } else { 
+                            notify("Error al subir a Drive: " + res.message, "error"); 
+                        }
+                    })
+                    .withFailureHandler((err) => {
+                        setIsGenerating(false);
+                        notify("Error de conexión al subir el archivo", "error");
+                    })
+                    .uploadReceiptToDrive(user.email, pdfData, customFileName);
+
+            }).catch(err => {
+                console.error(err);
+                setIsGenerating(false);
+                notify("Error al procesar el PDF", "error");
+            });
+        };
+        
+        tryUpload();
     };
 
     return (
