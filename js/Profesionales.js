@@ -1,18 +1,26 @@
-
-// --- COMPONENTE PROFESIONALES (CON VISTA TARJETAS / TABLA Y COMISIONES MÚLTIPLES) ---
+// --- COMPONENTE PROFESIONALES (CON VISTA TARJETAS / TABLA, COMISIONES Y PERMISOS) ---
 const Professionals = ({ list = [], setList, notify, categories = [], user }) => { 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
     
-    // NUEVO: Estado para alternar entre "grid" (tarjetas) y "table" (lista)
+    // Estado para alternar entre "grid" (tarjetas) y "table" (lista)
     const [viewMode, setViewMode] = useState('grid'); 
     
     const defaultDays = () => Array.from({ length: 7 }, () => ({ active: true, start: '0900', end: '1800' }));
+    
+    // ✅ NUEVO: Estructura por defecto para permisos
+    const defaultPermissions = {
+        dashboard: true,
+        agenda: true,
+        billing: false,
+        stats: false
+    };
 
     const [form, setForm] = useState({ 
         id: '', name: '', phone: '', color: 'bg-red-100 text-red-800', specialties: [], 
         workingDays: defaultDays(),
         hasAccess: false, email: '', password: '',
+        permissions: defaultPermissions, // <-- Se agrega aquí
         hasCommission: false, commissionRates: {} 
     });
 
@@ -63,12 +71,24 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         setForm({...form, specialties: specs});
     };
 
+    // ✅ NUEVO: Función para encender/apagar un permiso específico
+    const togglePermission = (permKey) => {
+        setForm({
+            ...form,
+            permissions: {
+                ...form.permissions,
+                [permKey]: !form.permissions[permKey]
+            }
+        });
+    };
+
     const openEdit = (prof) => {
         setForm({
             ...prof,
             hasAccess: prof?.hasAccess || false,
             email: prof?.email || '',
             password: prof?.password || '',
+            permissions: prof?.permissions || defaultPermissions, // <-- Carga los permisos guardados
             workingDays: prof?.workingDays || defaultDays(),
             specialties: prof?.specialties || [],
             hasCommission: prof?.hasCommission || false, 
@@ -82,6 +102,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             id: '', name: '', phone: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], 
             workingDays: defaultDays(),
             hasAccess: false, email: '', password: '',
+            permissions: defaultPermissions, // <-- Inicia con los permisos por defecto
             hasCommission: false, commissionRates: {}
         });
         setIsModalOpen(true);
@@ -97,7 +118,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                     <p className="text-gray-500 mt-2">Gestiona tu equipo y sus accesos.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* INTERRUPTOR DE VISTA */}
                     <div className="bg-white border border-gray-200 flex rounded-xl p-1 shadow-sm">
                         <button 
                             onClick={() => setViewMode('grid')} 
@@ -235,15 +255,15 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
             {/* MODAL DE EDICIÓN / CREACIÓN */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
                         
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
                             <h3 className="font-bold text-xl text-gray-800">Perfil del Profesional</h3>
                             <button onClick={()=>setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors"><Icon name="x" size={24}/></button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 flex flex-col md:flex-row gap-8">
+                        <div className="flex-1 overflow-y-auto p-8 flex flex-col md:flex-row gap-8 custom-scrollbar">
                             <div className="flex-1 space-y-6">
                                 <div className="grid grid-cols-2 gap-5">
                                     <div className="col-span-2">
@@ -276,7 +296,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             const isSelected = (form.specialties || []).includes(catName);
                                             return (
                                                 <button key={i} type="button" onClick={()=>toggleSpecialty(catName)} 
-                                                    className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${isSelected ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'bg-white text-gray-500 hover:border-gray-300'}`}>
+                                                    className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${isSelected ? 'bg-[var(--color-primary)] text-white shadow-sm border-[var(--color-primary)]' : 'bg-white text-gray-500 hover:border-gray-300'}`}>
                                                     {catName}
                                                 </button>
                                             )
@@ -286,7 +306,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                 </div>
 
                                 {/* SECCIÓN COMISIONES MÚLTIPLES */}
-                                <div className="bg-green-50/50 border border-green-100 rounded-xl p-5">
+                                <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-bold text-green-900 flex items-center gap-2"><Icon name="dollar-sign" size={18}/> Pago de Comisiones</h4>
                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -306,7 +326,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                             <div className="flex items-center gap-1">
                                                                 <input 
                                                                     type="number" min="0" max="100" 
-                                                                    className="w-16 border border-gray-300 p-1.5 rounded text-center text-sm font-bold text-green-700 outline-none focus:border-green-500" 
+                                                                    className="w-16 border border-gray-300 p-1.5 rounded text-center text-sm font-bold text-green-700 outline-none focus:border-green-500 transition-colors" 
                                                                     value={form.commissionRates?.[spec] || ''} 
                                                                     onChange={e => setForm({
                                                                         ...form, 
@@ -325,8 +345,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     )}
                                 </div>
 
-                                {/* ACCESO AL SISTEMA */}
-                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+                                {/* ACCESO AL SISTEMA Y PERMISOS */}
+                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-4">
                                         <h4 className="font-bold text-blue-900 flex items-center gap-2"><Icon name="shield" size={18}/> Acceso al Sistema</h4>
                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -334,15 +354,61 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                                         </label>
                                     </div>
+                                    
                                     {form.hasAccess && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-blue-100/50 animate-fade-in">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Email (Usuario)</label>
-                                                <input type="email" placeholder="juan@local.com" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400" value={form.email || ""} onChange={e=>setForm({...form, email:e.target.value})} />
+                                        <div className="space-y-5 pt-2 border-t border-blue-100/50 animate-fade-in">
+                                            {/* CRENDENCIALES */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Email (Usuario)</label>
+                                                    <input type="email" placeholder="juan@local.com" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400 transition-colors" value={form.email || ""} onChange={e=>setForm({...form, email:e.target.value})} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Contraseña</label>
+                                                    <input type="text" placeholder="1234" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400 transition-colors" value={form.password || ""} onChange={e=>setForm({...form, password:e.target.value})} />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Contraseña</label>
-                                                <input type="text" placeholder="1234" className="w-full border border-blue-200 p-2.5 rounded-lg bg-white text-sm outline-none focus:border-blue-400" value={form.password || ""} onChange={e=>setForm({...form, password:e.target.value})} />
+
+                                            {/* ✅ NUEVO: SWITCHES DE PERMISOS */}
+                                            <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
+                                                <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-3 border-b border-blue-50 pb-2">Permisos de Visualización</p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
+                                                    {/* Permiso: Panel Dashboard */}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="layout-dashboard" size={14} className="text-blue-400"/> Dashboard</span>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={form.permissions?.dashboard ?? true} onChange={() => togglePermission('dashboard')} />
+                                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-400"></div>
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    {/* Permiso: Agenda */}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="calendar" size={14} className="text-blue-400"/> Mi Agenda</span>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={form.permissions?.agenda ?? true} onChange={() => togglePermission('agenda')} />
+                                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-400"></div>
+                                                        </label>
+                                                    </div>
+
+                                                    {/* Permiso: Facturación */}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="receipt" size={14} className="text-blue-400"/> Mi Facturación</span>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={form.permissions?.billing ?? false} onChange={() => togglePermission('billing')} />
+                                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-400"></div>
+                                                        </label>
+                                                    </div>
+
+                                                    {/* Permiso: Estadísticas */}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="bar-chart-2" size={14} className="text-blue-400"/> Mis Estadísticas</span>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={form.permissions?.stats ?? false} onChange={() => togglePermission('stats')} />
+                                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-400"></div>
+                                                        </label>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -350,7 +416,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                             </div>
 
                             {/* HORARIOS */}
-                            <div className="w-full md:w-80 bg-gray-50 rounded-xl p-6 border border-gray-100 h-fit">
+                            <div className="w-full md:w-80 bg-gray-50 rounded-xl p-6 border border-gray-100 h-fit shrink-0">
                                 <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-5 flex items-center gap-2">
                                     <Icon name="clock" size={16}/> Horarios de Trabajo
                                 </h3>
@@ -363,9 +429,9 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             </div>
                                             {day?.active ? (
                                                 <div className="flex items-center gap-2">
-                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)]" value={day.start || "0900"} onChange={e=>updateTime(i,'start',e.target.value)} maxLength="4" placeholder="0900"/>
+                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)] transition-colors" value={day.start || "0900"} onChange={e=>updateTime(i,'start',e.target.value)} maxLength="4" placeholder="0900"/>
                                                     <span className="text-gray-400">-</span>
-                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)]" value={day.end || "1800"} onChange={e=>updateTime(i,'end',e.target.value)} maxLength="4" placeholder="1800"/>
+                                                    <input type="text" className="w-14 text-center p-1.5 border border-gray-300 rounded text-xs font-mono outline-none focus:border-[var(--color-primary)] transition-colors" value={day.end || "1800"} onChange={e=>updateTime(i,'end',e.target.value)} maxLength="4" placeholder="1800"/>
                                                 </div>
                                             ) : <span className="text-xs text-gray-400 font-medium bg-gray-100 px-3 py-1 rounded">Descanso</span>}
                                         </div>
@@ -374,9 +440,9 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                             </div>
                         </div>
 
-                        <div className="p-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-4">
+                        <div className="p-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-4 shrink-0">
                             <button onClick={()=>setIsModalOpen(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:text-gray-800 transition-colors">Cancelar</button>
-                            <button onClick={handleSave} className="px-8 py-2.5 bg-[var(--color-primary)] text-white rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2">
+                            <button onClick={handleSave} className="px-8 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2">
                                 <Icon name="save" size={18}/> Guardar Perfil
                             </button>
                         </div>
@@ -386,15 +452,16 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             
             {/* MODAL CONFIRMAR BORRADO */}
             {confirmDelete.open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100">
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100 animate-scale-in">
                         <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Icon name="alert-triangle" size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-gray-800">¿Eliminar Profesional?</h3>
+                        <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer y borrará también su acceso al sistema.</p>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setConfirmDelete({open:false, id:null})} className="flex-1 py-2.5 border rounded-lg font-bold text-gray-600">Cancelar</button>
-                            <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-bold shadow-md">Sí, Eliminar</button>
+                            <button onClick={() => setConfirmDelete({open:false, id:null})} className="flex-1 py-2.5 border border-gray-300 hover:bg-gray-50 rounded-lg font-bold text-gray-600 transition-colors">Cancelar</button>
+                            <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold shadow-md transition-colors">Sí, Eliminar</button>
                         </div>
                     </div>
                 </div>
