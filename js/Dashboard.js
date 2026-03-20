@@ -1,8 +1,8 @@
-// --- COMPONENTE DASHBOARD (MODO LECTURA PARA PROFESIONALES) ---
+// --- COMPONENTE DASHBOARD (LIMPIO Y BLINDADO) ---
 const Dashboard = ({ clients, appointments, professionals, treatments, settings, notifications = [], adminMessages = [], saveAppointments, saveNotifications, notify, goToAgenda, refreshData, user }) => {
     const today = new Date();
     
-    // 🔥 VERIFICACIÓN DE ROL 🔥
+    // 🔥 VERIFICACIÓN ESTRICTA DE ROL 🔥
     const isProfessional = user?.role === 'professional';
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -33,7 +33,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && a.status !== 'cancelled' && a.status !== 'blocked' && a.status !== 'holiday'; 
     }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    // Si es profesional, filtramos para que en "Agenda de Hoy" solo vea SUS turnos
+    // Si es profesional, en "Agenda de Hoy" solo ve SUS turnos
     const myTodaysApps = isProfessional ? todaysApps.filter(a => a.professionalId === user?.profId) : todaysApps;
 
     const groupedTodaysApps = myTodaysApps.reduce((acc, appt) => {
@@ -133,7 +133,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirm = (apptId, forcedProfId = null) => {
-        if (isProfessional) return; // Bloqueo de seguridad
+        if (isProfessional) return; // BLOQUEO
         const appt = appointments.find(a => a.id === apptId);
         const finalProfId = forcedProfId || appt.professionalId;
         const client = clients.find(c => c.id === appt.clientId);
@@ -152,7 +152,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirmDeposit = (e, appt) => {
-        if (isProfessional) return;
+        if (isProfessional) return; // BLOQUEO
         e.stopPropagation();
         const updated = appointments.map(a => a.id === appt.id ? { ...a, status: 'confirmed_paid' } : a);
         saveAppointments(updated);
@@ -185,7 +185,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleQuickConfirm = (e, appt) => {
-        if (isProfessional) return;
+        if (isProfessional) return; // BLOQUEO
         e.stopPropagation();
         if (appt.professionalId === 'any' || appt.professionalId === 'ALL' || !appt.professionalId) {
             notify("⚠️ Debes asignar un profesional antes de confirmar.", "warning");
@@ -201,7 +201,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleReject = (apptId) => {
-        if (isProfessional) return;
+        if (isProfessional) return; // BLOQUEO
         const appt = appointments.find(a => a.id === apptId);
         const client = clients.find(c => c.id === appt?.clientId);
         
@@ -218,6 +218,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     }; 
 
     const sendWhatsAppMsg = (appt, client, treatment, isAwaitingDeposit = false) => {
+        if (isProfessional) return; // BLOQUEO
         if (!client || !client.phone) return;
         const phone = String(client.phone).replace(/\D/g, ''); 
         const d = new Date(appt.date);
@@ -259,6 +260,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const sendReminderWA = (appt, client, tr) => {
+        if (isProfessional) return; // BLOQUEO
         if(!client?.phone) return;
         const phone = String(client.phone).replace(/\D/g, '');
         const timeStr = new Date(appt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -284,6 +286,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const sendBirthdayGreeting = (person) => {
+        if (isProfessional) return; // BLOQUEO: Los profesionales no envían saludos
         if (!person || !person.phone) return;
         const phone = String(person.phone).replace(/\D/g, '');
         
@@ -422,13 +425,15 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-8">
+                    
                     {/* SOLICITUDES WEB Y NUEVOS CLIENTES */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="globe" className="text-yellow-600"/> Solicitudes Web</h3>
                             {totalPendingRequests > 0 && <span className="bg-yellow-100 text-yellow-700 border border-yellow-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">{totalPendingRequests} Pendientes</span>}
                         </div>
-                        {totalPendingRequests === 0 ? 
+                        
+                        {totalPendingRequests === 0 || isProfessional ? 
                             (<div key="empty-pending" className="text-center py-8 text-brand-text-light flex flex-col items-center">
                                 <Icon name="check-circle" size={40} className="mb-2 opacity-30"/>
                                 <p>{isProfessional ? 'Solo el administrador puede ver las solicitudes web.' : 'Sin solicitudes pendientes.'}</p>
@@ -436,7 +441,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             (<div key="list-pending" className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 
                                 {/* A. RENDERIZAMOS LOS CLIENTES NUEVOS PRIMERO */}
-                                {!isProfessional && newClientNotifs.map(n => (
+                                {newClientNotifs.map(n => (
                                     <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-sm transition-all group">
                                         <div className="flex items-center justify-between mb-3">
                                             <div>
@@ -475,13 +480,10 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     const needsProf = a.professionalId === 'any' || a.professionalId === 'ALL' || !a.professionalId;
                                     const isAwaiting = a.status === 'awaiting_deposit';
 
-                                    // Si es profesional y no está asignado a él, no lo mostramos a menos que deba verlo (mejor los ocultamos)
-                                    if (isProfessional && a.professionalId !== user.profId && !needsProf) return null;
-
                                     return (
                                         <div key={a.id} 
                                              onClick={() => !isAwaiting ? openPendingModal(a) : null} 
-                                             className={`p-4 rounded-brand border ${!isProfessional && !isAwaiting ? 'cursor-pointer hover:shadow-sm hover:-translate-y-0.5' : ''} transition-all group ${isAwaiting ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                                             className={`p-4 rounded-brand border ${!isAwaiting ? 'cursor-pointer hover:shadow-sm hover:-translate-y-0.5' : ''} transition-all group ${isAwaiting ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200'}`}>
                                             
                                             <div className="flex items-center justify-between mb-3">
                                                 <div>
@@ -497,30 +499,27 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 </div>
                                             </div>
                                             
-                                            {/* OCULTAMOS BOTONES DE ACCIÓN PARA PROFESIONALES */}
-                                            {!isProfessional && (
-                                                <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200/60' : 'border-yellow-200/60'}`}>
-                                                    {isAwaiting ? (
-                                                        <>
-                                                            <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-100 flex justify-center items-center gap-1 shadow-sm transition-colors">
-                                                                <Icon name="check-circle" size={14}/> <span>Seña Recibida</span>
-                                                            </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-200 text-orange-600 py-2 rounded-brand text-xs font-bold hover:bg-orange-50 transition-colors">
-                                                                <span>Cancelar Turno</span>
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors border ${needsProf ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm'}`}>
-                                                                <Icon name={needsProf ? 'user-plus' : 'message-circle'} size={14}/> <span>{needsProf ? 'Asignar Prof.' : 'Confirmar'}</span>
-                                                            </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-200 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-red-50 transition-colors">
-                                                                <span>Eliminar</span>
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
+                                            <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200/60' : 'border-yellow-200/60'}`}>
+                                                {isAwaiting ? (
+                                                    <>
+                                                        <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-100 flex justify-center items-center gap-1 shadow-sm transition-colors">
+                                                            <Icon name="check-circle" size={14}/> <span>Seña Recibida</span>
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-200 text-orange-600 py-2 rounded-brand text-xs font-bold hover:bg-orange-50 transition-colors">
+                                                            <span>Cancelar Turno</span>
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors border ${needsProf ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm'}`}>
+                                                            <Icon name={needsProf ? 'user-plus' : 'message-circle'} size={14}/> <span>{needsProf ? 'Asignar Prof.' : 'Confirmar'}</span>
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-200 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                            <span>Eliminar</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     ) 
                                 })}
@@ -602,14 +601,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     
                                     return (
                                         <div key={n.id} className={`p-4 rounded-brand border relative transition-all ${isRead ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-200'}`}>
-                                            
                                             <div className="flex justify-between items-start gap-4">
                                                 <div>
                                                     <p className={`font-bold text-sm flex items-center gap-1 ${isRead ? 'text-gray-500' : 'text-blue-800'}`}>
                                                         <Icon name="info" size={14} className={isRead ? "text-gray-400" : "text-blue-500"}/> 
                                                         {String(n.title || "")}
                                                     </p>
-                                                    
                                                     <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isRead ? 'text-gray-400' : 'text-blue-900/70'}`}>
                                                         {n.message.split(/(\*.*?\*)/g).map((part, i) => 
                                                             part.startsWith('*') && part.endsWith('*') 
@@ -639,6 +636,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             </div>)
                         }
                     </div>
+
                     {/* CUMPLEAÑOS DE HOY */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
@@ -656,18 +654,20 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                             </p>
                                             <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><Icon name="phone" size={10}/> {person.phone || 'Sin número'}</p>
                                         </div>
-                                        <div className="flex gap-2">
-                                            {/* Ocultar botones de enviar mensajes a clientes si es profesional */}
-                                            {!person.isProf && !isProfessional && (
-                                                <button onClick={() => setHistoryClient(person)} className="bg-white border border-pink-200 text-pink-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1 shadow-sm">
-                                                    <Icon name="history" size={14}/> Historial
+                                        
+                                        {/* 🔥 OCULTAMOS BOTONES DE SALUDO Y HISTORIAL SI ES PROFESIONAL */}
+                                        {!isProfessional && (
+                                            <div className="flex gap-2">
+                                                {!person.isProf && (
+                                                    <button onClick={() => setHistoryClient(person)} className="bg-white border border-pink-200 text-pink-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1 shadow-sm">
+                                                        <Icon name="history" size={14}/> Historial
+                                                    </button>
+                                                )}
+                                                <button onClick={() => sendBirthdayGreeting(person)} className="bg-pink-100 border border-pink-300 text-pink-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-200 transition-colors flex items-center gap-1 shadow-sm">
+                                                    <Icon name="send" size={14}/> Saludar
                                                 </button>
-                                            )}
-                                            {/* El saludo sí lo pueden mandar, fomenta compañerismo */}
-                                            <button onClick={() => sendBirthdayGreeting(person)} className="bg-pink-100 border border-pink-300 text-pink-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-200 transition-colors flex items-center gap-1 shadow-sm">
-                                                <Icon name="send" size={14}/> Saludar
-                                            </button>
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>)
@@ -676,7 +676,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
             </div>
 
-            {/* MODAL: HISTORIAL DEL CLIENTE */}
+            {/* MODALES */}
             {historyClient && (() => {
                 const clientAppts = appointments
                     .filter(a => a.clientId === historyClient.id && a.status === 'completed')
@@ -724,7 +724,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 );
             })()}
 
-            {/* MODAL: SOLICITUDES WEB (SI EL PROFESIONAL HACE CLIC, LE AVISAMOS QUE NO PUEDE) */}
             {selectedPendingAppt && (() => {
                 if (isProfessional) {
                     return (
@@ -789,7 +788,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 );
             })()}
 
-            {/* MODAL: CENTRAL DE AVISOS Y RECORDATORIOS */}
             {reminderModal && !isProfessional && (
                 <div className="fixed inset-0 bg-brand-text/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-6 md:p-8 rounded-brand w-full max-w-2xl relative shadow-2xl animate-scale-in border border-brand-border flex flex-col max-h-[90vh]">
@@ -868,7 +866,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
             )}
 
-            {/* MODAL: LANZADOR DE WHATSAPP */}
             {waModal.open && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
                     <div className="bg-white p-8 rounded-brand w-full max-w-sm text-center shadow-2xl animate-scale-in border-t-4 border-[#25D366]">
