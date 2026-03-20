@@ -30,38 +30,49 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         
         let updatedList = form.id ? list.map(p => p.id === form.id ? newProf : p) : [...list, newProf];
         
+        // 1. Esto actualiza la interfaz y GUARDA AUTOMÁTICAMENTE EN LA BASE LOCAL (App.js)
         setList(updatedList); 
         setIsModalOpen(false);
         
-        // Mostrar aviso de "cargando"
-        notify("Guardando permisos en el servidor...", "info");
+        // 2. Rescatamos el email del admin, sin importar con qué usuario hayamos entrado
+        const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
+        
+        notify("Guardando accesos en el servidor...", "info");
 
+        // 3. Enviamos la orden de actualizar SOLO LA BASE MAESTRA
         google.script.run
-            // 🔥 AHORA SÍ VEREMOS LOS ERRORES DEL BACKEND SI ALGO FALLA 🔥
             .withSuccessHandler((res) => {
                 if (res && res.success === false) {
-                    notify(res.message, "error"); // Si el backend falla, nos avisa
+                    notify("Error servidor: " + res.message, "error"); // Ahora SÍ veremos si Google falla
                 } else {
-                    notify(form.id ? "Profesional actualizado con éxito" : "Profesional creado con éxito", "success");
+                    notify(form.id ? "Profesional y accesos actualizados" : "Profesional y accesos creados", "success");
                 }
             })
             .withFailureHandler((err) => {
                 console.error(err);
-                notify("Error de conexión al actualizar el backend.", "error");
+                notify("Error de conexión con el servidor.", "error");
             })
-            .saveProfessionalWithUser(user?.email || '', JSON.stringify(newProf), JSON.stringify(updatedList));
+            .saveProfessionalWithUser(adminEmailToUse, JSON.stringify(newProf));
     };
 
     const handleDelete = () => {
         const idToDelete = confirmDelete.id;
-        const updatedList = list.filter(p => p.id !== idToDelete); // Calculamos la nueva lista
+        const updatedList = list.filter(p => p.id !== idToDelete);
         
+        // 1. Actualiza la UI y guarda en base local
         setList(updatedList);
         setConfirmDelete({ open: false, id: null });
-        notify("Profesional eliminado", "success");
+        notify("Eliminando profesional...", "info");
         
-        // 🔥 LE PASAMOS LA LISTA ACTUALIZADA PARA QUE SOBREESCRIBA LA DB LOCAL 🔥
-        google.script.run.deleteProfessionalAndUser(user?.email || '', idToDelete, JSON.stringify(updatedList));
+        const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
+        
+        // 2. Borra los accesos de la base maestra
+        google.script.run
+            .withSuccessHandler(res => {
+                if(res && res.success) notify("Profesional eliminado completamente", "success");
+                else notify("Error servidor: " + res.message, "error");
+            })
+            .deleteProfessionalAndUser(adminEmailToUse, idToDelete);
     };
 
     const toggleDay = (index) => {
