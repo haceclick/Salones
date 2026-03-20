@@ -416,6 +416,16 @@ const App = () => {
             const alias = aliasStr.replace('#/', '').replace('?local=', '').replace('/', '').toLowerCase();
             if (!alias) { setLoadingData(false); return; }
             
+            // 👇 MAGIA DE CACHÉ: Verificamos si cambió el local 👇
+            const savedAlias = localStorage.getItem('last_visited_alias');
+            if (savedAlias !== alias) {
+                // Si la URL es distinta a la última que visitamos, borramos el logo viejo de la memoria
+                localStorage.removeItem('localBranding'); 
+                localStorage.setItem('last_visited_alias', alias); 
+                setBrandConfig({ sidebarBg: '#1e293b', primaryColor: '#008395' }); // Reseteo visual
+            }
+            // 👆 FIN MAGIA DE CACHÉ 👆
+
             setPublicAlias(alias);
             setMode('public_portal');
             setLoadingData(true);
