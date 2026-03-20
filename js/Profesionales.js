@@ -1,14 +1,13 @@
-// --- COMPONENTE PROFESIONALES (CON VISTA TARJETAS / TABLA, COMISIONES Y PERMISOS) ---
+// --- COMPONENTE PROFESIONALES (CON FECHA DE NACIMIENTO, PERMISOS Y COMISIONES) ---
 const Professionals = ({ list = [], setList, notify, categories = [], user }) => { 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
     
-    // Estado para alternar entre "grid" (tarjetas) y "table" (lista)
-    const [viewMode, setViewMode] = useState('table');
+    // Estado para alternar entre "grid" (tarjetas) y "table" (lista) - INICIA EN TABLA
+    const [viewMode, setViewMode] = useState('table'); 
     
     const defaultDays = () => Array.from({ length: 7 }, () => ({ active: true, start: '0900', end: '1800' }));
     
-    // ✅ NUEVO: Estructura por defecto para permisos
     const defaultPermissions = {
         dashboard: true,
         agenda: true,
@@ -17,10 +16,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     };
 
     const [form, setForm] = useState({ 
-        id: '', name: '', phone: '', color: 'bg-red-100 text-red-800', specialties: [], 
+        id: '', name: '', phone: '', birthday: '', color: 'bg-red-100 text-red-800', specialties: [], // <-- Agregado birthday
         workingDays: defaultDays(),
         hasAccess: false, email: '', password: '',
-        permissions: defaultPermissions, // <-- Se agrega aquí
+        permissions: defaultPermissions, 
         hasCommission: false, commissionRates: {} 
     });
 
@@ -71,7 +70,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         setForm({...form, specialties: specs});
     };
 
-    // ✅ NUEVO: Función para encender/apagar un permiso específico
     const togglePermission = (permKey) => {
         setForm({
             ...form,
@@ -85,10 +83,11 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     const openEdit = (prof) => {
         setForm({
             ...prof,
+            birthday: prof?.birthday || '', // <-- Carga el cumpleaños
             hasAccess: prof?.hasAccess || false,
             email: prof?.email || '',
             password: prof?.password || '',
-            permissions: prof?.permissions || defaultPermissions, // <-- Carga los permisos guardados
+            permissions: prof?.permissions || defaultPermissions, 
             workingDays: prof?.workingDays || defaultDays(),
             specialties: prof?.specialties || [],
             hasCommission: prof?.hasCommission || false, 
@@ -99,16 +98,24 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
     const openNew = () => {
         setForm({ 
-            id: '', name: '', phone: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], 
+            id: '', name: '', phone: '', birthday: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], // <-- Resetea el cumpleaños
             workingDays: defaultDays(),
             hasAccess: false, email: '', password: '',
-            permissions: defaultPermissions, // <-- Inicia con los permisos por defecto
+            permissions: defaultPermissions, 
             hasCommission: false, commissionRates: {}
         });
         setIsModalOpen(true);
     };
 
     const weekMap = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    // Función para detectar si hoy es el cumpleaños del profesional
+    const isBirthdayToday = (dateString) => {
+        if (!dateString) return false;
+        const today = new Date();
+        const [year, month, day] = dateString.split('-');
+        return today.getDate() === parseInt(day) && (today.getMonth() + 1) === parseInt(month);
+    };
 
     return (
         <div className="p-8 h-full bg-brand-bg overflow-y-auto">
@@ -145,7 +152,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in">
                     {(list || []).map(p => (
-                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group relative">
+                        <div key={p.id} className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow group relative ${isBirthdayToday(p.birthday) ? 'border-orange-300 ring-2 ring-orange-100' : 'border-gray-200'}`}>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shadow-sm ${p.color || 'bg-gray-100'}`}>
@@ -153,7 +160,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                            {p?.name || "Sin nombre"}
+                                            {p?.name || "Sin nombre"} 
+                                            {isBirthdayToday(p.birthday) && <span title="¡Hoy es su cumpleaños!">🎂</span>}
                                             {p?.hasCommission && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold" title="Cobra comisión">% Múltiple</span>}
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
@@ -200,13 +208,16 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     <tr><td colSpan="6" className="p-8 text-center text-gray-400 italic">No hay profesionales registrados.</td></tr>
                                 ) : (
                                     (list || []).map(p => (
-                                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr key={p.id} className={`hover:bg-gray-50 transition-colors ${isBirthdayToday(p.birthday) ? 'bg-orange-50/30' : ''}`}>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${p.color || 'bg-gray-100'}`}>
                                                         {(p?.name || "?").charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="font-bold text-gray-800 whitespace-nowrap">{p.name || "Sin nombre"}</span>
+                                                    <span className="font-bold text-gray-800 whitespace-nowrap">
+                                                        {p.name || "Sin nombre"}
+                                                        {isBirthdayToday(p.birthday) && <span className="ml-2" title="¡Hoy es su cumpleaños!">🎂</span>}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="p-4 font-medium text-gray-600 whitespace-nowrap">
@@ -265,16 +276,22 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
                         <div className="flex-1 overflow-y-auto p-8 flex flex-col md:flex-row gap-8 custom-scrollbar">
                             <div className="flex-1 space-y-6">
-                                <div className="grid grid-cols-2 gap-5">
-                                    <div className="col-span-2">
+                                
+                                {/* NUEVA GRID PARA LOS DATOS PRINCIPALES INCLUYENDO CUMPLEAÑOS */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre Completo</label>
-                                        <input type="text" required className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800" value={form.name || ""} onChange={e=>setForm({...form, name:e.target.value})} />
+                                        <input type="text" required className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.name || ""} onChange={e=>setForm({...form, name:e.target.value})} />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Teléfono</label>
-                                        <input type="tel" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800" value={form.phone || ""} onChange={e=>setForm({...form, phone:e.target.value})} />
+                                        <input type="tel" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.phone || ""} onChange={e=>setForm({...form, phone:e.target.value})} />
                                     </div>
                                     <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nacimiento (Opcional)</label>
+                                        <input type="date" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.birthday || ""} onChange={e=>setForm({...form, birthday:e.target.value})} />
+                                    </div>
+                                    <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Color Agenda</label>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             {colors.map((c, i) => (
@@ -369,11 +386,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                 </div>
                                             </div>
 
-                                            {/* ✅ NUEVO: SWITCHES DE PERMISOS */}
+                                            {/* SWITCHES DE PERMISOS */}
                                             <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
                                                 <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-3 border-b border-blue-50 pb-2">Permisos de Visualización</p>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
-                                                    {/* Permiso: Panel Dashboard */}
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="layout-dashboard" size={14} className="text-blue-400"/> Dashboard</span>
                                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -382,7 +398,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                         </label>
                                                     </div>
                                                     
-                                                    {/* Permiso: Agenda */}
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="calendar" size={14} className="text-blue-400"/> Mi Agenda</span>
                                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -391,7 +406,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                         </label>
                                                     </div>
 
-                                                    {/* Permiso: Facturación */}
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="receipt" size={14} className="text-blue-400"/> Mi Facturación</span>
                                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -400,7 +414,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                         </label>
                                                     </div>
 
-                                                    {/* Permiso: Estadísticas */}
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5"><Icon name="bar-chart-2" size={14} className="text-blue-400"/> Mis Estadísticas</span>
                                                         <label className="relative inline-flex items-center cursor-pointer">
