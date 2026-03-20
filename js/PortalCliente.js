@@ -42,6 +42,29 @@ const ClientPortal = ({
     const agentConfig = (settings || []).find(s => s.id === 'agent_config') || {};
     const brandingConfig = (settings || []).find(s => s.id === 'branding') || {};
 
+    // =====================================================================
+    // 🔄 MOTOR DE MARCA BLANCA (Reemplaza Favicon y Título en el navegador)
+    // =====================================================================
+    React.useEffect(() => {
+        // 1. Cambiar el Icono de la pestaña (Favicon) por el Logo del Local
+        if (brandingConfig.logoBase64) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            link.href = brandingConfig.logoBase64;
+        }
+        
+        // 2. Cambiar el Título de la página
+        if (agentConfig.businessName) {
+            document.title = `${agentConfig.businessName} | Reservas`;
+        } else {
+            document.title = "Portal de Reservas";
+        }
+    }, [brandingConfig.logoBase64, agentConfig.businessName]);
+
     // 🛡️ EL SÚPER RESCATADOR DE ALIAS: Busca el alias en 4 lugares distintos para no perderlo JAMÁS
     const actualAlias = alias 
         || agentConfig?.tenantAlias 
