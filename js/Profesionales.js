@@ -32,14 +32,23 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         
         setList(updatedList); 
         setIsModalOpen(false);
-        notify(form.id ? "Profesional actualizado" : "Profesional creado", "success");
+        
+        // Mostrar aviso de "cargando"
+        notify("Guardando permisos en el servidor...", "info");
 
         google.script.run
+            // 🔥 AHORA SÍ VEREMOS LOS ERRORES DEL BACKEND SI ALGO FALLA 🔥
+            .withSuccessHandler((res) => {
+                if (res && res.success === false) {
+                    notify(res.message, "error"); // Si el backend falla, nos avisa
+                } else {
+                    notify(form.id ? "Profesional actualizado con éxito" : "Profesional creado con éxito", "success");
+                }
+            })
             .withFailureHandler((err) => {
                 console.error(err);
-                notify("Error al actualizar el backend.", "error");
+                notify("Error de conexión al actualizar el backend.", "error");
             })
-            // 🔥 LE PASAMOS TANTO EL PERFIL ÚNICO COMO LA LISTA COMPLETA 🔥
             .saveProfessionalWithUser(user?.email || '', JSON.stringify(newProf), JSON.stringify(updatedList));
     };
 
