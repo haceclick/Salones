@@ -288,22 +288,36 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="text-[11px] uppercase text-gray-400 font-bold border-b border-gray-200">
-                                        <th className="pb-4 px-2">Fecha</th>
+                                        <th className="pb-4 px-2">Fecha / Hora</th>
                                         <th className="pb-4 px-2">Cliente / Servicio</th>
+                                        <th className="pb-4 px-2">Medio</th>
                                         <th className="pb-4 px-2 text-right">Cobrado</th>
-                                        <th className="pb-4 px-2 text-right">Com. $</th>
-                                        <th className="pb-4 px-2 text-right text-gray-800">Neto Local</th>
+                                        
+                                        {/* COLUMNAS CONDICIONALES */}
+                                        {profFilter === 'ALL' ? (
+                                            <>
+                                                <th className="pb-4 px-2 text-right text-red-400">Comisión</th>
+                                                <th className="pb-4 px-2 text-right text-green-600">Neto Local</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="pb-4 px-2 text-right text-gray-800">Com. %</th>
+                                                <th className="pb-4 px-2 text-right text-gray-800">Com. $</th>
+                                            </>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredAppointments.length === 0 ? (
-                                        <tr><td colSpan="5" className="py-10 text-center text-gray-300 italic text-sm">No hay registros para mostrar.</td></tr>
+                                        <tr><td colSpan="6" className="py-10 text-center text-gray-300 italic text-sm">No hay registros para mostrar.</td></tr>
                                     ) : (
                                         filteredAppointments.map(appt => {
                                             const treatment = treatments.find(t => t.id === appt.treatmentId);
                                             const client = clients.find(c => c.id === appt.clientId);
                                             const price = Number(appt.finalAmount || treatment?.price || 0);
                                             const professional = professionals.find(p => p.id === appt.professionalId);
+                                            
+                                            // Cálculo de comisión
                                             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
                                             const treatmentCategory = treatment?.category || '';
                                             let rate = 0;
@@ -316,15 +330,36 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                             return (
                                                 <tr key={appt.id} className="text-sm border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                                     <td className="py-4 px-2 text-gray-600 tabular-nums">
-                                                        {new Date(appt.date).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}
+                                                        {new Date(appt.date).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}<br/>
+                                                        <span className="text-[10px] text-gray-400">{new Date(appt.date).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})} hs</span>
                                                     </td>
                                                     <td className="py-4 px-2">
                                                         <p className="font-bold text-gray-900">{client?.name || appt.clientNameTemp || 'Consumidor'}</p>
-                                                        <p className="text-[10px] text-gray-500">{treatment?.name || 'Servicio'}</p>
+                                                        <p className="text-[10px] text-gray-500">
+                                                            {treatment?.name || 'Servicio'} 
+                                                            {/* Si estamos en "Todos", mostramos quién hizo el servicio */}
+                                                            {profFilter === 'ALL' && <span className="font-medium text-blue-500 ml-1">({professional?.name || 'Sin asignar'})</span>}
+                                                        </p>
+                                                    </td>
+                                                    <td className="py-4 px-2">
+                                                        <span className="text-[9px] font-bold uppercase text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                            {appt.paymentMethod === 'transfer' ? 'Transf.' : 'Efectivo'}
+                                                        </span>
                                                     </td>
                                                     <td className="py-4 px-2 text-right font-medium text-gray-900">${price.toLocaleString()}</td>
-                                                    <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
-                                                    <td className="py-4 px-2 text-right font-black text-green-700">${(price - comm).toLocaleString()}</td>
+                                                    
+                                                    {/* CELDAS CONDICIONALES */}
+                                                    {profFilter === 'ALL' ? (
+                                                        <>
+                                                            <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
+                                                            <td className="py-4 px-2 text-right font-black text-green-700">${(price - comm).toLocaleString()}</td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td className="py-4 px-2 text-right text-gray-600 font-medium">{rate}%</td>
+                                                            <td className="py-4 px-2 text-right font-black text-gray-900">${comm.toLocaleString()}</td>
+                                                        </>
+                                                    )}
                                                 </tr>
                                             );
                                         })
@@ -332,8 +367,22 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t-2 border-gray-900">
-                                        <td colSpan="4" className="py-6 text-right font-bold uppercase text-gray-500 text-[10px]">Utilidad Final del Período:</td>
-                                        <td className="py-6 text-right text-2xl font-black text-green-700">${statsData.netoLocal.toLocaleString()}</td>
+                                        <td colSpan="4" className="py-6 text-right font-bold uppercase text-gray-500 text-[10px]">
+                                            {profFilter === 'ALL' ? 'Utilidad Final del Período:' : 'Total a Liquidar (Comisiones):'}
+                                        </td>
+                                        
+                                        {/* PIE DE TABLA CONDICIONAL */}
+                                        {profFilter === 'ALL' ? (
+                                            <>
+                                                <td className="py-6 text-right text-sm font-bold text-red-400">-${statsData.totalComisiones.toLocaleString()}</td>
+                                                <td className="py-6 text-right text-2xl font-black text-green-700">${statsData.netoLocal.toLocaleString()}</td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="py-6"></td>
+                                                <td className="py-6 text-right text-2xl font-black text-gray-900">${statsData.totalComisiones.toLocaleString()}</td>
+                                            </>
+                                        )}
                                     </tr>
                                 </tfoot>
                             </table>
