@@ -640,7 +640,8 @@ const App = () => {
                     {currentView === 'settings'     && <LocalSettings settings={data.settings} setSettings={d => setData(prev => ({...prev, settings: d}))} targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email} notify={addToast} updateBrandingState={b => setBrandConfig(b)} user={currentUser} />}
                     {currentView === 'agent'        && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
                     {currentView === 'superadmin'   && <SuperAdminPanel notify={addToast} user={currentUser} />}
-                </div>
+                    {currentView === 'dashboard'    && <Dashboard {...data} user={currentUser} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
+            </div>
                  <footer className="w-full pt-8 pb-20 md:pb-8 mt-auto flex items-center justify-center border-t border-gray-100 bg-gray-50/30 shrink-0">
                     <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
                         <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400">POWERED BY |</p>
