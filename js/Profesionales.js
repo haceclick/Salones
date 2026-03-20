@@ -4,7 +4,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
     
     // Estado para alternar entre "grid" (tarjetas) y "table" (lista)
-    const [viewMode, setViewMode] = useState('grid'); 
+    const [viewMode, setViewMode] = useState('table');
     
     const defaultDays = () => Array.from({ length: 7 }, () => ({ active: true, start: '0900', end: '1800' }));
     
