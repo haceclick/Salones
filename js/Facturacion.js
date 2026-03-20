@@ -136,24 +136,29 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         });
     };
 
-    // ✅ ENVÍO POR WHATSAPP (Avisa al profesional)
+    // ✅ ENVÍO POR WHATSAPP (Directo a la App Nativa)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
         const prof = professionals.find(p => p.id === selectedProf);
-        if (!prof.phone) {
-            return notify(`No tienes un teléfono guardado para ${prof.name}. Agrégalo en la pestaña Profesionales.`, "error");
+        if (!prof?.phone) {
+            return notify("No tienes un teléfono guardado para " + (prof?.name || 'este profesional') + ". Agrégalo en la pestaña Profesionales.", "error");
         }
 
-        // Descargamos el PDF
-        handleDownloadPDF();
-
-        // Preparamos el mensaje
         const cleanPhone = String(prof.phone).replace(/\D/g, '');
-        const message = `¡Hola ${prof.name}! 👋 Te envío tu liquidación de comisiones.\n\n💰 *Total a cobrar: $${statsData.totalComisiones.toLocaleString()}*\n\nTe adjunto el PDF con el detalle de los servicios.`;
-        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        const total = statsData.totalComisiones || 0;
         
-        setTimeout(() => { window.open(waUrl, '_blank'); }, 1500);
+        // Mensaje con emojis y variables
+        const message = "¡Hola " + prof.name + "! 👋 Te envío tu liquidación de comisiones.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\nTe adjunto el PDF con el detalle de los servicios.";
+        
+        // Usamos el protocolo nativo "whatsapp://" para saltarnos el navegador
+        const waAppUrl = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
+        
+        // Disparamos la apertura de la App de escritorio o móvil directamente
+        window.location.href = waAppUrl;
+        
+        // Iniciamos la descarga del PDF al mismo tiempo
+        handleDownloadPDF();
     };
 
     return (
