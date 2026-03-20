@@ -9,9 +9,12 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
     } = Lib;
     const hasCharts = !!window.Recharts;
 
-    // --- NUEVOS ESTADOS DE NAVEGACIÓN ---
-    const [reportMode, setReportMode] = useState('local'); // 'local' o 'prof'
-    const [selectedProf, setSelectedProf] = useState(''); // ID del profesional
+    // 🔥 VERIFICACIÓN DE ROL 🔥
+    const isProfessional = user?.role === 'professional';
+
+    // --- NUEVOS ESTADOS DE NAVEGACIÓN (Forzados si es profesional) ---
+    const [reportMode, setReportMode] = useState(isProfessional ? 'prof' : 'local'); 
+    const [selectedProf, setSelectedProf] = useState(isProfessional ? user?.profId : ''); 
 
     const [dateRange, setDateRange] = useState('month'); 
     const [paymentFilter, setPaymentFilter] = useState('ALL'); 
@@ -113,7 +116,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
 
         const tryGenerate = () => {
             const element = document.getElementById('report-area');
-            // Si la tabla está oculta, la abrimos y reintentamos en 300ms
             if (!element) {
                 setOpenSections(prev => ({ ...prev, reporte: true }));
                 setTimeout(tryGenerate, 300);
@@ -158,7 +160,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
 
         const tryUpload = () => {
             const element = document.getElementById('report-area');
-            // Si la tabla está oculta, la abrimos y reintentamos en 300ms
             if (!element) {
                 setOpenSections(prev => ({ ...prev, reporte: true }));
                 setTimeout(tryUpload, 300);
@@ -180,7 +181,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // Usamos .output('datauristring') para convertir a código y subir a Google Drive
             window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
                 if (!pdfData) {
                     setIsGenerating(false);
@@ -223,24 +223,30 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         <div className="p-4 md:p-8 bg-gray-50 min-h-full overflow-y-auto custom-scrollbar">
             
             <header className="mb-6 print:hidden">
-                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Caja y Liquidaciones</h2>
-                <p className="text-gray-500 text-sm mb-6">Control de ingresos, comisiones y rentabilidad.</p>
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+                    {isProfessional ? 'Mi Facturación' : 'Caja y Liquidaciones'}
+                </h2>
+                <p className="text-gray-500 text-sm mb-6">
+                    {isProfessional ? 'Revisa tus servicios realizados y comisiones.' : 'Control de ingresos, comisiones y rentabilidad.'}
+                </p>
 
-                {/* 🚀 NUEVOS BOTONES DE MODO (TABS) */}
-                <div className="flex bg-gray-200 p-1 rounded-xl w-full max-w-md">
-                    <button 
-                        onClick={() => { setReportMode('local'); setSelectedProf(''); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex justify-center items-center gap-2 transition-all ${reportMode === 'local' ? 'bg-white shadow-sm text-[var(--color-primary)]' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Icon name="store" size={16}/> Caja del Local
-                    </button>
-                    <button 
-                        onClick={() => { setReportMode('prof'); if(professionals.length > 0) setSelectedProf(professionals[0].id); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex justify-center items-center gap-2 transition-all ${reportMode === 'prof' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Icon name="users" size={16}/> Liquidar Profesionales
-                    </button>
-                </div>
+                {/* 🚀 OCULTAMOS TABS SI ES PROFESIONAL */}
+                {!isProfessional && (
+                    <div className="flex bg-gray-200 p-1 rounded-xl w-full max-w-md">
+                        <button 
+                            onClick={() => { setReportMode('local'); setSelectedProf(''); }}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex justify-center items-center gap-2 transition-all ${reportMode === 'local' ? 'bg-white shadow-sm text-[var(--color-primary)]' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <Icon name="store" size={16}/> Caja del Local
+                        </button>
+                        <button 
+                            onClick={() => { setReportMode('prof'); if(professionals.length > 0) setSelectedProf(professionals[0].id); }}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex justify-center items-center gap-2 transition-all ${reportMode === 'prof' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <Icon name="users" size={16}/> Liquidar Profesionales
+                        </button>
+                    </div>
+                )}
             </header>
 
             {/* 1. SECCIÓN DE CONTROLES */}
@@ -262,11 +268,22 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                         </div>
                     ) : (
                         <div className="md:col-span-2 border-2 border-blue-100 bg-blue-50 p-2 -mt-2 rounded-xl">
-                            <label className="text-[10px] font-bold uppercase text-blue-500 mb-1 block px-1">Seleccionar Profesional a Liquidar</label>
-                            <select className="w-full border-none p-2 rounded-lg font-bold text-blue-900 outline-none bg-blue-50" value={selectedProf} onChange={e => setSelectedProf(e.target.value)}>
-                                {professionals.length === 0 && <option value="">Sin profesionales...</option>}
-                                {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <label className="text-[10px] font-bold uppercase text-blue-500 mb-1 block px-1">
+                                {isProfessional ? 'Profesional' : 'Seleccionar Profesional a Liquidar'}
+                            </label>
+                            
+                            {/* 🔥 SI ES PROFESIONAL SOLO VE SU NOMBRE, NO PUEDE ELEGIR OTRO 🔥 */}
+                            {isProfessional ? (
+                                <div className="w-full p-2 font-bold text-blue-900 bg-blue-50 rounded-lg">
+                                    <Icon name="user" size={14} className="inline mr-2" />
+                                    {professionals.find(p=>p.id === user?.profId)?.name || 'Mi Perfil'}
+                                </div>
+                            ) : (
+                                <select className="w-full border-none p-2 rounded-lg font-bold text-blue-900 outline-none bg-blue-50" value={selectedProf} onChange={e => setSelectedProf(e.target.value)}>
+                                    {professionals.length === 0 && <option value="">Sin profesionales...</option>}
+                                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            )}
                         </div>
                     )}
 
@@ -281,7 +298,8 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
 
                 {/* BOTONERA DE ACCIÓN */}
                 <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100 justify-end">
-                    {reportMode === 'prof' && selectedProf && (
+                    {/* 🔥 OCULTAR ENVIAR POR WHATSAPP PARA PROFESIONALES 🔥 */}
+                    {reportMode === 'prof' && selectedProf && !isProfessional && (
                         <button onClick={handleSendWhatsApp} className="px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-500/20 bg-[#25D366] text-white hover:bg-green-600 hover:-translate-y-0.5 transition-all">
                             <Icon name="message-circle" size={18}/> Enviar Liquidación por WhatsApp
                         </button>
@@ -315,11 +333,13 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                     ) : (
                         <>
                             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Producción Bruta del Profesional</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Producción Bruta</p>
                                 <p className="text-2xl font-black text-gray-900">${statsData.totalBruto.toLocaleString()}</p>
                             </div>
                             <div className="bg-blue-50 md:col-span-2 p-6 rounded-2xl border-2 border-blue-200 shadow-md">
-                                <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">Total a Pagar (Comisión Neta)</p>
+                                <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">
+                                    {isProfessional ? 'Tus Ganancias' : 'Total a Pagar (Comisión Neta)'}
+                                </p>
                                 <p className="text-3xl font-black text-blue-700">${statsData.totalComisiones.toLocaleString()}</p>
                             </div>
                         </>
@@ -388,7 +408,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 <div id="report-area" className="p-8 md:p-12 bg-white">
                     <div className="flex justify-between items-start border-b border-gray-100 pb-10 mb-10">
                         <div className="flex items-center gap-6">
-                            {/* 🔥 SOLUCIÓN CORS PDF: Ocultamos la imagen real para html2canvas y mostramos un logo de texto limpio */}
                             <div className="hidden print-logo w-14 h-14 bg-gray-800 text-white rounded-xl items-center justify-center font-black text-2xl" data-html2canvas-ignore="false" style={{ display: 'none' }}>
                                 {localName.charAt(0)}
                             </div>
@@ -494,7 +513,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                             <tfoot>
                                 <tr className="border-t-2 border-gray-900">
                                     <td colSpan="4" className="py-6 text-right font-bold uppercase text-gray-500 text-[10px]">
-                                        {reportMode === 'local' ? 'Utilidad Final del Período:' : 'Total a Liquidar (Comisiones):'}
+                                        {reportMode === 'local' ? 'Utilidad Final del Período:' : (isProfessional ? 'Tus Ganancias Totales:' : 'Total a Liquidar (Comisiones):')}
                                     </td>
                                     {reportMode === 'local' ? (
                                         <>
@@ -514,7 +533,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 </div>
             </div>
             
-            {/* 👇 Este estilo inyectado fuerza a que el logo "en texto" sí aparezca en el PDF y el logo imagen se oculte */}
             <style dangerouslySetInnerHTML={{__html: `
                 @media print { .screen-logo { display: none !important; } .print-logo { display: flex !important; } }
             `}} />
