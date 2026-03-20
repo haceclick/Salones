@@ -629,7 +629,7 @@ const App = () => {
             />
             <main className="flex-1 relative overflow-y-auto flex flex-col bg-white custom-scrollbar">
                 <div className="flex-1">
-                    {currentView === 'dashboard'    && <Dashboard {...data} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
+                    {currentView === 'dashboard'    && <Dashboard {...data} user={currentUser} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
                     {currentView === 'agenda'       && <Agenda {...data} saveAppointments={d => save('appointments', d)} notify={addToast} targetApptId={targetApptId} clearTargetAppt={() => setTargetApptId(null)} loggedProfId={currentUser.role === 'professional' ? currentUser.profId : null} userRole={currentUser.role} refreshData={refreshData} />}
                     {currentView === 'clients'      && <Clients {...data} saveClients={d => save('clients', d)} notify={addToast} />}
                     {currentView === 'professionals'&& <Professionals list={data.professionals} setList={d => save('professionals', d)} notify={addToast} categories={data.categories} user={currentUser} />}
@@ -640,8 +640,7 @@ const App = () => {
                     {currentView === 'settings'     && <LocalSettings settings={data.settings} setSettings={d => setData(prev => ({...prev, settings: d}))} targetEmail={(mode === 'client' && tenantId) ? tenantId : currentUser?.email} notify={addToast} updateBrandingState={b => setBrandConfig(b)} user={currentUser} />}
                     {currentView === 'agent'        && <AgentBuilderWrapper {...data} onSaveSettings={(k, v) => save(k, v)} />}
                     {currentView === 'superadmin'   && <SuperAdminPanel notify={addToast} user={currentUser} />}
-                    {currentView === 'dashboard'    && <Dashboard {...data} user={currentUser} saveAppointments={d => save('appointments', d)} saveNotifications={d => save('notifications', d)} notify={addToast} goToAgenda={id => { setTargetApptId(id); setCurrentView('agenda'); }} refreshData={refreshData} />}
-            </div>
+                </div>
                  <footer className="w-full pt-8 pb-20 md:pb-8 mt-auto flex items-center justify-center border-t border-gray-100 bg-gray-50/30 shrink-0">
                     <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
                         <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400">POWERED BY |</p>
