@@ -1,5 +1,4 @@
-
-// --- COMPONENTE DASHBOARD (INTEGRADO CON MENSAJES PERSONALIZADOS Y NOTIFICACIONES DESCARTABLES) ---
+// --- COMPONENTE DASHBOARD (TONOS PASTEL Y CUMPLEAÑOS DE EQUIPO) ---
 const Dashboard = ({ clients, appointments, professionals, treatments, settings, notifications = [], adminMessages = [], saveAppointments, saveNotifications, notify, goToAgenda, refreshData }) => {
     const today = new Date();
     
@@ -16,27 +15,19 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     const [remTreatment, setRemTreatment] = useState('ALL');
     const [customPrepText, setCustomPrepText] = useState('');
     const [historyClient, setHistoryClient] = useState(null); 
-    const [readNotifs, setReadNotifs] = useState([]); // <-- NUEVO ESTADO PARA MENSAJES DE ADMIN
+    const [readNotifs, setReadNotifs] = useState([]); 
     
-    // --- NUEVO: FUNCIÓN PARA BORRAR AVISOS DEFINITIVAMENTE DE LA BASE DE DATOS ---
     const handleDismissNotif = (notifId) => {
-        // 1. Lo ocultamos visualmente al instante para que no moleste
         setHiddenNotifs(prev => [...prev, String(notifId)]);
-        
-        // 2. Filtramos la lista para quitarlo
         const updatedNotifs = notifications.filter(notif => String(notif.id) !== String(notifId));
-        
-        // 3. Actualizamos la memoria principal de la App
         if(saveNotifications) saveNotifications(updatedNotifs);
         
-        // 4. 🔥 MAGIA: Forzamos a que vaya al Excel a borrarlo para que no vuelva a aparecer al recargar
         const targetEmail = settings?.find(s => s.id === 'branding')?.adminEmail;
         if (targetEmail) {
             google.script.run.saveData(targetEmail, 'notifications', JSON.stringify(updatedNotifs));
         }
     };    
 
-    // --- NUEVO: ESTADO PARA EL LANZADOR DE WHATSAPP ---
     const [waModal, setWaModal] = useState({ open: false, phone: '', text: '', loading: false });
     const todaysApps = appointments.filter(a => { 
         const d = new Date(a.date); 
@@ -55,34 +46,40 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return (a.status === 'reserved' || a.status === 'pending_payment' || a.status === 'awaiting_deposit') && new Date(a.date) >= new Date(today.setHours(0,0,0,0));
     }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    // --- NUEVO: DETECTOR DE SERVICIOS SIN CERRAR (PASADOS) ---
     const unclosedAppts = useMemo(() => {
         const now = new Date();
         const bufferTime = new Date(now.getTime() - (2 * 60 * 60 * 1000)); 
         
         return appointments.filter(a => {
-            // Ignoramos completamente los que ya están en estados finales o son bloqueos
             if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'holiday' || a.status === 'blocked') {
                 return false;
             }
-            
-            // Si llegó hasta acá (está confirmado o esperando seña) verificamos si ya es viejo
             const apptDate = new Date(a.date);
             return apptDate < bufferTime;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
     }, [appointments]);
-    // ---------------------------------------------------------
 
     const nextAppt = todaysApps.find(a => new Date(a.date) > new Date());
 
+    // --- ✅ NUEVO: LÓGICA UNIFICADA DE CUMPLEAÑOS ---
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
+    
     const birthdayClients = clients.filter(c => {
         if (!c.birthday) return false;
         const parts = c.birthday.split('-');
         if (parts.length !== 3) return false;
         return parseInt(parts[1], 10) === currentMonth && parseInt(parts[2], 10) === currentDay;
-    });
+    }).map(c => ({ ...c, isProf: false }));
+
+    const birthdayProfs = professionals.filter(p => {
+        if (!p.birthday) return false;
+        const parts = p.birthday.split('-');
+        if (parts.length !== 3) return false;
+        return parseInt(parts[1], 10) === currentMonth && parseInt(parts[2], 10) === currentDay;
+    }).map(p => ({ ...p, isProf: true }));
+
+    const birthdayPeople = [...birthdayProfs, ...birthdayClients];
 
     // LECTURA DE CONFIGURACIONES GLOBALES
     const agentConfig = settings && Array.isArray(settings) ? settings.find(s => s.id === 'agent_config') : null;
@@ -96,16 +93,10 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const getClientLink = () => {
-        // 1. Si el dueño configuró un link específico en Settings, usamos ese
         if (agentConfig?.schedulerUrl) return agentConfig.schedulerUrl;
-        
-        // 2. Si no, armamos el link limpio con tu dominio oficial
         const baseDomain = "https://salones.haceclick-ai.com/";
         const alias = agentConfig?.tenantAlias;
-        
-        if (alias) {
-            return `${baseDomain}?local=${alias}`;
-        }
+        if (alias) return `${baseDomain}?local=${alias}`;
         return baseDomain;
     };
 
@@ -147,19 +138,15 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         const requiresDeposit = agentConfig?.requireDeposit;
         const newStatus = requiresDeposit ? 'awaiting_deposit' : 'confirmed';
         
-        // 1. Actualizamos el estado primero
         const updated = appointments.map(a => a.id === apptId ? { ...a, status: newStatus, professionalId: finalProfId } : a);
         saveAppointments(updated);
         
-        // 2. Cerramos el modal de detalles
         setSelectedPendingAppt(null); 
         
-        // 3. Avisamos y abrimos WhatsApp (pasándole el parámetro de seña)
         notify(requiresDeposit ? "Aprobado. Esperando pago de seña..." : "Confirmado y asignado.", "success");
         sendWhatsAppMsg({...appt, professionalId: finalProfId}, client, tr, requiresDeposit);
     };
 
-    // --- NUEVA FUNCIÓN: EL CLIENTE YA PAGÓ LA SEÑA (ENVÍA LINKS) ---
     const handleConfirmDeposit = (e, appt) => {
         e.stopPropagation();
         const updated = appointments.map(a => a.id === appt.id ? { ...a, status: 'confirmed_paid' } : a);
@@ -207,7 +194,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         setApprovalProfId((appt.professionalId === 'any' || appt.professionalId === 'ALL') ? '' : appt.professionalId);
     };
 
-    // --- RECHAZO CONECTADO A SETTINGS ---
     const handleReject = (apptId) => {
         const appt = appointments.find(a => a.id === apptId);
         const client = clients.find(c => c.id === appt?.clientId);
@@ -218,16 +204,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
 
         if (client && client.phone) {
             const phone = String(client.phone).replace(/\D/g, ''); 
-            // Leemos el mensaje personalizado de rechazo o usamos el por defecto
             const rejectMsg = msgConfig.reject || 'Te pedimos mil disculpas, pero tuvimos que rechazar tu solicitud porque el espacio se ocupó o el profesional no está disponible.\n\n¿Te gustaría que te ofrezcamos otro horario? Quedamos a tu disposición. 🙏';
-            
             const text = `¡Hola *${client.name}*! 👋\nTe escribimos de *${businessName}*.\n\n${rejectMsg}`;
-            
             openWhatsAppApp(phone, text);
         }
     }; 
 
-    // --- MENSAJE CONECTADO A SETTINGS (SEÑA INTELIGENTE: LINK O TRANSFERENCIA) ---
     const sendWhatsAppMsg = (appt, client, treatment, isAwaitingDeposit = false) => {
         if (!client || !client.phone) return;
         const phone = String(client.phone).replace(/\D/g, ''); 
@@ -236,24 +218,18 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const serviceName = treatment ? treatment.name : 'tu servicio';
 
-        // LÓGICA A: SOLO PIDE SEÑA (Sin Mapas ni Calendario)
         if (isAwaitingDeposit) {
             let depositText = '';
-            
-            // VERIFICAMOS QUÉ TIPO DE SEÑA ESTÁ ACTIVA EN SETTINGS
             if (!agentConfig.depositType || agentConfig.depositType === 'link') {
                 depositText = `\n\n⚠️ *Para asegurar tu lugar, te pedimos que abones una seña de $${agentConfig?.depositAmount}.*\n💳 *Link de pago:* ${agentConfig?.paymentUrl}\n_(Una vez que pagues, envianos el comprobante por acá para registrarlo)_`;
             } else {
                 depositText = `\n\n⚠️ *Para asegurar tu lugar, te pedimos que abones una seña de $${agentConfig?.depositAmount}.*\n\n🏦 *Datos para transferencia:*\nAlias/CBU: *${agentConfig?.transferAlias}*\nTitular: *${agentConfig?.transferName || '-'}*\nCUIT: *${agentConfig?.transferCuit || '-'}*\n\n_(Una vez que transfieras, envianos el comprobante por acá para registrarlo)_`;
             }
-
             const text = `¡Hola *${client.name}*! 👋\nRecibimos tu solicitud de turno para: *${serviceName}* el *${dateStr}* a las *${timeStr} hs*.${depositText}`;
-            
             setWaModal({ open: true, loading: false, phone: phone, text: text });
             return; 
         }
         
-        // LÓGICA B: CONFIRMACIÓN DIRECTA (Sin seña, incluye Mapas y Calendario)
         const confirmMsg = msgConfig.confirm || '¡Te esperamos!';
         const mapsUrl = agentConfig?.mapsUrl || ''; 
         const mapsText = mapsUrl ? `\n📍 Ubicación: ${mapsUrl}` : '';
@@ -300,44 +276,40 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         notify("Recordatorio marcado como enviado", "success");
     };
 
-    const sendBirthdayGreeting = (client) => {
-        if (!client || !client.phone) return;
-        const phone = String(client.phone).replace(/\D/g, '');
-        const promoText = msgConfig.birthday || 'Para festejar con vos te damos un regalo especial.';
-
-        const text = `¡Hola *${client.name}*! 🎂🎈\n\nEn este día especial, todo el equipo de *${businessName}* te desea un ¡MUY FELIZ CUMPLEAÑOS! 🥳✨\n\n${promoText}\n\nQue pases un día hermoso.`;
+    const sendBirthdayGreeting = (person) => {
+        if (!person || !person.phone) return;
+        const phone = String(person.phone).replace(/\D/g, '');
+        
+        let text = '';
+        if (person.isProf) {
+            text = `¡Feliz cumpleaños *${person.name}*! 🎂🎈\n\nDe parte de todo el equipo de *${businessName}* te deseamos un día espectacular. ¡Gracias por ser parte de nuestro equipo! 🥳✨`;
+        } else {
+            const promoText = msgConfig.birthday || 'Para festejar con vos te damos un regalo especial.';
+            text = `¡Hola *${person.name}*! 🎂🎈\n\nEn este día especial, todo el equipo de *${businessName}* te desea un ¡MUY FELIZ CUMPLEAÑOS! 🥳✨\n\n${promoText}\n\nQue pases un día hermoso.`;
+        }
         
         openWhatsAppApp(phone, text);
         notify("Abriendo WhatsApp para saludar...", "success");
     };
 
-    // --- ESTADO PARA OCULTAR AVISOS AL INSTANTE ---
     const [hiddenNotifs, setHiddenNotifs] = useState([]);
 
-    // 1. AVISOS DEL SISTEMA (Solo Súper Admin)
     const allNotifs = useMemo(() => {
         const formattedAdminMessages = (adminMessages || []).map(msg => {
             const cleanTitle = typeof msg.title === 'object' ? (msg.title.title || "Aviso") : (msg.title || "Aviso");
             const cleanMsg = typeof msg.message === 'object' ? (msg.message.message || "") : (msg.message || "");
             
             return {
-                ...msg,
-                title: cleanTitle,
-                message: cleanMsg,
-                type: 'admin_manual',
-                id: msg.id || Date.now() + Math.random()
+                ...msg, title: cleanTitle, message: cleanMsg, type: 'admin_manual', id: msg.id || Date.now() + Math.random()
             };
         });
-        // Ya no mezclamos las notificaciones locales, solo dejamos las del Admin
         return formattedAdminMessages.filter(n => !hiddenNotifs.includes(String(n.id)));
     }, [adminMessages, hiddenNotifs]);
 
-    // 2. NUEVOS CLIENTES (Van a ir a Solicitudes Web)
     const newClientNotifs = useMemo(() => {
         return (notifications || []).filter(n => n.type === 'new_client' && !hiddenNotifs.includes(String(n.id)));
     }, [notifications, hiddenNotifs]);
     
-    // Calculamos el total para la alerta de Solicitudes Web
     const totalPendingRequests = pendingApps.length + newClientNotifs.length;
 
     const reminderAppts = useMemo(() => {
@@ -349,7 +321,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             return true;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
     }, [appointments, remDate, remTreatment]);
-
 
     const DashCard = ({ icon, color, label, value }) => (
         <div className="bg-brand-card p-6 rounded-brand shadow-card border border-brand-border flex items-center gap-5 hover:shadow-soft transition-shadow">
@@ -364,7 +335,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     return (
         <div className="p-4 md:p-8 pb-12 space-y-8 bg-brand-bg relative">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                {/* ... Tus botones del header se quedan exactamente igual aquí ... */}
                 <div>
                     <h2 className="text-3xl font-bold text-brand-text">Panel General</h2>
                     <p className="text-brand-text-light mt-1">Bienvenido a tu centro de control.</p>
@@ -376,7 +346,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm"
                         title="Forzar actualización de datos"
                     >
-                        <Icon name="refresh-cw" size={18} className={isRefreshing ? "animate-spin text-primary" : ""}/> 
+                        <Icon name="refresh-cw" size={18} className={isRefreshing ? "animate-spin text-[var(--color-primary)]" : ""}/> 
                         <span className="hidden sm:inline">{isRefreshing ? 'Actualizando...' : 'Actualizar'}</span>
                     </button>
 
@@ -386,31 +356,30 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     >
                         <Icon name="external-link" size={18}/> Portal Clientes
                     </button>
-                    <button onClick={() => setReminderModal(true)} className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-md">
+                    <button onClick={() => setReminderModal(true)} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 transition-all shadow-md hover:opacity-90">
                         <Icon name="message-square" size={18}/> Enviar Avisos
                     </button>
                 </div>
             </header>
 
-            {/* --- NUEVO: BANNER DE ALERTA DE SERVICIOS SIN CERRAR --- */}
+            {/* --- ALERTA DE SERVICIOS SIN CERRAR (TONOS PASTEL) --- */}
             {unclosedAppts.length > 0 && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 md:p-6 rounded-brand shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+                <div className="bg-red-50 border border-red-200 p-4 md:p-6 rounded-brand shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
                     <div className="flex items-start md:items-center gap-4">
-                        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 mt-1 md:mt-0">
+                        <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center shrink-0 mt-1 md:mt-0">
                             <Icon name="alert-triangle" size={24}/>
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-800 text-lg leading-tight">¡Tienes {unclosedAppts.length} {unclosedAppts.length === 1 ? 'servicio sin cerrar' : 'servicios sin cerrar'}!</h4>
-                            <p className="text-sm text-red-600 mt-1">Quedaron turnos pasados como "Confirmados". Ciérralos para mantener tu caja al día:</p>
+                            <h4 className="font-bold text-red-700 text-lg leading-tight">¡Tienes {unclosedAppts.length} {unclosedAppts.length === 1 ? 'servicio sin cerrar' : 'servicios sin cerrar'}!</h4>
+                            <p className="text-sm text-red-600/80 mt-1">Quedaron turnos pasados como "Confirmados". Ciérralos para mantener tu caja al día:</p>
                             
-                            {/* AQUÍ MOSTRAMOS A LOS CULPABLES */}
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                                 {unclosedAppts.slice(0, 4).map(a => {
                                     const client = clients.find(c => c.id === a.clientId);
                                     const cName = client ? client.name : (a.clientId?.startsWith('CHAT') ? a.clientNameTemp : 'Desconocido');
                                     const d = new Date(a.date);
                                     return (
-                                        <span key={a.id} className="bg-white text-red-700 text-[10px] font-bold px-2 py-1 rounded shadow-sm border border-red-200 flex items-center gap-1">
+                                        <span key={a.id} className="bg-white text-red-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm border border-red-200 flex items-center gap-1">
                                             <Icon name="user" size={10}/> {cName} ({d.getDate()}/{d.getMonth() + 1})
                                         </span>
                                     );
@@ -421,7 +390,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     </div>
                     <button 
                         onClick={() => goToAgenda()} 
-                        className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors shadow-md flex items-center justify-center gap-2 shrink-0 whitespace-nowrap w-full md:w-auto mt-2 md:mt-0"
+                        className="bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors shadow-sm flex items-center justify-center gap-2 shrink-0 whitespace-nowrap w-full md:w-auto mt-2 md:mt-0"
                     >
                         <Icon name="calendar" size={18}/> Ir a la Agenda
                     </button>
@@ -429,12 +398,12 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-                <DashCard icon={<Icon name="calendar" size={20} className="text-brand-text" />} color="bg-primary/30" label="Turnos Hoy" value={todaysApps.length} />
-                <DashCard icon={<Icon name="bell" size={20} className="text-brand-text" />} color="bg-yellow-100" label="Reservas Web" value={pendingApps.length} />
-                <DashCard icon={<Icon name="users" size={20} className="text-brand-text" />} color="bg-secondary" label="Clientes" value={clients.length} />
+                <DashCard icon={<Icon name="calendar" size={20} className="text-brand-text" />} color="bg-blue-50" label="Turnos Hoy" value={todaysApps.length} />
+                <DashCard icon={<Icon name="bell" size={20} className="text-brand-text" />} color="bg-yellow-50" label="Reservas Web" value={pendingApps.length} />
+                <DashCard icon={<Icon name="users" size={20} className="text-brand-text" />} color="bg-green-50" label="Clientes" value={clients.length} />
                 <DashCard 
                     icon={<Icon name="clock" size={20} className="text-brand-text" />} 
-                    color="bg-brand-border" 
+                    color="bg-gray-100" 
                     label="Próximo" 
                     value={nextAppt ? new Date(nextAppt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Libre'} 
                 />
@@ -446,7 +415,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="globe" className="text-yellow-600"/> Solicitudes Web</h3>
-                            {totalPendingRequests > 0 && <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse uppercase">{totalPendingRequests} Pendientes</span>}
+                            {totalPendingRequests > 0 && <span className="bg-yellow-100 text-yellow-700 border border-yellow-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">{totalPendingRequests} Pendientes</span>}
                         </div>
                         {totalPendingRequests === 0 ? 
                             (<div key="empty-pending" className="text-center py-8 text-brand-text-light flex flex-col items-center">
@@ -457,31 +426,31 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                 
                                 {/* A. RENDERIZAMOS LOS CLIENTES NUEVOS PRIMERO */}
                                 {newClientNotifs.map(n => (
-                                    <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 group">
+                                    <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-sm transition-all group">
                                         <div className="flex items-center justify-between mb-3">
                                             <div>
                                                 <p className="font-bold text-lg text-gray-800">{n.clientName}</p>
                                                 <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1"><Icon name="phone" size={12}/> {n.clientPhone}</p>
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
-                                                <span className="text-[10px] font-bold uppercase px-2 py-1 rounded text-green-800 bg-green-200 animate-pulse">
+                                                <span className="text-[10px] font-bold uppercase px-2 py-1 rounded text-green-700 bg-green-100 border border-green-200">
                                                     Nuevo Registro
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 pt-3 border-t border-green-200">
+                                        <div className="flex gap-2 pt-3 border-t border-green-200/60">
                                             <button onClick={() => {
                                                 const welcomeText = msgConfig.welcome || '¡Qué alegría sumarte a nuestro local! En breve revisaremos la solicitud de tu turno.';
                                                 const text = `¡Hola *${n.clientName}*! 👋\n\n${welcomeText}`;
                                                 openWhatsAppApp(n.clientPhone.replace(/\D/g, ''), text);
                                                 handleDismissNotif(n.id);
-                                            }} className="flex-1 bg-green-500 text-white py-2 rounded-brand text-xs font-bold hover:bg-green-600 flex justify-center items-center gap-1 shadow-sm transition-colors">
+                                            }} className="flex-1 bg-green-100 text-green-700 border border-green-200 py-2 rounded-brand text-xs font-bold hover:bg-green-200 flex justify-center items-center gap-1 shadow-sm transition-colors">
                                                 <Icon name="message-circle" size={14}/> <span>Saludar</span>
                                             </button>
                                             <button onClick={() => {
                                                 handleDismissNotif(n.id);
                                                 notify("Cliente marcado como saludado", "success");
-                                            }} className="flex-1 bg-white border border-green-300 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-50 transition-colors">
+                                            }} className="flex-1 bg-white border border-green-200 text-green-600 py-2 rounded-brand text-xs font-bold hover:bg-green-50 transition-colors">
                                                 <Icon name="check" size={14}/> <span>Ya Saludado</span>
                                             </button>
                                         </div>
@@ -498,38 +467,38 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     return (
                                         <div key={a.id} 
                                              onClick={() => !isAwaiting ? openPendingModal(a) : null} 
-                                             className={`p-4 rounded-brand border cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 group ${isAwaiting ? 'bg-orange-50 border-orange-200 cursor-default' : 'bg-yellow-50 border-yellow-200'}`}>
+                                             className={`p-4 rounded-brand border cursor-pointer hover:shadow-sm transition-all group ${isAwaiting ? 'bg-orange-50 border-orange-200 cursor-default' : 'bg-yellow-50 border-yellow-200'}`}>
                                             
                                             <div className="flex items-center justify-between mb-3">
                                                 <div>
-                                                    <p className={`font-bold text-lg transition-colors ${isAwaiting ? 'text-orange-800' : 'text-gray-800 group-hover:text-primary'}`}>{clientName}</p>
+                                                    <p className={`font-bold text-lg transition-colors ${isAwaiting ? 'text-orange-700' : 'text-gray-800 group-hover:text-[var(--color-primary)]'}`}>{clientName}</p>
                                                     <p className="text-xs text-gray-500 font-medium">{new Date(a.date).toLocaleDateString('es-ES', {weekday:'short', day:'numeric'})} - {new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</p>
                                                     {tr && <p className="text-[10px] text-gray-400 mt-0.5">{tr.name}</p>}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${isAwaiting ? 'text-orange-800 bg-orange-200 animate-pulse' : 'text-yellow-800 bg-yellow-200'}`}>
+                                                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded border ${isAwaiting ? 'text-orange-700 bg-orange-100 border-orange-200' : 'text-yellow-700 bg-yellow-100 border-yellow-200'}`}>
                                                         {isAwaiting ? 'Esperando Seña' : 'Reserva Turno'}
                                                     </span>
-                                                    {!isAwaiting && needsProf && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 rounded animate-pulse">Falta Asignar</span>}
+                                                    {!isAwaiting && needsProf && <span className="text-[10px] text-red-600 font-bold bg-red-50 border border-red-100 px-2 rounded">Falta Asignar</span>}
                                                 </div>
                                             </div>
                                             
-                                            <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200' : 'border-yellow-200'}`}>
+                                            <div className={`flex gap-2 pt-3 border-t ${isAwaiting ? 'border-orange-200/60' : 'border-yellow-200/60'}`}>
                                                 {isAwaiting ? (
                                                     <>
-                                                        <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-500 text-white py-2 rounded-brand text-xs font-bold hover:bg-green-600 flex justify-center items-center gap-1 shadow-sm transition-colors">
+                                                        <button onClick={(e) => handleConfirmDeposit(e, a)} className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-brand text-xs font-bold hover:bg-green-100 flex justify-center items-center gap-1 shadow-sm transition-colors">
                                                             <Icon name="check-circle" size={14}/> <span>Seña Recibida</span>
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-300 text-orange-600 py-2 rounded-brand text-xs font-bold hover:text-red-600 hover:bg-orange-100 transition-colors">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-orange-200 text-orange-600 py-2 rounded-brand text-xs font-bold hover:bg-orange-50 transition-colors">
                                                             <span>Cancelar Turno</span>
                                                         </button>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 text-white py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors ${needsProf ? 'bg-green-400' : 'bg-green-500 hover:bg-green-600 shadow-sm'}`}>
+                                                        <button onClick={(e) => handleQuickConfirm(e, a)} className={`flex-1 py-2 rounded-brand text-xs font-bold flex justify-center items-center gap-1 transition-colors border ${needsProf ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm'}`}>
                                                             <Icon name={needsProf ? 'user-plus' : 'message-circle'} size={14}/> <span>{needsProf ? 'Asignar Prof.' : 'Confirmar'}</span>
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-300 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-gray-50 transition-colors">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleReject(a.id); }} className="flex-1 bg-white border border-gray-200 text-gray-500 py-2 rounded-brand text-xs font-bold hover:text-red-500 hover:bg-red-50 transition-colors">
                                                             <span>Eliminar</span>
                                                         </button>
                                                     </>
@@ -564,14 +533,14 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 const tr = treatments.find(t => t.id === a.treatmentId);
                                                 const isCompleted = a.status === 'completed';
                                                 return (
-                                                    <div key={a.id} onClick={() => goToAgenda(a.id)} className={`flex items-center p-3 rounded-brand border-l-4 transition-all hover:shadow-soft cursor-pointer hover:scale-[1.01] ${isCompleted ? 'bg-blue-50 border-blue-500 opacity-80' : 'bg-green-50 border-green-500'}`}>
-                                                        <span className={`font-bold text-lg w-16 text-center shrink-0 ${isCompleted ? 'text-blue-700' : 'text-green-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
+                                                    <div key={a.id} onClick={() => goToAgenda(a.id)} className={`flex items-center p-3 rounded-brand border transition-all hover:shadow-sm cursor-pointer ${isCompleted ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50/50 border-blue-200'}`}>
+                                                        <span className={`font-bold text-lg w-16 text-center shrink-0 ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
                                                         <div className="flex-1 border-l border-brand-border pl-4 ml-2 overflow-hidden">
                                                             <p className="font-bold text-gray-800 truncate">{clientName || 'Bloqueo'}</p>
                                                             {tr && <p className="text-[10px] text-gray-500 truncate">{tr.name}</p>}
                                                         </div>
                                                         <div className="flex flex-col items-end gap-1 shrink-0">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${isCompleted ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`}>{isCompleted ? 'FINALIZADO' : 'CONFIRMADO'}</span>
+                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${isCompleted ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>{isCompleted ? 'FINALIZADO' : 'CONFIRMADO'}</span>
                                                         </div>
                                                     </div>
                                                 ) 
@@ -597,17 +566,16 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     const isRead = readNotifs.includes(String(n.id));
                                     
                                     return (
-                                        <div key={n.id} className={`p-4 rounded-brand border-l-4 relative transition-all ${isRead ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-400'}`}>
+                                        <div key={n.id} className={`p-4 rounded-brand border relative transition-all ${isRead ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-200'}`}>
                                             
                                             <div className="flex justify-between items-start gap-4">
                                                 <div>
-                                                    <p className={`font-bold text-sm flex items-center gap-1 ${isRead ? 'text-gray-500' : 'text-brand-text'}`}>
+                                                    <p className={`font-bold text-sm flex items-center gap-1 ${isRead ? 'text-gray-500' : 'text-blue-800'}`}>
                                                         <Icon name="info" size={14} className={isRead ? "text-gray-400" : "text-blue-500"}/> 
                                                         {String(n.title || "")}
                                                     </p>
                                                     
-                                                    {/* Usamos el formateador de negritas que creamos recién */}
-                                                    <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isRead ? 'text-gray-400' : 'text-brand-text-light'}`}>
+                                                    <p className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${isRead ? 'text-gray-400' : 'text-blue-900/70'}`}>
                                                         {n.message.split(/(\*.*?\*)/g).map((part, i) => 
                                                             part.startsWith('*') && part.endsWith('*') 
                                                                 ? <strong key={i} className="font-bold text-gray-900">{part.slice(1, -1)}</strong> 
@@ -616,17 +584,16 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                     </p>
                                                 </div>
 
-                                                {/* Botón de LEÍDO */}
                                                 {!isRead && (
                                                     <button 
                                                         onClick={() => setReadNotifs(prev => [...prev, String(n.id)])}
-                                                        className="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-50 transition-colors shadow-sm shrink-0 flex items-center gap-1"
+                                                        className="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-colors shadow-sm shrink-0 flex items-center gap-1"
                                                     >
                                                         <Icon name="check" size={12}/> Marcar Leído
                                                     </button>
                                                 )}
                                                 {isRead && (
-                                                    <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 shrink-0 bg-gray-100 px-2 py-1 rounded">
+                                                    <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 shrink-0 bg-gray-100 px-2 py-1 rounded border border-gray-200">
                                                         <Icon name="check-check" size={12}/> Leído
                                                     </span>
                                                 )}
@@ -641,22 +608,26 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="gift" className="text-pink-500"/> Cumpleaños de Hoy</h3>
-                            {birthdayClients.length > 0 && <span className="bg-pink-100 text-pink-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase animate-bounce">¡Hay festejos!</span>}
+                            {birthdayPeople.length > 0 && <span className="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">¡Hay festejos!</span>}
                         </div>
-                        {birthdayClients.length === 0 ? 
+                        {birthdayPeople.length === 0 ? 
                             (<div key="empty-birthdays" className="p-6 bg-brand-bg rounded-brand border border-brand-border text-center text-sm text-brand-text-light italic">No hay cumpleaños registrados para hoy.</div>) : 
                             (<div key="list-birthdays" className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {birthdayClients.map((c) => (
-                                    <div key={c.id} className="p-4 rounded-brand border-l-4 bg-pink-50 border-pink-400 flex flex-col sm:flex-row justify-between sm:items-center gap-3 hover:shadow-soft transition-all">
+                                {birthdayPeople.map((person) => (
+                                    <div key={person.id} className="p-4 rounded-xl border bg-pink-50 border-pink-200 flex flex-col sm:flex-row justify-between sm:items-center gap-3 hover:shadow-sm transition-all">
                                         <div>
-                                            <p className="font-bold text-gray-800 text-sm">{c.name}</p>
-                                            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><Icon name="phone" size={10}/> {c.phone}</p>
+                                            <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                                {person.name} {person.isProf && <span className="bg-purple-100 border border-purple-200 text-purple-700 text-[9px] px-1.5 py-0.5 rounded uppercase font-bold">Equipo</span>}
+                                            </p>
+                                            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><Icon name="phone" size={10}/> {person.phone || 'Sin número'}</p>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => setHistoryClient(c)} className="bg-white border border-pink-300 text-pink-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1 shadow-sm">
-                                                <Icon name="history" size={14}/> Historial
-                                            </button>
-                                            <button onClick={() => sendBirthdayGreeting(c)} className="bg-pink-500 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-600 transition-colors flex items-center gap-1 shadow-sm transform hover:scale-105">
+                                            {!person.isProf && (
+                                                <button onClick={() => setHistoryClient(person)} className="bg-white border border-pink-200 text-pink-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1 shadow-sm">
+                                                    <Icon name="history" size={14}/> Historial
+                                                </button>
+                                            )}
+                                            <button onClick={() => sendBirthdayGreeting(person)} className="bg-pink-100 border border-pink-300 text-pink-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-pink-200 transition-colors flex items-center gap-1 shadow-sm">
                                                 <Icon name="send" size={14}/> Saludar
                                             </button>
                                         </div>
@@ -732,7 +703,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             <button onClick={()=>setSelectedPendingAppt(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
                             
                             <div className="mb-6 text-center border-b border-gray-100 pb-4">
-                                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3"><Icon name="globe" size={24}/></div>
+                                <div className="w-12 h-12 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3"><Icon name="globe" size={24}/></div>
                                 <h3 className="font-bold text-xl text-gray-800">{clientName}</h3>
                                 {client?.phone && <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1"><Icon name="phone" size={12}/> {client.phone}</p>}
                             </div>
@@ -746,7 +717,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     <select 
                                         value={approvalProfId} 
                                         onChange={(e) => setApprovalProfId(e.target.value)}
-                                        className={`w-full border p-2.5 rounded-lg bg-white text-gray-800 font-bold outline-none transition-colors ${needsProf ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-200 focus:border-primary'}`}
+                                        className={`w-full border p-2.5 rounded-lg bg-white text-gray-800 font-bold outline-none transition-colors ${needsProf ? 'border-red-200 bg-red-50 text-red-700' : 'border-gray-200 focus:border-[var(--color-primary)]'}`}
                                     >
                                         <option value="">-- Debes seleccionar uno --</option>
                                         {capableProfs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -755,11 +726,11 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             </div>
                             
                             <div className="flex gap-2 mt-2">
-                                <button disabled={needsProf} onClick={() => handleConfirm(selectedPendingAppt.id, approvalProfId)} className={`flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${needsProf ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600 shadow-md hover:scale-105'}`}>
+                                <button disabled={needsProf} onClick={() => handleConfirm(selectedPendingAppt.id, approvalProfId)} className={`flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all border ${needsProf ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm hover:scale-[1.02]'}`}>
                                     <Icon name="check" size={16}/> <span>{needsProf ? 'Elegí Prof.' : 'Aprobar'}</span>
                                 </button>
-                                <button onClick={() => handleReject(selectedPendingAppt.id)} className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold hover:bg-red-100 flex justify-center items-center gap-2 transition-colors">
-                                    <Icon name="message-square" size={16}/> <span>Rechazar y Avisar</span>
+                                <button onClick={() => handleReject(selectedPendingAppt.id)} className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold hover:bg-red-100 flex justify-center items-center gap-2 transition-colors shadow-sm hover:scale-[1.02]">
+                                    <Icon name="message-square" size={16}/> <span>Rechazar</span>
                                 </button>
                             </div>
                         </div>
@@ -767,14 +738,14 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 );
             })()}
 
-{/* MODAL: CENTRAL DE AVISOS Y RECORDATORIOS */}
+            {/* MODAL: CENTRAL DE AVISOS Y RECORDATORIOS */}
             {reminderModal && (
                 <div className="fixed inset-0 bg-brand-text/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-6 md:p-8 rounded-brand w-full max-w-2xl relative shadow-2xl animate-scale-in border border-brand-border flex flex-col max-h-[90vh]">
                         <button onClick={()=>setReminderModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
                         
                         <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                            <div className="w-10 h-10 bg-primary/20 text-primary-dark rounded-full flex items-center justify-center"><Icon name="message-square" size={20}/></div>
+                            <div className="w-10 h-10 bg-[var(--color-primary)]/10 text-[var(--color-primary-dark)] rounded-full flex items-center justify-center border border-[var(--color-primary)]/20"><Icon name="message-square" size={20}/></div>
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800">Central de Avisos</h3>
                                 <p className="text-xs text-gray-500">Filtrá turnos y mandá recordatorios por WhatsApp.</p>
@@ -786,17 +757,17 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                 <div className="flex-1">
                                     <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Buscar Fecha</label>
                                     <div className="flex gap-2">
-                                        <input type="date" value={remDate} onChange={e => setRemDate(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-primary font-medium text-gray-700"/>
+                                        <input type="date" value={remDate} onChange={e => setRemDate(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-[var(--color-primary)] font-medium text-gray-700"/>
                                         <button onClick={() => {
                                             const tomorrow = new Date();
                                             tomorrow.setDate(tomorrow.getDate() + 1);
                                             setRemDate(tomorrow.toISOString().split('T')[0]);
-                                        }} className="bg-[var(--color-primary)] text-white px-3 rounded-lg text-xs font-bold hover:opacity-80 transition-opacity whitespace-nowrap shadow-sm">Mañana</button>
+                                        }} className="bg-white border border-[var(--color-primary)] text-[var(--color-primary)] px-3 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">Mañana</button>
                                     </div>
                                 </div>
                                 <div className="flex-[2]">
                                     <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Filtrar por Servicio</label>
-                                    <select value={remTreatment} onChange={e => {setRemTreatment(e.target.value); setCustomPrepText('');}} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-primary font-medium text-gray-700 bg-white">
+                                    <select value={remTreatment} onChange={e => {setRemTreatment(e.target.value); setCustomPrepText('');}} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-[var(--color-primary)] font-medium text-gray-700 bg-white">
                                         <option value="ALL">Todos los servicios (Solo recordatorio simple)</option>
                                         {treatments.map(t => <option key={t.id} value={t.id}>{t.category} - {t.name}</option>)}
                                     </select>
@@ -806,7 +777,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             {remTreatment !== 'ALL' && (
                                 <div className="pt-3 border-t border-gray-200 animate-fade-in">
                                     <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Instrucciones de preparación (Se enviarán por WhatsApp)</label>
-                                    <textarea value={customPrepText} onChange={e => setCustomPrepText(e.target.value)} placeholder="Ej: Venir rasurada, no usar cremas hidratantes, etc..." className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:border-primary resize-none" rows="2"></textarea>
+                                    <textarea value={customPrepText} onChange={e => setCustomPrepText(e.target.value)} placeholder="Ej: Venir rasurada, no usar cremas hidratantes, etc..." className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:border-[var(--color-primary)] resize-none" rows="2"></textarea>
                                 </div>
                             )}
                         </div>
@@ -826,14 +797,14 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                         const isSent = a.reminderSent; 
 
                                         return (
-                                            <div key={a.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-colors ${isSent ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-200 hover:border-primary'}`}>
+                                            <div key={a.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-colors ${isSent ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-gray-200 hover:border-[var(--color-primary)]'}`}>
                                                 <div className="mb-3 sm:mb-0">
                                                     <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                        {clientName} {isSent && <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Icon name="check-check" size={10}/> Avisado</span>}
+                                                        {clientName} {isSent && <span className="bg-blue-100 border border-blue-200 text-blue-700 text-[9px] px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Icon name="check-check" size={10}/> Avisado</span>}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><Icon name="clock" size={12}/> {new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})} hs <span className="mx-1">•</span> <span className="text-primary-dark font-medium">{tr ? tr.name : 'Servicio'}</span></p>
+                                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><Icon name="clock" size={12}/> {new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})} hs <span className="mx-1">•</span> <span className="text-gray-600 font-medium">{tr ? tr.name : 'Servicio'}</span></p>
                                                 </div>
-                                                <button onClick={() => sendReminderWA(a, client, tr)} disabled={!client?.phone} className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-transform hover:scale-105 ${!client?.phone ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : (isSent ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md' : 'bg-green-500 text-white hover:bg-green-600 shadow-md')}`}>
+                                                <button onClick={() => sendReminderWA(a, client, tr)} disabled={!client?.phone} className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-transform border ${!client?.phone ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : (isSent ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 shadow-sm hover:scale-105')}`}>
                                                     <Icon name={isSent ? "refresh-cw" : "send"} size={14}/> {!client?.phone ? 'Sin Teléfono' : (isSent ? 'Reenviar' : 'Recordar por WA')}
                                                 </button>
                                             </div>
@@ -846,7 +817,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
             )}
 
-            {/* MODAL: LANZADOR DE WHATSAPP (Solución Anti-Bloqueo y Anti-Crash) */}
+            {/* MODAL: LANZADOR DE WHATSAPP (Anti-Bloqueo de Pop-ups y Emojis Seguros) */}
             {waModal.open && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
                     <div className="bg-white p-8 rounded-brand w-full max-w-sm text-center shadow-2xl animate-scale-in border-t-4 border-[#25D366]">
@@ -858,7 +829,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             </div>
                         ) : (
                             <div key="ready-state" className="flex flex-col items-center">
-                                <div className="w-16 h-16 bg-green-100 text-[#25D366] rounded-full flex items-center justify-center mb-4">
+                                <div className="w-16 h-16 bg-[#25D366]/10 text-[#0f763e] border border-[#25D366]/30 rounded-full flex items-center justify-center mb-4">
                                     <Icon name="message-circle" size={32} />
                                 </div>
                                 <h3 className="font-bold text-lg text-gray-800 mb-2"><span>¡Mensaje Listo!</span></h3>
@@ -866,16 +837,16 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                 <button 
                                     onClick={() => {
                                         openWhatsAppApp(waModal.phone, waModal.text);
-                                        setWaModal({ open: false, phone: '', text: '', loading: false }); // Cerramos el modal
+                                        setWaModal({ open: false, phone: '', text: '', loading: false }); 
                                     }} 
-                                    className="w-full bg-[#25D366] text-white py-3.5 rounded-xl font-bold hover:bg-green-600 transition-all flex items-center justify-center gap-2 shadow-lg hover:scale-105"
+                                    className="w-full bg-[#25D366]/10 border border-[#25D366]/30 text-[#0f763e] py-3.5 rounded-xl font-bold hover:bg-[#25D366]/20 transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-[1.02]"
                                 >
                                     <Icon name="send" size={20} /> <span>Abrir WhatsApp</span>
                                 </button>
                                 
                                 <button 
                                     onClick={() => setWaModal({ open: false, phone: '', text: '', loading: false })}
-                                    className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600"
+                                    className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     <span>Cancelar</span>
                                 </button>
