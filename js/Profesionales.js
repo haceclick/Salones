@@ -30,22 +30,23 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         
         let updatedList = form.id ? list.map(p => p.id === form.id ? newProf : p) : [...list, newProf];
         
-        // 1. Esto actualiza la interfaz y GUARDA AUTOMÁTICAMENTE EN LA BASE LOCAL (App.js)
+        // 1. Guarda en la UI y en la base local
         setList(updatedList); 
         setIsModalOpen(false);
         
-        // 2. Rescatamos el email del admin, sin importar con qué usuario hayamos entrado
         const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
         
-        notify("Guardando accesos en el servidor...", "info");
+        notify("Procesando accesos en la nube...", "info");
 
-        // 3. Enviamos la orden de actualizar SOLO LA BASE MAESTRA
+        // 2. Ejecuta el guardado en la base Maestra y ESCUCHA la respuesta
         google.script.run
             .withSuccessHandler((res) => {
                 if (res && res.success === false) {
-                    notify("Error servidor: " + res.message, "error"); // Ahora SÍ veremos si Google falla
+                    // 🔥 SI ALGO FALLA EN GOOGLE, VEREMOS EL ERROR AQUÍ 🔥
+                    notify("⚠️ " + res.message, "error"); 
                 } else {
-                    notify(form.id ? "Profesional y accesos actualizados" : "Profesional y accesos creados", "success");
+                    // SI TODO SALE BIEN, NOS AVISA QUÉ HIZO
+                    notify("✅ " + res.message, "success");
                 }
             })
             .withFailureHandler((err) => {
