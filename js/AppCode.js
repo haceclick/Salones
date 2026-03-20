@@ -173,8 +173,8 @@ const LoginScreen = ({ onLogin, notify }) => {
     );
 };
 
-// --- 2. COMPONENTE SIDEBAR ---
-const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig }) => {
+// --- COMPONENTE SIDEBAR (CON LECTURA REAL DE PERMISOS) ---
+const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig, professionals = [] }) => {
 
     const menuItems = [
         { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager', 'professional'] },
@@ -191,20 +191,24 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
         // 1. Validar si el rol básico tiene acceso
         if (!item.roles.includes(user?.role)) return false;
         
-        // 2. Validar restricciones explícitas (ej. SuperAdmin)
+        // 2. Validar restricciones explícitas
         if (item.visible === false) return false;
 
-        // 3. 🔥 MAGIA DE PERMISOS PARA PROFESIONALES 🔥
+        // 3. 🔥 MAGIA: LECTURA DE PERMISOS REALES DEL PROFESIONAL 🔥
         if (user?.role === 'professional') {
-            // Verificamos si tiene el permiso específico encendido en su perfil
-            if (user.permissions && user.permissions[item.id] !== undefined) {
-                return user.permissions[item.id] === true;
+            // Buscamos el perfil completo del profesional en la base de datos descargada
+            const myProfile = professionals.find(p => p.id === user?.profId);
+            const myPerms = myProfile?.permissions || {};
+            
+            // Si tiene el permiso configurado, le hacemos caso al switch
+            if (myPerms[item.id] !== undefined) {
+                return myPerms[item.id] === true;
             }
-            // Fallback: Si es un profesional viejo sin permisos guardados, le damos acceso a agenda por defecto
+            // Si es un perfil viejo sin permisos configurados, solo ve agenda por defecto
             return item.id === 'agenda';
         }
 
-        // Si es Admin o Manager, pasa directo
+        // Admin y Manager ven todo
         return true;
     });
 
@@ -621,6 +625,7 @@ const App = () => {
                 user={currentUser} 
                 customLogo={brandConfig.logoBase64} 
                 brandConfig={brandConfig} 
+                professionals={data.professionals} /* 🔥 ESTA ES LA LÍNEA NUEVA 🔥 */
             />
             <main className="flex-1 relative overflow-y-auto flex flex-col bg-white custom-scrollbar">
                 <div className="flex-1">
