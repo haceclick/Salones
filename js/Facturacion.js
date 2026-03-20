@@ -136,7 +136,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         });
     };
 
-    // ✅ ENVÍO POR WHATSAPP (Directo a la App Nativa)
+    // ✅ ENVÍO POR WHATSAPP (Genera PDF, sube a Drive y envía el Link)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
@@ -144,21 +144,62 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         if (!prof?.phone) {
             return notify("No tienes un teléfono guardado para " + (prof?.name || 'este profesional') + ". Agrégalo en la pestaña Profesionales.", "error");
         }
+        if (!user || !user.email) {
+            return notify("Error: Usuario no identificado para subir el archivo", "error");
+        }
 
-        const cleanPhone = String(prof.phone).replace(/\D/g, '');
-        const total = statsData.totalComisiones || 0;
+        setIsGenerating(true);
+        notify("Generando y subiendo PDF a la nube...", "info");
         
-        // Mensaje con emojis y variables
-        const message = "¡Hola " + prof.name + "! 👋 Te envío tu liquidación de comisiones.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\nTe adjunto el PDF con el detalle de los servicios.";
-        
-        // Usamos el protocolo nativo "whatsapp://" para saltarnos el navegador
-        const waAppUrl = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
-        
-        // Disparamos la apertura de la App de escritorio o móvil directamente
-        window.location.href = waAppUrl;
-        
-        // Iniciamos la descarga del PDF al mismo tiempo
-        handleDownloadPDF();
+        const element = document.getElementById('report-area');
+        const profNameClean = prof.name.toUpperCase().replace(/\s+/g, '_');
+        const timeStamp = new Date().toISOString().split('T')[0];
+        const customFileName = `LIQUIDACION_${profNameClean}_${timeStamp}.pdf`;
+
+        const opt = {
+            margin:       10,
+            filename:     customFileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false }, 
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // 1. En lugar de descargar (.save), lo convertimos a datos base64 (.output)
+        window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
+            if (!pdfData) {
+                setIsGenerating(false);
+                return notify("Error al generar PDF", "error");
+            }
+
+            // 2. Enviamos los datos al backend para guardarlos en Drive
+            google.script.run
+                .withSuccessHandler((res) => {
+                    setIsGenerating(false);
+                    if (res.success) {
+                        notify("¡PDF subido y listo para enviar!", "success");
+                        
+                        const cleanPhone = String(prof.phone).replace(/\D/g, '');
+                        const total = statsData.totalComisiones || 0;
+                        
+                        // 3. Armamos el mensaje con el Saludo, el Total y el LINK de Drive
+                        const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
+                        
+                        // 4. Abrimos WhatsApp en la app nativa
+                        window.location.href = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
+                    } else { 
+                        notify("Error al subir a Drive: " + res.message, "error"); 
+                    }
+                })
+                .withFailureHandler((err) => {
+                    setIsGenerating(false);
+                    notify("Error de conexión al subir el archivo", "error");
+                })
+                .uploadReceiptToDrive(user.email, pdfData, customFileName);
+
+        }).catch(err => {
+            setIsGenerating(false);
+            notify("Error al procesar el PDF", "error");
+        });
     };
 
     return (
