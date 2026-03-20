@@ -3,7 +3,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
     
-    // Estado para alternar entre "grid" (tarjetas) y "table" (lista) - INICIA EN TABLA
     const [viewMode, setViewMode] = useState('table'); 
     
     const defaultDays = () => Array.from({ length: 7 }, () => ({ active: true, start: '0900', end: '1800' }));
@@ -16,7 +15,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     };
 
     const [form, setForm] = useState({ 
-        id: '', name: '', phone: '', birthday: '', color: 'bg-red-100 text-red-800', specialties: [], // <-- Agregado birthday
+        id: '', name: '', phone: '', birthday: '', color: 'bg-red-100 text-red-800', specialties: [], 
         workingDays: defaultDays(),
         hasAccess: false, email: '', password: '',
         permissions: defaultPermissions, 
@@ -40,15 +39,20 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                 console.error(err);
                 notify("Error al actualizar el backend.", "error");
             })
-            .saveProfessionalWithUser(user?.email || '', JSON.stringify(newProf));
+            // 🔥 LE PASAMOS TANTO EL PERFIL ÚNICO COMO LA LISTA COMPLETA 🔥
+            .saveProfessionalWithUser(user?.email || '', JSON.stringify(newProf), JSON.stringify(updatedList));
     };
 
     const handleDelete = () => {
         const idToDelete = confirmDelete.id;
-        setList(list.filter(p => p.id !== idToDelete));
+        const updatedList = list.filter(p => p.id !== idToDelete); // Calculamos la nueva lista
+        
+        setList(updatedList);
         setConfirmDelete({ open: false, id: null });
         notify("Profesional eliminado", "success");
-        google.script.run.deleteProfessionalAndUser(user?.email || '', idToDelete);
+        
+        // 🔥 LE PASAMOS LA LISTA ACTUALIZADA PARA QUE SOBREESCRIBA LA DB LOCAL 🔥
+        google.script.run.deleteProfessionalAndUser(user?.email || '', idToDelete, JSON.stringify(updatedList));
     };
 
     const toggleDay = (index) => {
@@ -83,7 +87,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     const openEdit = (prof) => {
         setForm({
             ...prof,
-            birthday: prof?.birthday || '', // <-- Carga el cumpleaños
+            birthday: prof?.birthday || '', 
             hasAccess: prof?.hasAccess || false,
             email: prof?.email || '',
             password: prof?.password || '',
@@ -98,7 +102,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
     const openNew = () => {
         setForm({ 
-            id: '', name: '', phone: '', birthday: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], // <-- Resetea el cumpleaños
+            id: '', name: '', phone: '', birthday: '', color: colors[Math.floor(Math.random()*colors.length)], specialties: [], 
             workingDays: defaultDays(),
             hasAccess: false, email: '', password: '',
             permissions: defaultPermissions, 
@@ -109,7 +113,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
     const weekMap = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-    // Función para detectar si hoy es el cumpleaños del profesional
     const isBirthdayToday = (dateString) => {
         if (!dateString) return false;
         const today = new Date();
@@ -148,7 +151,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                 </div>
             </header>
 
-            {/* RENDERIZADO CONDICIONAL DE LA VISTA */}
             {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in">
                     {(list || []).map(p => (
@@ -277,7 +279,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                         <div className="flex-1 overflow-y-auto p-8 flex flex-col md:flex-row gap-8 custom-scrollbar">
                             <div className="flex-1 space-y-6">
                                 
-                                {/* NUEVA GRID PARA LOS DATOS PRINCIPALES INCLUYENDO CUMPLEAÑOS */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre Completo</label>
@@ -319,7 +320,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             )
                                         })}
                                     </div>
-                                    {(form.specialties || []).length === 0 && <p className="text-[10px] text-red-500 mt-2">⚠️ Debes seleccionar al menos una especialidad para asignar comisiones.</p>}
                                 </div>
 
                                 {/* SECCIÓN COMISIONES MÚLTIPLES */}
@@ -374,7 +374,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     
                                     {form.hasAccess && (
                                         <div className="space-y-5 pt-2 border-t border-blue-100/50 animate-fade-in">
-                                            {/* CRENDENCIALES */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">Email (Usuario)</label>
@@ -386,7 +385,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                 </div>
                                             </div>
 
-                                            {/* SWITCHES DE PERMISOS */}
                                             <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
                                                 <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-3 border-b border-blue-50 pb-2">Permisos de Visualización</p>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
