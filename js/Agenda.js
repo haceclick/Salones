@@ -1,9 +1,11 @@
-
 const Agenda = ({ appointments, clients, treatments, professionals, settings, setAppointments, saveAppointments, notify, targetApptId, clearTargetAppt, loggedProfId, userRole }) => {
+    // 🔥 CREAMOS EL MODO "SOLO LECTURA" PARA PROFESIONALES
+    const isProfessional = userRole === 'professional';
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedAppt, setSelectedAppt] = useState(null);
-    const [errorModal, setErrorModal] = useState({ open: false, message: '' }); // <-- NUEVO ESTADO
+    const [errorModal, setErrorModal] = useState({ open: false, message: '' }); 
     const [editingApptId, setEditingApptId] = useState(null);
     const [form, setForm] = useState({ clientId: '', treatmentId: '', profId: loggedProfId || '', date: '', time: '', status: 'confirmed' });
     
@@ -47,7 +49,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const isWorkingHour = (profId, dayDate, hour) => {
-        // NUEVA LÓGICA: Si miramos a "Todos", chequeamos si al menos UN profesional trabaja a esa hora
         if (profId === 'all') {
             return professionals.some(prof => {
                 if (!prof.workingDays) return true;
@@ -60,7 +61,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             });
         } 
         
-        // Lógica individual
         const prof = professionals.find(p => p.id === profId);
         if (!prof || !prof.workingDays) return true;
         const dayOfWeek = dayDate.getDay(); 
@@ -72,7 +72,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const isWorkingDay = (profId, dayDate) => {
-        // NUEVA LÓGICA: El día se habilita si al menos UN profesional trabaja ese día
         if (profId === 'all') {
             return professionals.some(prof => {
                 if (!prof.workingDays) return true;
@@ -81,7 +80,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             });
         }
         
-        // Lógica individual
         const prof = professionals.find(p => p.id === profId);
         if (!prof || !prof.workingDays) return true;
         const dayOfWeek = dayDate.getDay();
@@ -96,7 +94,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         });
     }, [appointments, filterProf]);
 
-    // WHATSAPP NATIVO (SIN )
+    // WHATSAPP NATIVO
     const sendWhatsAppMsg = (appt, client, treatment, isDepositRequest = false) => {
         if (!client || !client.phone) return;
         const phone = String(client.phone).replace(/\D/g, ''); 
@@ -116,6 +114,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleSave = (e) => {
+        if (isProfessional) return; // Bloqueo de seguridad extra
         e.preventDefault();
         try {
             const [year, month, day] = form.date.split('-').map(Number);
@@ -123,7 +122,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             const localDate = new Date(year, month - 1, day, hours, minutes);
             const iso = localDate.toISOString();
             
-            // Ya no hay "any", forzamos a que sea un profesional real
             const finalProfId = loggedProfId ? loggedProfId : form.profId;
 
             if (!finalProfId) {
@@ -131,7 +129,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 return;
             }
 
-            // Validamos que ese profesional específico realmente trabaje a esa hora
             const isValidHour = isWorkingHour(finalProfId, localDate, hours);
             const isValidDay = isWorkingDay(finalProfId, localDate);
             
@@ -164,6 +161,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleBlock = (e) => {
+        if (isProfessional) return; // Bloqueo extra
         e.preventDefault();
         const iso = blockModal.type === 'day' ? new Date(`${blockModal.date}T00:00:00`).toISOString() : new Date(`${blockModal.date}T${blockModal.time}`).toISOString();
         const blockProfId = loggedProfId ? loggedProfId : (blockModal.profId || 'ALL');
@@ -173,6 +171,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleStatusChange = (apptId, newStatus) => {
+        if (isProfessional) return; // Bloqueo extra
         if (newStatus === 'completed') {
             const appt = appointments.find(a => a.id === apptId);
             setSelectedAppt(null); 
@@ -184,13 +183,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleCompleteCheckout = () => {
+        if (isProfessional) return; // Bloqueo extra
         const appt = showCheckout;
         const tr = treatments.find(t => t.id === appt.treatmentId);
         const client = clients.find(c => c.id === appt.clientId);
         const agentStr = settings?.find(s => s.id === 'agent_config') || {};
         
         const total = parseFloat(tr?.price || 0);
-        // Detecta si pagó seña por el estado
         const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
         const finalAmount = total - depositAmount;
@@ -217,6 +216,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const openEditModal = (appt) => {
+        if (isProfessional) return; // Bloqueo extra
         const d = new Date(appt.date);
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -260,21 +260,25 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         </select>
                     ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="user" size={16}/> Mi Agenda</div>}
                     
-                    {userRole !== 'professional' && (
+                    {!isProfessional && (
                         <button onClick={() => setBlockModal({open:true, type:'day', date:'', time:'', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')})} className="bg-gray-800 text-white px-3 py-2 rounded-lg font-bold flex gap-2 hover:bg-black transition-colors shadow-sm">
                             <Icon name="lock" size={18}/> Bloquear
                         </button>
                     )}
-                    <button 
-                        onClick={() => { 
-                            setEditingApptId(null); 
-                            setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), date: '', time: '', status: 'confirmed' }); 
-                            setIsCreateOpen(true); 
-                        }} 
-                        className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-text)] px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md"
-                    >
-                        <Icon name="plus" size={18}/> Nuevo
-                    </button>                
+                    
+                    {/* 🔥 OCULTAMOS EL BOTÓN DE CREAR TURNO SI ES PROFESIONAL */}
+                    {!isProfessional && (
+                        <button 
+                            onClick={() => { 
+                                setEditingApptId(null); 
+                                setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), date: '', time: '', status: 'confirmed' }); 
+                                setIsCreateOpen(true); 
+                            }} 
+                            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-text)] px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md"
+                        >
+                            <Icon name="plus" size={18}/> Nuevo
+                        </button>
+                    )}                
                 </div>
             </header>
 
@@ -302,7 +306,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {isHoliday ? (
                                         <div className="absolute inset-0 top-16 bg-gray-100/80 flex items-center justify-center z-20">
                                             <span className="font-bold text-2xl -rotate-90 text-gray-400/30 tracking-widest">FERIADO</span>
-                                            <button onClick={(e)=>{ e.stopPropagation(); setConfirmDelete({open:true, id:isHoliday.id}); }} className="absolute top-4 right-2 text-gray-400 hover:text-red-500 bg-white rounded-full p-1 shadow-sm"><Icon name="trash-2" size={16}/></button>
+                                            
+                                            {/* 🔥 OCULTAMOS EL BOTÓN DE BORRAR FERIADO SI ES PROFESIONAL */}
+                                            {!isProfessional && (
+                                                <button onClick={(e)=>{ e.stopPropagation(); setConfirmDelete({open:true, id:isHoliday.id}); }} className="absolute top-4 right-2 text-gray-400 hover:text-red-500 bg-white rounded-full p-1 shadow-sm">
+                                                    <Icon name="trash-2" size={16}/>
+                                                </button>
+                                            )}
                                         </div>
                                     ) : !dayIsWorking ? (
                                         <div className="absolute inset-0 top-16 flex items-center justify-center pointer-events-none opacity-50 z-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 10px, #e5e7eb 10px, #e5e7eb 20px)' }}>
@@ -312,9 +322,23 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     <div className="relative h-full z-10">
                                         {hoursGrid.map(h => {
                                             const isWorking = isWorkingHour(filterProf, day, h) && dayIsWorking;
-                                            return <div key={h} className={`h-28 border-b border-gray-100 transition-colors ${isWorking ? 'hover:bg-[var(--color-primary)]/5 cursor-pointer' : 'bg-gray-100/60 cursor-not-allowed opacity-50'}`} 
+                                            
+                                            // 🔥 DESACTIVAMOS EL CURSOR SI ES PROFESIONAL (Visualmente no parece clickeable)
+                                            const cursorClass = !isWorking ? 'bg-gray-100/60 cursor-not-allowed opacity-50' : (isProfessional ? 'cursor-default' : 'hover:bg-[var(--color-primary)]/5 cursor-pointer');
+
+                                            return <div key={h} className={`h-28 border-b border-gray-100 transition-colors ${cursorClass}`} 
                                                 style={!isWorking ? { backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)' } : {}}
-                                                onClick={() => { if (!isWorking || isHoliday) return; setEditingApptId(null); const yyyy = day.getFullYear(); const mm = String(day.getMonth() + 1).padStart(2, '0'); const dd = String(day.getDate()).padStart(2, '0'); setForm({...form, date: `${yyyy}-${mm}-${dd}`, time: `${h.toString().padStart(2,'0')}:00`, status: 'confirmed', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')}); setIsCreateOpen(true); }}></div>;
+                                                onClick={() => { 
+                                                    // 🔥 BLOQUEO DE CREACIÓN EN EL GRID SI ES PROFESIONAL
+                                                    if (isProfessional) return; 
+                                                    if (!isWorking || isHoliday) return; 
+                                                    setEditingApptId(null); 
+                                                    const yyyy = day.getFullYear(); 
+                                                    const mm = String(day.getMonth() + 1).padStart(2, '0'); 
+                                                    const dd = String(day.getDate()).padStart(2, '0'); 
+                                                    setForm({...form, date: `${yyyy}-${mm}-${dd}`, time: `${h.toString().padStart(2,'0')}:00`, status: 'confirmed', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')}); 
+                                                    setIsCreateOpen(true); 
+                                                }}></div>;
                                         })}
                                         {visibleAppointments.filter(a => isSameDay(a.date, day) && a.status !== 'holiday').map(appt => {
                                             const dur = getDuration(appt.treatmentId);
@@ -344,8 +368,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                 className={`absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg p-2 cursor-pointer overflow-hidden flex flex-col leading-tight transition-all hover:scale-[1.02] border shadow-sm ${bgClass} ${borderProfColor}`} 
                                                 style={{top:`${top}px`, height:`${height}px`, zIndex: 30}}>
                                                     
-                                                    {/* BOTÓN RÁPIDO PARA FINALIZAR (✔) */}
-                                                    {appt.status !== 'completed' && appt.status !== 'blocked' && (
+                                                    {/* 🔥 OCULTAMOS EL BOTÓN DE FINALIZAR RÁPIDO SI ES PROFESIONAL */}
+                                                    {!isProfessional && appt.status !== 'completed' && appt.status !== 'blocked' && (
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleStatusChange(appt.id, 'completed'); }}
                                                             className="absolute top-1 right-1 w-6 h-6 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-gray-800 shadow-sm transition-colors"
@@ -394,20 +418,31 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 )}
                             </div>
 
-                            {/* BOTÓN DIRECTO DE FINALIZACIÓN */}
-                            {selectedAppt.status !== 'completed' && selectedAppt.status !== 'blocked' && (
-                                <button 
-                                    onClick={() => handleStatusChange(selectedAppt.id, 'completed')}
-                                    className="w-full mb-6 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Icon name="check-circle" size={20}/> Finalizar Servicio / Cobrar
-                                </button>
+                            {/* 🔥 OCULTAMOS LOS BOTONES DE COBRO Y EDICIÓN SI ES PROFESIONAL */}
+                            {!isProfessional && (
+                                <>
+                                    {selectedAppt.status !== 'completed' && selectedAppt.status !== 'blocked' && (
+                                        <button 
+                                            onClick={() => handleStatusChange(selectedAppt.id, 'completed')}
+                                            className="w-full mb-6 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Icon name="check-circle" size={20}/> Finalizar Servicio / Cobrar
+                                        </button>
+                                    )}
+
+                                    <div className="flex gap-4">
+                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="edit" size={18}/> Editar</button>}
+                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3.5 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
+                                    </div>
+                                </>
                             )}
 
-                            <div className="flex gap-4">
-                                {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="edit" size={18}/> Editar</button>}
-                                <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3.5 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
-                            </div>
+                            {/* Si es profesional, solo le mostramos un botón de Cerrar */}
+                            {isProfessional && (
+                                <button onClick={()=>setSelectedAppt(null)} className="w-full py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                                    Cerrar Detalles
+                                </button>
+                            )}
                         </div>
                     </div>
                 );
@@ -461,7 +496,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 </div>
             )}
             
-            {/* CARTEL FIJO: ELIMINAR TURNO (Sin animaciones) */}
+            {/* CARTEL FIJO: ELIMINAR TURNO */}
             {confirmDelete.open && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
                     <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full text-center border border-gray-200">
@@ -478,7 +513,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 </div>
             )}
 
-            {/* CARTEL FIJO: ERROR DE HORARIO (Sin animaciones) */}
+            {/* CARTEL FIJO: ERROR DE HORARIO */}
             {errorModal.open && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
                     <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full text-center border border-gray-200">
@@ -491,6 +526,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                     </div>
                 </div>
             )}
+
             {/* MODAL DE CHECKOUT (COBRO FINAL) */}
             {showCheckout && (() => {
                 const tr = treatments.find(t => t.id === showCheckout.treatmentId);
