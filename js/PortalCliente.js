@@ -41,7 +41,52 @@ const ClientPortal = ({
     // --- LECTURA DE CONFIGURACIÓN ---
     const agentConfig = (settings || []).find(s => s.id === 'agent_config') || {};
     const brandingConfig = (settings || []).find(s => s.id === 'branding') || {};
+    
+    // =========================================================
+    // 🔥 AUTO-CIERRE DE SESIÓN (TIMEOUT LOCAL SIN CONSUMIR CUOTA)
+    // =========================================================
+    useEffect(() => {
+        // Definimos el tiempo máximo de inactividad (Ejemplo: 15 minutos)
+        const SESSION_TIMEOUT = 15 * 60 * 1000; 
 
+        const checkSessionTimeout = () => {
+            const loginTime = localStorage.getItem('client_login_timestamp');
+            
+            if (loginTime) {
+                const timeElapsed = Date.now() - parseInt(loginTime, 10);
+                
+                // Si ya pasó el tiempo límite...
+                if (timeElapsed > SESSION_TIMEOUT) {
+                    // 1. Borramos su rastro de la memoria del celular
+                    localStorage.removeItem('client_login_timestamp');
+                    // Si guardas el teléfono o id en localStorage, bórralo también aquí, ej:
+                    // localStorage.removeItem('saved_client_phone');
+                    
+                    // 2. Recargamos la página forzadamente para limpiar la pantalla
+                    // Esto lo devolverá a la pantalla de "Ingresa tu celular"
+                    window.location.reload();
+                }
+            }
+        };
+
+        // Chequeamos apenas carga el componente
+        checkSessionTimeout();
+
+        // Chequeamos cada vez que el cliente minimiza y vuelve a abrir el navegador
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                checkSessionTimeout();
+            }
+        };
+        
+        document.addEventListener("visibilitychange", handleVisibility);
+
+        // Limpieza de seguridad
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibility);
+        };
+    }, []);
+    
     // =====================================================================
     // 🔄 MOTOR DE MARCA BLANCA (Reemplaza Favicon y Título en el navegador)
     // =====================================================================
@@ -212,9 +257,14 @@ const ClientPortal = ({
             .withSuccessHandler(res => {
                 setIsCheckingLogin(false); 
                 if (res.success && res.exists) {
+                    
+                    // 🔥 AQUÍ GUARDAMOS LA HORA EXACTA DEL LOGIN 🔥
+                    localStorage.setItem('client_login_timestamp', Date.now());
+                    
                     setCurrentUser(res.client);
                     setIsLoggedIn(true);
                     notify(`¡Hola de nuevo, ${res.client.name}!`, "success");
+                    
                 } else if (res.success && !res.exists) {
                     setIsRegistering(true);
                     notify("No encontramos tu perfil. Por favor regístrate.", "info");
