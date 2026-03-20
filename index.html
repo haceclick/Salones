@@ -72,7 +72,6 @@
             getAllData: function(email, specificId) { 
               if (specificId) localStorage.setItem('targetDbId', specificId);
               const idToUse = specificId || localStorage.getItem('targetDbId');
-              // ✅ CORRECCIÓN: mandamos ambos parámetros que espera el backend
               this._execute('getAllData', [email, idToUse]); 
             },
             saveData: function(e, t, d) { 
@@ -86,10 +85,7 @@
             createNewTenant: function(email, pass, name, rubro, adminEmail) { this._execute('createNewTenant', [email, pass, name, rubro, adminEmail]); },
             updateTenant: function(adminEmail, sheetId, name, pass) { this._execute('updateTenant', [adminEmail, sheetId, name, pass]); },
             deleteTenant: function(adminEmail, sheetId) { this._execute('deleteTenant', [adminEmail, sheetId]); },
-
-            // ✅ CORRECCIÓN: getGlobalMessages ahora manda el email del admin
             getGlobalMessages: function(adminEmail) { this._execute('getGlobalMessages', [adminEmail]); },
-            // ✅ CORRECCIÓN: saveGlobalMessagesList recibe la lista completa
             saveGlobalMessagesList: function(adminEmail, msgsArray) { this._execute('saveGlobalMessagesList', [adminEmail, msgsArray]); },
 
             // --- PROFESIONALES ---
@@ -98,6 +94,9 @@
 
             // --- ARCHIVOS / LOGOS ---
             uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
+            
+            // 🔥 AQUÍ ESTÁ LA FUNCIÓN QUE FALTABA PARA EL PDF 🔥
+            uploadReceiptToDrive: function(email, pdfData, filename) { this._execute('uploadReceiptToDrive', [email, pdfData, filename]); },
 
             // --- SOPORTE ---
             sendSupportEmail: function(to, from, local, body) { this._execute('sendSupportEmail', [to, from, local, body]); },
@@ -105,7 +104,6 @@
             // --- PORTAL PÚBLICO ---
             getPublicData: function(alias) { this._execute('getPublicData', [alias]); },
             checkClientPublic: function(alias, phone) { this._execute('checkClientPublic', [alias, phone]); },
-            // ✅ CORRECCIÓN: función que faltaba para registrar cliente nuevo
             savePublicClient: function(alias, clientJson) { this._execute('savePublicClient', [alias, clientJson]); },
             savePublicAppointment: function(alias, apptJson) { this._execute('savePublicAppointment', [alias, apptJson]); },
 
