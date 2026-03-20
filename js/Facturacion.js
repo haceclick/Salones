@@ -1,18 +1,14 @@
-// Obtenemos Recharts de forma segura (si no existe, devuelve un objeto vacío para que no explote)
-const Recharts = window.Recharts || {};
-const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } = Recharts;
-
+// --- COMPONENTE FACTURACIÓN ---
 const Billing = ({ appointments = [], clients = [], treatments = [], professionals = [], settings = [], notify, user }) => {
     
-    // 1. Extraemos los componentes de forma segura AQUÍ ADENTRO
+    // 1. Extraemos los componentes de Recharts de forma segura
     const Lib = window.Recharts || {};
     const { 
         LineChart, Line, BarChart, Bar, XAxis, YAxis, 
         CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell 
     } = Lib;
-
-    // 2. Verificación de seguridad rápida
     const hasCharts = !!window.Recharts;
+
     const [dateRange, setDateRange] = useState('month'); 
     const [profFilter, setProfFilter] = useState('ALL');
     const [paymentFilter, setPaymentFilter] = useState('ALL'); 
@@ -56,7 +52,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 return name.toLowerCase().includes(searchClient.toLowerCase());
             });
         }
-        return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort ascendente para gráficas
+        return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); 
     }, [appointments, dateRange, profFilter, paymentFilter, searchClient, clients]);
 
     // Procesamiento de datos para métricas y gráficas
@@ -109,34 +105,83 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         };
     }, [filteredAppointments, treatments, professionals]);
 
-    const handleSendReceipt = () => {
-        if (!user || !user.email) return notify("Error: Usuario no identificado", "error");
+    // ✅ NUEVA LÓGICA DE PDF (Sin depender del servidor)
+    const handleDownloadPDF = () => {
         setIsGenerating(true);
-        google.script.run.withSuccessHandler((base64Logo) => {
-            const logoImg = document.querySelector('#report-area img');
-            if (logoImg && base64Logo) logoImg.src = base64Logo;
-            setTimeout(() => {
-                const element = document.getElementById('report-area');
-                window.html2pdf().from(element).save();
-                setIsGenerating(false);
-            }, 500);
-        }).getLogoAsBase64(user.email);
+        notify("Generando documento PDF...", "info");
+        
+        const element = document.getElementById('report-area');
+        const fileName = profFilter === 'ALL' 
+            ? `Caja_Local_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.pdf`
+            : `Liquidacion_${professionals.find(p=>p.id===profFilter)?.name.replace(/\s+/g,'_')}.pdf`;
+
+        const opt = {
+            margin:       10,
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true }, // useCORS permite que el logo cargue sin errores
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        window.html2pdf().set(opt).from(element).save().then(() => {
+            setIsGenerating(false);
+            notify("PDF descargado correctamente", "success");
+        }).catch(err => {
+            setIsGenerating(false);
+            notify("Error al generar el PDF", "error");
+        });
+    };
+
+    // ✅ NUEVA LÓGICA DE WHATSAPP (Avisa al profesional y le pide al admin que adjunte el PDF)
+    const handleSendWhatsApp = () => {
+        const prof = professionals.find(p => p.id === profFilter);
+        if (!prof) return notify("Error al identificar al profesional", "error");
+        
+        // Verificamos si el profesional tiene teléfono guardado
+        if (!prof.phone) {
+            return notify(`No tienes un teléfono guardado para ${prof.name}. Agrégalo en la pestaña Profesionales.`, "error");
+        }
+
+        // Descargamos el PDF automáticamente
+        handleDownloadPDF();
+
+        // Preparamos el mensaje de WhatsApp
+        const cleanPhone = String(prof.phone).replace(/\D/g, '');
+        const message = `¡Hola ${prof.name}! 👋 Te envío tu liquidación de comisiones correspondiente a este período.\n\n💰 *Total a cobrar: $${statsData.totalComisiones.toLocaleString()}*\n\nTe adjunto el PDF con el detalle de los servicios realizados.`;
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        
+        // Damos un segundo para que empiece la descarga del PDF y luego abrimos WhatsApp
+        setTimeout(() => {
+            window.open(waUrl, '_blank');
+        }, 1500);
     };
 
     return (
         <div className="p-4 md:p-8 bg-gray-50 min-h-full overflow-y-auto custom-scrollbar">
             
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 print:hidden">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8 print:hidden">
                 <div>
                     <h2 className="text-3xl font-black text-gray-900 tracking-tight">Caja y Liquidaciones</h2>
                     <p className="text-gray-500 text-sm">Control de ingresos, comisiones y rentabilidad.</p>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={handleSendReceipt} disabled={isGenerating} className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                <div className="flex flex-wrap gap-2">
+                    {/* BOTÓN WHATSAPP (Solo aparece si seleccionas un profesional específico) */}
+                    {profFilter !== 'ALL' && (
+                        <button onClick={handleSendWhatsApp} className="px-4 py-2.5 md:py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm bg-[#25D366] text-white hover:bg-green-600 transition-all">
+                            <Icon name="message-circle" size={18}/>
+                            <span className="hidden md:inline">Enviar Liquidación</span>
+                            <span className="md:hidden">Enviar</span>
+                        </button>
+                    )}
+                    
+                    <button onClick={handleDownloadPDF} disabled={isGenerating} className="px-4 py-2.5 md:py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
                         <Icon name={isGenerating ? "loader" : "file-text"} className={isGenerating ? "animate-spin" : ""}/>
-                        {isGenerating ? "Generando..." : "Descargar PDF"}
+                        <span className="hidden md:inline">{isGenerating ? "Generando..." : "Descargar PDF"}</span>
+                        <span className="md:hidden">PDF</span>
                     </button>
-                    <button onClick={() => window.print()} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-3 rounded-xl shadow-md"><Icon name="printer" size={18}/></button>
+                    <button onClick={() => window.print()} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-2.5 md:p-3 rounded-xl shadow-md">
+                        <Icon name="printer" size={18}/>
+                    </button>
                 </div>
             </header>
 
@@ -152,7 +197,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                             <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option><option value="all">Todo</option></select>
                         </div>
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Profesional</label>
-                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                            <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={profFilter} onChange={e => setProfFilter(e.target.value)}><option value="ALL">Todos (Local)</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
                         </div>
                         <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
                             <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}><option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option></select>
@@ -191,7 +236,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 )}
             </div>
 
-            {/* 3. GRÁFICAS DE EVOLUCIÓN (REVISADO Y BLINDADO) */}
+            {/* 3. GRÁFICAS DE EVOLUCIÓN */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('graficas')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
                     <span className="font-bold text-gray-700 flex items-center gap-2">
@@ -203,41 +248,30 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 
                 {openSections.graficas && (
                     <div className="p-6 animate-fade-in">
-                        {/* ✅ Usamos hasCharts que es la constante definida arriba */}
                         {!hasCharts ? (
                             <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed flex flex-col items-center">
                                 <Icon name="loader" size={32} className="animate-spin text-gray-300 mb-2"/>
                                 <p className="text-gray-500 text-sm">Preparando motor de estadísticas...</p>
-                                <p className="text-[10px] text-gray-400 mt-1 italic">Si esto demora, verifica tu conexión a internet.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Gráfica 1: Evolución Temporal */}
                                 <div className="h-64 w-full">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">
-                                        Evolución de Ganancias (Bruto vs Neto)
-                                    </p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">Evolución de Ganancias</p>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={statsData.chartTimeline}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
                                             <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                                            <Tooltip 
-                                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
-                                                itemStyle={{fontSize: '12px', fontWeight: 'bold'}}
-                                            />
+                                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} itemStyle={{fontSize: '12px', fontWeight: 'bold'}}/>
                                             <Legend iconType="circle" wrapperStyle={{fontSize: '10px', paddingTop: '10px'}} />
                                             <Line type="monotone" dataKey="bruto" name="Ingreso Bruto" stroke="var(--color-primary)" strokeWidth={3} dot={{r: 4, fill: 'var(--color-primary)'}} activeDot={{r: 6}} />
                                             <Line type="monotone" dataKey="neto" name="Ganancia Local" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981'}} activeDot={{r: 6}} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </div>
-            
-                                {/* Gráfica 2: Rendimiento por Profesional */}
+
                                 <div className="h-64 w-full">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">
-                                        Rendimiento Neto por Profesional
-                                    </p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 text-center tracking-widest">Rendimiento por Profesional</p>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={statsData.chartProfs}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -258,7 +292,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 )}
             </div>
 
-            {/* 4. REPORTE DETALLADO */}
+            {/* 4. REPORTE DETALLADO PARA PDF */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
                 <button onClick={() => toggleSection('reporte')} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50">
                     <span className="font-bold text-gray-700 flex items-center gap-2"><Icon name="list" size={18} className="text-orange-500"/> Detalle de Operaciones</span>
@@ -268,13 +302,13 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                     <div id="report-area" className="p-8 md:p-12 animate-fade-in bg-white">
                         <div className="flex justify-between items-start border-b border-gray-100 pb-10 mb-10">
                              <div className="flex items-center gap-6">
-                                {localLogo ? <img src={localLogo} className="h-16 w-auto object-contain" /> : <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400">S</div>}
+                                {localLogo ? <img src={localLogo} className="h-16 w-auto object-contain" crossOrigin="anonymous" /> : <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400">S</div>}
                                 <div>
                                     <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
                                         {profFilter === 'ALL' ? 'Reporte General de Caja' : 'Liquidación Profesional'}
                                     </h1>
                                     <p className="text-[10px] font-bold text-[var(--color-primary)] uppercase tracking-[0.2em]">
-                                        {profFilter === 'ALL' ? 'Administración Local' : professionals.find(p=>p.id===profFilter)?.name}
+                                        {profFilter === 'ALL' ? (branding.businessName || 'Administración Local') : professionals.find(p=>p.id===profFilter)?.name}
                                     </p>
                                 </div>
                             </div>
@@ -293,7 +327,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                         <th className="pb-4 px-2">Medio</th>
                                         <th className="pb-4 px-2 text-right">Cobrado</th>
                                         
-                                        {/* COLUMNAS CONDICIONALES */}
+                                        {/* COLUMNAS CONDICIONALES (Local vs Profesional) */}
                                         {profFilter === 'ALL' ? (
                                             <>
                                                 <th className="pb-4 px-2 text-right text-red-400">Comisión</th>
@@ -317,7 +351,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                             const price = Number(appt.finalAmount || treatment?.price || 0);
                                             const professional = professionals.find(p => p.id === appt.professionalId);
                                             
-                                            // Cálculo de comisión
+                                            // Cálculo de comisión individual
                                             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
                                             const treatmentCategory = treatment?.category || '';
                                             let rate = 0;
@@ -337,7 +371,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                                         <p className="font-bold text-gray-900">{client?.name || appt.clientNameTemp || 'Consumidor'}</p>
                                                         <p className="text-[10px] text-gray-500">
                                                             {treatment?.name || 'Servicio'} 
-                                                            {/* Si estamos en "Todos", mostramos quién hizo el servicio */}
                                                             {profFilter === 'ALL' && <span className="font-medium text-blue-500 ml-1">({professional?.name || 'Sin asignar'})</span>}
                                                         </p>
                                                     </td>
@@ -348,7 +381,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                                     </td>
                                                     <td className="py-4 px-2 text-right font-medium text-gray-900">${price.toLocaleString()}</td>
                                                     
-                                                    {/* CELDAS CONDICIONALES */}
+                                                    {/* DATOS CONDICIONALES */}
                                                     {profFilter === 'ALL' ? (
                                                         <>
                                                             <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
@@ -370,7 +403,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                         <td colSpan="4" className="py-6 text-right font-bold uppercase text-gray-500 text-[10px]">
                                             {profFilter === 'ALL' ? 'Utilidad Final del Período:' : 'Total a Liquidar (Comisiones):'}
                                         </td>
-                                        
                                         {/* PIE DE TABLA CONDICIONAL */}
                                         {profFilter === 'ALL' ? (
                                             <>
