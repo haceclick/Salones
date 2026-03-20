@@ -1,11 +1,13 @@
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto
+    // 1. Valores por defecto (✅ AGREGAMOS showPolicyModal y policyText)
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
         requireDeposit: false, depositType: 'link', depositAmount: '', paymentUrl: '', 
         transferAlias: '', transferName: '', transferCuit: '',
-        reschedulePolicy: '24' // 24 horas por defecto
+        reschedulePolicy: '24', // 24 horas por defecto
+        showPolicyModal: false, // ✅ Nuevo: switch para activar cartel
+        policyText: '' // ✅ Nuevo: texto de los términos
     };
     const defaultMsg = { 
         id: 'messages_config', 
@@ -33,7 +35,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
     const [openSection, setOpenSection] = useState('negocio');
 
     const toggleSection = (sectionName) => {
-        // Si hace clic en el que ya está abierto, lo cierra. Si no, abre el nuevo.
         setOpenSection(prev => prev === sectionName ? null : sectionName);
     };
 
@@ -222,13 +223,13 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 )}
                             </div>
 
-                            {/* POLÍTICA DE REPROGRAMACIÓN (TARJETA INDEPENDIENTE) */}
+                            {/* ✅ POLÍTICA DE REPROGRAMACIÓN Y TÉRMINOS (TARJETA INDEPENDIENTE) */}
                             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                                <div className="mb-3">
-                                    <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="calendar" size={16} className="text-gray-500"/> Política de Reprogramación</h4>
-                                    <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo por su cuenta desde el portal.</p>
+                                <div className="mb-4">
+                                    <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="calendar" size={16} className="text-[var(--color-primary)]"/> Políticas del Local</h4>
+                                    <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo desde el portal.</p>
                                 </div>
-                                <div className="w-full md:w-1/2">
+                                <div className="w-full md:w-1/2 mb-6">
                                     <select 
                                         className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none bg-gray-50 focus:bg-white text-sm font-medium text-gray-800 transition-all"
                                         value={agentConfig.reschedulePolicy || '24'}
@@ -242,7 +243,39 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                         <option value="disabled">No permitir reprogramar</option>
                                     </select>
                                 </div>
+
+                                {/* SWITCH Y TEXTO DE TÉRMINOS Y CONDICIONES */}
+                                <div className="border-t border-gray-100 pt-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h5 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="file-text" size={16} className="text-gray-500"/> Términos y Condiciones</h5>
+                                            <p className="text-[10px] text-gray-500 mt-1">Exige al cliente aceptar tus reglas (señas, tolerancias) antes de pedir un turno.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={agentConfig.showPolicyModal || false} 
+                                                onChange={e => setAgentConfig({...agentConfig, showPolicyModal: e.target.checked})} 
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                                        </label>
+                                    </div>
+
+                                    {agentConfig.showPolicyModal && (
+                                        <div className="animate-fade-in">
+                                            <textarea 
+                                                rows="4" 
+                                                className="w-full border border-gray-200 p-3 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none text-sm text-gray-700 bg-gray-50 focus:bg-white transition-all resize-none"
+                                                placeholder="Ej: Para reservar es obligatorio abonar una seña del 50%. En caso de cancelar con menos de 24hs de anticipación, la seña no será reembolsada. Tolerancia máxima de espera: 15 minutos."
+                                                value={agentConfig.policyText || ''} 
+                                                onChange={e => setAgentConfig({...agentConfig, policyText: e.target.value})}
+                                            ></textarea>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                            {/* FIN SECCIÓN POLÍTICAS */}
 
                             {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
