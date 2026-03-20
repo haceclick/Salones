@@ -616,7 +616,8 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                     </p>
                                                 </div>
 
-                                                {!isRead && (
+                                                {/* 🔥 OCULTAMOS LOS BOTONES DE LECTURA SI ES PROFESIONAL 🔥 */}
+                                                {!isRead && !isProfessional && (
                                                     <button 
                                                         onClick={() => setReadNotifs(prev => [...prev, String(n.id)])}
                                                         className="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-colors shadow-sm shrink-0 flex items-center gap-1"
@@ -624,7 +625,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                         <Icon name="check" size={12}/> Marcar Leído
                                                     </button>
                                                 )}
-                                                {isRead && (
+                                                {isRead && !isProfessional && (
                                                     <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 shrink-0 bg-gray-100 px-2 py-1 rounded border border-gray-200">
                                                         <Icon name="check-check" size={12}/> Leído
                                                     </span>
