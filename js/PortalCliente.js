@@ -47,7 +47,7 @@ const ClientPortal = ({
     // =========================================================
     useEffect(() => {
         // Definimos el tiempo máximo de inactividad (Ejemplo: 15 minutos)
-        const SESSION_TIMEOUT = 15 * 60 * 1000; 
+        const SESSION_TIMEOUT = 10 * 60 * 1000; 
 
         const checkSessionTimeout = () => {
             const loginTime = localStorage.getItem('client_login_timestamp');
