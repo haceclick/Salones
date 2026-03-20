@@ -357,6 +357,7 @@ const ClientPortal = ({
                     {!isRegistering ? (
                         <form onSubmit={handleLogin} className="space-y-4">
                             <h2 className="text-2xl font-bold text-brand-text mb-2">Portal de Clientes</h2>
+                            <p className="text-xs text-red-500 font-mono font-bold mb-4">ALIAS DETECTADO: "{actualAlias || 'NINGUNO'}"</p>
                             <p className="text-brand-text-light text-sm mb-8">Ingresa con tu WhatsApp.</p>
                             <input type="tel" required placeholder="Ej: 1155554444" className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg text-center text-lg outline-none focus:border-[var(--color-primary)] transition-colors" value={phone} onChange={e => setPhone(e.target.value)} />
                             
