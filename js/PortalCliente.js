@@ -352,7 +352,7 @@ const ClientPortal = ({
                 {/* LA TARJETA BLANCA DE LOGIN/REGISTRO */}
                 <div className="bg-white p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center">
                     <div className="flex justify-center mb-6">
-                        {brandingConfig.logoBase64 ? <img src={brandingConfig.logoBase64} className="h-36 max-w-[250px] w-auto object-contain drop-shadow-sm" /> : <div className="w-24 h-24 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">S</div>}                    </div>
+                        {brandingConfig.logoBase64 ? <img src={brandingConfig.logoBase64} className="h-40 max-w-[250px] w-auto object-contain drop-shadow-sm" /> : <div className="w-24 h-24 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">S</div>}                    </div>
                     {!isRegistering ? (
                         <form onSubmit={handleLogin} className="space-y-4">
                             <h2 className="text-2xl font-bold text-brand-text mb-2">Portal de Clientes</h2>
