@@ -532,15 +532,34 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                 const clientName = a.clientId?.startsWith('CHAT') ? a.clientNameTemp : clients.find(c=>c.id===a.clientId)?.name;
                                                 const tr = treatments.find(t => t.id === a.treatmentId);
                                                 const isCompleted = a.status === 'completed';
+                                                
+                                                // ✅ NUEVA LÓGICA: Determinar etiqueta y colores en base al estado real
+                                                let statusBadge = { text: 'PENDIENTE', style: 'bg-gray-100 text-gray-500 border border-gray-200' };
+                                                let rowBg = 'bg-white border-gray-200 hover:border-[var(--color-primary)]';
+
+                                                if (isCompleted) {
+                                                    statusBadge = { text: 'FINALIZADO', style: 'bg-gray-100 text-gray-500 border border-gray-200' };
+                                                    rowBg = 'bg-gray-50 border-gray-200 opacity-70';
+                                                } else if (a.status === 'confirmed' || a.status === 'confirmed_paid') {
+                                                    statusBadge = { text: 'CONFIRMADO', style: 'bg-blue-50 text-blue-600 border border-blue-200' };
+                                                    rowBg = 'bg-blue-50/30 border-blue-200 hover:shadow-sm';
+                                                } else if (a.status === 'awaiting_deposit') {
+                                                    statusBadge = { text: 'FALTA SEÑA', style: 'bg-orange-50 text-orange-600 border border-orange-200 animate-pulse' };
+                                                    rowBg = 'bg-orange-50/30 border-orange-200 hover:shadow-sm';
+                                                } else if (a.status === 'reserved' || a.status === 'pending_payment') {
+                                                    statusBadge = { text: 'A REVISAR', style: 'bg-yellow-50 text-yellow-600 border border-yellow-200' };
+                                                    rowBg = 'bg-yellow-50/30 border-yellow-200 hover:shadow-sm';
+                                                }
+
                                                 return (
-                                                    <div key={a.id} onClick={() => goToAgenda(a.id)} className={`flex items-center p-3 rounded-brand border transition-all hover:shadow-sm cursor-pointer ${isCompleted ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50/50 border-blue-200'}`}>
-                                                        <span className={`font-bold text-lg w-16 text-center shrink-0 ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
-                                                        <div className="flex-1 border-l border-brand-border pl-4 ml-2 overflow-hidden">
+                                                    <div key={a.id} onClick={() => goToAgenda(a.id)} className={`flex items-center p-3 rounded-brand border transition-all cursor-pointer ${rowBg}`}>
+                                                        <span className={`font-bold text-lg w-16 text-center shrink-0 ${isCompleted ? 'text-gray-400' : 'text-gray-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
+                                                        <div className="flex-1 border-l border-gray-200 pl-4 ml-2 overflow-hidden">
                                                             <p className="font-bold text-gray-800 truncate">{clientName || 'Bloqueo'}</p>
                                                             {tr && <p className="text-[10px] text-gray-500 truncate">{tr.name}</p>}
                                                         </div>
                                                         <div className="flex flex-col items-end gap-1 shrink-0">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${isCompleted ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>{isCompleted ? 'FINALIZADO' : 'CONFIRMADO'}</span>
+                                                            <span className={`px-2 py-1 rounded text-[9px] font-bold tracking-wider ${statusBadge.style}`}>{statusBadge.text}</span>
                                                         </div>
                                                     </div>
                                                 ) 
