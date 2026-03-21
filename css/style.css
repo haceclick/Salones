@@ -1,3 +1,8 @@
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     <style>
         :root {
           --color-primary: #14b8a6;
@@ -24,3 +29,4 @@
       ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: var(--color-secondary); }
     </style>
+</head>
