@@ -1,12 +1,28 @@
 const Icon = ({ name, size = 20, className = '', style = {} }) => {
-    if (!name) return null;
-    const pascalName = name.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
-    const LucideIcon = window.lucide && window.lucide.icons ? window.lucide.icons[pascalName] : null;
+    const ref = React.useRef(null);
 
-    if (!LucideIcon) {
-        return <span className={className} style={{display:'inline-block', width: size, height: size, borderRadius: '50%', backgroundColor: '#ccc', ...style}}></span>;
-    }
-    return <LucideIcon size={size} className={className} style={style} />;
+    React.useEffect(() => {
+        if (window.lucide && ref.current) {
+            // Preparamos la etiqueta que Lucide necesita leer
+            ref.current.innerHTML = `<i data-lucide="${name}"></i>`;
+            // Le pedimos a Lucide que la convierta en el ícono SVG real
+            window.lucide.createIcons({
+                root: ref.current,
+                attrs: {
+                    width: size,
+                    height: size,
+                    class: className
+                }
+            });
+        }
+    }, [name, size, className]);
+
+    return (
+        <span 
+            ref={ref} 
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }}
+        ></span>
+    );
 };
 
 const Logo = ({ className = "" }) => <img src={LOGO_URL} alt="Logo" className={`object-contain drop-shadow-sm ${className}`} style={{ width: 'auto', maxHeight: '120px' }} />;
@@ -32,6 +48,11 @@ const canClientModify = (dateIso) => {
     const now = new Date();
     const diffHrs = (apptDate - now) / (1000 * 60 * 60);
     return diffHrs >= 48;
+};
+
+const StorageService = {
+  loadAllData: (email) => new Promise((resolve) => google.script.run.withSuccessHandler(resolve).loadInitialData(email)),
+  saveGeneric: (email, type, data) => new Promise((resolve) => google.script.run.withSuccessHandler(resolve).saveData(email, type, JSON.stringify(data)))
 };
 
 const ToastContainer = ({ toasts, removeToast }) => {
