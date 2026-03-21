@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+<html lang="es">
 <head>
     <link rel="icon" type="image/png" href="https://haceclick-ai.com/tu-logo-chico.png" />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>HaceClick-ai | Salones</title>
@@ -14,14 +17,12 @@
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-    
     <script src="https://unpkg.com/recharts@2.12.2/umd/Recharts.js"></script>
-    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <script>
       window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn-fyPCd2OSTmcU7gvGeir4EQ8PgjyPWTv5ty4EZGX7FG6IITfYfKaRgYhWfDsBbHVOQ/exec";
       window.GOOGLE_API_KEY = "";
@@ -91,7 +92,6 @@
             getGlobalMessages: function(adminEmail) { this._execute('getGlobalMessages', [adminEmail]); },
             saveGlobalMessagesList: function(adminEmail, msgsArray) { this._execute('saveGlobalMessagesList', [adminEmail, msgsArray]); },
             
-            // 🔥 AQUÍ ESTÁ LA NUEVA FUNCIÓN PARA EXPORTAR EL ZIP 🔥
             exportTenantData: function(email, specificId) { 
               const idToUse = specificId || localStorage.getItem('targetDbId');
               this._execute('exportTenantData', [email, idToUse]); 
@@ -121,9 +121,14 @@
         }
       };
 
+      // 2. CONFIGURACIÓN DE TAILWIND PARA OBLIGARLO A USAR INTER
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              // Reemplazamos la fuente 'sans' de Tailwind por 'Inter'
+              sans: ['Inter', 'sans-serif'],
+            },
             colors: {
               brand: { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', text: '#1e293b', 'text-light': '#64748b' },
               primary: 'var(--color-primary)',
@@ -145,12 +150,24 @@
         --color-bg: #F6F8FC;
         --color-border: #E2E6F0;
         --color-text: #2B2F3A;
+        
+        /* Variables necesarias para el Sidebar Dinámico */
+        --color-primary-text: #ffffff;
+        --color-sidebar-bg: #111827;
+        --color-sidebar-text: #9ca3af;
+        --color-sidebar-active: #ffffff;
       }
+      
       * { -webkit-tap-highlight-color: transparent; }
       html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; width: 100%; }
+      
+      /* Aplicamos Inter al body como fallback */
       body { font-family: 'Inter', sans-serif; background-color: var(--color-bg); color: var(--color-text); }
+      
       .animate-spin { animation: spin 1s linear infinite; }
       @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      
+      /* Custom Scrollbar */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: var(--color-bg); }
       ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
