@@ -189,38 +189,69 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
-    // ✅ LÓGICA DE COBRO CON DESCUENTOS
-    const handleCompleteCheckout = () => {
-        if (isProfessional) return; // Bloqueo extra
-        const appt = showCheckout;
-        const tr = treatments.find(t => t.id === appt.treatmentId);
-        const client = clients.find(c => c.id === appt.clientId);
-        const agentStr = settings?.find(s => s.id === 'agent_config') || {};
-        
-        const total = parseFloat(tr?.price || 0);
-        const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
-        const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
-        
-        // Validación del descuento
-        let safeDiscount = parseFloat(discountValue) || 0;
-        if (safeDiscount < 0) safeDiscount = 0;
-        if (safeDiscount > total) safeDiscount = total; // No descontar más de lo que vale el servicio
-
-        // Matemática final
-        const finalAmount = total - depositAmount - safeDiscount;
-
-        // Guardamos el turno añadiendo el historial financiero (importante para "Facturación")
-        const updatedAppointments = appointments.map(a => 
-            a.id === appt.id ? { 
-                ...a, 
-                status: 'completed', 
-                paymentMethod: paymentMethod, 
-                finalAmount: finalAmount,
-                discountAmount: safeDiscount,
-                discountReason: discountReason
-            } : a
-        );
-        saveAppointments(updatedAppointments);
+        // ✅ LÓGICA DE COBRO CON DESCUENTOS
+        const handleCompleteCheckout = () => {
+            if (isProfessional) return; // Bloqueo extra
+            const appt = showCheckout;
+            const tr = treatments.find(t => t.id === appt.treatmentId);
+            const client = clients.find(c => c.id === appt.clientId);
+            const agentStr = settings?.find(s => s.id === 'agent_config') || {};
+            
+            const total = parseFloat(tr?.price || 0);
+            const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
+            const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
+            
+            // --- 🚀 NUEVA LÓGICA DE DESCUENTO CONFIGURABLE ---
+            let safeDiscount = 0;
+            const inputVal = parseFloat(discountValue) || 0;
+            
+            // Verificamos qué tipo de cálculo eligió el admin en configuración
+            if (agentStr.discountType === 'percentage') {
+                // Si es porcentaje, calculamos cuánto es ese % del total
+                safeDiscount = total * (inputVal / 100);
+            } else {
+                // Si es monto fijo (o no hay nada definido), usamos el valor directo
+                safeDiscount = inputVal;
+            }
+    
+            // Validaciones de seguridad
+            if (safeDiscount < 0) safeDiscount = 0;
+            if (safeDiscount > (total - depositAmount)) safeDiscount = (total - depositAmount); // No descontar más de lo que queda por cobrar
+    
+            // Matemática final (Monto que el cliente entrega físicamente ahora)
+            const finalAmount = total - depositAmount - safeDiscount;
+    
+            // Guardamos el turno añadiendo el historial financiero (importante para "Facturación")
+            const updatedAppointments = appointments.map(a => 
+                a.id === appt.id ? { 
+                    ...a, 
+                    status: 'completed', 
+                    paymentMethod: paymentMethod, 
+                    finalAmount: finalAmount, // Lo que entró a caja hoy
+                    discountAmount: safeDiscount, // El valor real en $ del descuento aplicado
+                    discountReason: discountReason
+                } : a
+            );
+            
+            saveAppointments(updatedAppointments);
+    
+            // --- TICKET DE WHATSAPP ---
+            const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
+                            `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
+                            `💰 *Detalle del pago:*\n` +
+                            `- Valor Servicio: $${total}\n` +
+                            (hasDeposit ? `- Seña abonada: -$${depositAmount}\n` : '') +
+                            (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount.toLocaleString()} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
+                            `*Total cobrado hoy: $${finalAmount.toLocaleString()}* (${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})\n\n` +
+                            `¡Esperamos verte pronto! 💖`;
+    
+            const phone = String(client.phone).replace(/\D/g, '');
+            window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+            
+            setShowCheckout(null);
+            setEditingApptId(null);
+            notify("Servicio finalizado y cobrado", "success");
+        };
 
         // Armamos el ticket para WhatsApp
         const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
