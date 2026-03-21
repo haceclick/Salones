@@ -689,7 +689,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             <button onClick={()=>setHistoryClient(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
                             
                             <div className="mb-6 border-b border-gray-100 pb-4">
-                                <h3 className="font-bold text-xl text-gray-800 flex items-center gap-2">
+                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                                     <Icon name="history" className="text-pink-500"/> Historial de Servicios
                                 </h3>
                                 <p className="font-bold text-brand-text mt-2">{historyClient.name}</p>
@@ -755,7 +755,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             
                             <div className="mb-6 text-center border-b border-gray-100 pb-4">
                                 <div className="w-12 h-12 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3"><Icon name="globe" size={24}/></div>
-                                <h3 className="font-bold text-xl text-gray-800">{clientName}</h3>
+                                <h3 className="font-bold text-lg text-gray-800">{clientName}</h3>
                                 {client?.phone && <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1"><Icon name="phone" size={12}/> {client.phone}</p>}
                             </div>
                             
@@ -797,7 +797,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
                             <div className="w-10 h-10 bg-[var(--color-primary)]/10 text-[var(--color-primary-dark)] rounded-full flex items-center justify-center border border-[var(--color-primary)]/20"><Icon name="message-square" size={20}/></div>
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800">Central de Avisos</h3>
+                                <h3 className="font-bold text-lg text-gray-800">Central de Avisos</h3>
                                 <p className="text-xs text-gray-500">Filtrá turnos y mandá recordatorios por WhatsApp.</p>
                             </div>
                         </div>
