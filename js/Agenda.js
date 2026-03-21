@@ -275,7 +275,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     return (
         <div className="p-4 md:p-8 h-full flex flex-col bg-brand-bg overflow-y-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Agenda</h2>
+                {/* ACHICADO A text-2xl */}
+                <h2 className="text-2xl font-bold text-gray-800">Agenda</h2>
                 <div className="flex flex-wrap gap-2 items-center">
                     {!loggedProfId ? (
                         <select value={filterProf} onChange={(e) => setFilterProf(e.target.value)}
@@ -427,8 +428,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-white p-10 rounded-[2rem] w-full max-w-md relative shadow-2xl animate-scale-in text-center">
                             <button onClick={()=>setSelectedAppt(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full"><Icon name="x"/></button>
-                            <h3 className="font-black text-3xl mb-6 text-gray-800 tracking-tight">{clientName}</h3>
-                            <div className="space-y-4 mb-8 text-base text-gray-600 font-medium text-left">
+                            <h3 className="font-black text-2xl mb-6 text-gray-800 tracking-tight">{clientName}</h3>
+                            <div className="space-y-4 mb-8 text-sm text-gray-600 font-medium text-left">
                                 <p className="flex items-center justify-between">
                                     <span className="flex items-center gap-3"><Icon name="info" size={18} className="text-[var(--color-primary)]"/> Estado:</span>
                                     {getStatusBadge(selectedAppt.status)}
@@ -447,15 +448,15 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {selectedAppt.status !== 'completed' && selectedAppt.status !== 'blocked' && (
                                         <button 
                                             onClick={() => handleStatusChange(selectedAppt.id, 'completed')}
-                                            className="w-full mb-6 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                                            className="w-full mb-6 bg-blue-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
                                         >
                                             <Icon name="check-circle" size={20}/> Finalizar Servicio / Cobrar
                                         </button>
                                     )}
 
                                     <div className="flex gap-4">
-                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="edit" size={18}/> Editar</button>}
-                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3.5 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
+                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="edit" size={18}/> Editar</button>}
+                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
                                     </div>
                                 </>
                             )}
@@ -473,7 +474,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
-                        <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center gap-2"><Icon name="calendar" className="text-[var(--color-primary)]"/> {editingApptId ? 'Editar Turno' : 'Agendar Turno'}</h3>
+                        <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><Icon name="calendar" className="text-[var(--color-primary)]"/> {editingApptId ? 'Editar Turno' : 'Agendar Turno'}</h3>
                         <form onSubmit={handleSave} className="space-y-4 text-left">
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cliente</label>
                                 <select required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}><option value="">Seleccione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
@@ -506,7 +507,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             {blockModal.open && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
-                        <h3 className="font-bold text-xl mb-5 text-gray-800 flex items-center gap-2"><Icon name="lock" className="text-gray-800"/> Bloquear Agenda</h3>
+                        <h3 className="font-bold text-lg mb-5 text-gray-800 flex items-center gap-2"><Icon name="lock" className="text-gray-800"/> Bloquear Agenda</h3>
                         <form onSubmit={handleBlock} className="space-y-5 text-left">
                             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg"><button type="button" onClick={()=>setBlockModal({...blockModal, type:'day'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='day'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Día Completo</button><button type="button" onClick={()=>setBlockModal({...blockModal, type:'slot'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='slot'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Hora Específica</button></div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
@@ -610,7 +611,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         </div>
                                     )}
 
-                                    <div className="flex justify-between pt-3 border-t border-gray-200 mt-2"><span className="text-lg font-bold text-gray-800">Saldo a Cobrar:</span><span className="text-2xl font-black text-[var(--color-primary)]">${finalAmount}</span></div>
+                                    <div className="flex justify-between pt-3 border-t border-gray-200 mt-2"><span className="text-sm font-bold text-gray-800">Saldo a Cobrar:</span><span className="text-xl font-black text-[var(--color-primary)]">${finalAmount}</span></div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-3 text-left">Método de Pago</label>
@@ -623,7 +624,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         </button>
                                     </div>
                                 </div>
-                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02]">
+                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02]">
                                     <Icon name="send" size={18}/> Finalizar y Saludar por WA
                                 </button>
                             </div>
