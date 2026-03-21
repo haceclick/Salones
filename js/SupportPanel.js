@@ -75,12 +75,13 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[500] p-4 md:p-10 animate-fade-in">
                     <div className="bg-black rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl relative flex flex-col border border-gray-800">
                         <div className="flex justify-between items-center p-4 bg-gray-900/80 border-b border-gray-800">
-                            <h3 className="font-bold text-lg text-white truncate pr-4 flex items-center gap-2">
+                            {/* ACHICADO A text-base */}
+                            <h3 className="font-bold text-base text-white truncate pr-4 flex items-center gap-2">
                                 <Icon name="play-circle" className="text-red-500"/>
                                 {selectedVideo.title || 'Video Instructivo'}
                             </h3>
                             <button onClick={() => setSelectedVideo(null)} className="text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
-                                <Icon name="x" size={20}/>
+                                <Icon name="x" size={18}/>
                             </button>
                         </div>
                         <div className="aspect-video w-full bg-black relative">
@@ -97,10 +98,11 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
             <header className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 sm:h-14 opacity-90 object-contain shrink-0" />
+                        <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 sm:h-12 opacity-90 object-contain shrink-0" />
                         <div className="hidden sm:block h-10 w-px bg-gray-300"></div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-3">
+                            {/* ACHICADO A text-2xl */}
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
                                 <Icon name="help-circle" className="text-[#008395] hidden sm:block"/> 
                                 Capacitación & Soporte
                             </h2>
@@ -108,7 +110,7 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                         </div>
                     </div>
                     {canConfigure && !isEditing && (
-                        <button onClick={() => setIsEditing(true)} className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm transition-colors shrink-0">
+                        <button onClick={() => setIsEditing(true)} className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm transition-colors shrink-0 text-sm">
                             <Icon name="settings" size={16}/> Configurar
                         </button>
                     )}
@@ -117,35 +119,36 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
             {isEditing && canConfigure ? (
                 <form onSubmit={handleSave} className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-brand-border mb-8 animate-fade-in">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-gray-800 border-b pb-3"><Icon name="edit-3"/> Ajustes del Centro de Ayuda</h3>
+                    {/* ACHICADO A text-base */}
+                    <h3 className="font-bold text-base mb-6 flex items-center gap-2 text-gray-800 border-b pb-3"><Icon name="edit-3"/> Ajustes del Centro de Ayuda</h3>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <div className="space-y-4">
-                            <h4 className="font-bold text-sm text-[#008395] uppercase tracking-wider mb-4 flex items-center gap-2"><Icon name="phone" size={16}/> Canales de Contacto</h4>
-                            <div><label className="block text-xs font-bold text-gray-500 mb-1">Email de Soporte Oficial</label><input type="email" required className="w-full border border-gray-200 p-3 rounded-lg focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 outline-none transition-all" value={config.supportEmail} onChange={e=>setConfig({...config, supportEmail: e.target.value})} placeholder="soporte@haceclick.com"/></div>
-                            <div><label className="block text-xs font-bold text-gray-500 mb-1">WhatsApp de Soporte (con código país, sin +)</label><input type="tel" required className="w-full border border-gray-200 p-3 rounded-lg focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 outline-none transition-all" value={config.supportWa} onChange={e=>setConfig({...config, supportWa: e.target.value})} placeholder="Ej: 5491155554444"/></div>
+                            <h4 className="font-bold text-xs text-[#008395] uppercase tracking-wider mb-4 flex items-center gap-2"><Icon name="phone" size={16}/> Canales de Contacto</h4>
+                            <div><label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Email de Soporte Oficial</label><input type="email" required className="w-full border border-gray-200 p-3 rounded-lg focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 outline-none transition-all text-sm" value={config.supportEmail} onChange={e=>setConfig({...config, supportEmail: e.target.value})} placeholder="soporte@haceclick.com"/></div>
+                            <div><label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">WhatsApp de Soporte (con código país, sin +)</label><input type="tel" required className="w-full border border-gray-200 p-3 rounded-lg focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 outline-none transition-all text-sm" value={config.supportWa} onChange={e=>setConfig({...config, supportWa: e.target.value})} placeholder="Ej: 5491155554444"/></div>
                         </div>
                         
                         <div>
-                            <h4 className="font-bold text-sm text-[#008395] uppercase tracking-wider mb-4 flex items-center gap-2"><Icon name="youtube" size={16}/> Videos Instructivos</h4>
+                            <h4 className="font-bold text-xs text-[#008395] uppercase tracking-wider mb-4 flex items-center gap-2"><Icon name="youtube" size={16}/> Videos Instructivos</h4>
                             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                 {config.videos.map((vid) => (
                                     <div key={vid.id} className="flex flex-col sm:flex-row gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">
-                                        <div className="flex-1"><input type="text" className="w-full border p-2 text-sm rounded focus:border-[#008395] outline-none" value={vid.title} onChange={e=>updateVideo(vid.id, 'title', e.target.value)} placeholder="Título..."/></div>
-                                        <div className="flex-1"><input type="url" className="w-full border p-2 text-sm rounded focus:border-[#008395] outline-none" value={vid.url} onChange={e=>updateVideo(vid.id, 'url', e.target.value)} placeholder="Link YouTube..."/></div>
-                                        <button type="button" onClick={() => removeVideo(vid.id)} className="p-2 bg-white text-red-500 border border-red-200 rounded hover:bg-red-50 transition-colors" title="Quitar video"><Icon name="trash-2" size={16}/></button>
+                                        <div className="flex-1"><input type="text" className="w-full border p-2 text-sm rounded-lg focus:border-[#008395] outline-none" value={vid.title} onChange={e=>updateVideo(vid.id, 'title', e.target.value)} placeholder="Título..."/></div>
+                                        <div className="flex-1"><input type="url" className="w-full border p-2 text-sm rounded-lg focus:border-[#008395] outline-none" value={vid.url} onChange={e=>updateVideo(vid.id, 'url', e.target.value)} placeholder="Link YouTube..."/></div>
+                                        <button type="button" onClick={() => removeVideo(vid.id)} className="p-2 bg-white text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors" title="Quitar video"><Icon name="trash-2" size={16}/></button>
                                     </div>
                                 ))}
                             </div>
-                            <button type="button" onClick={addVideo} className="mt-4 bg-[#008395]/10 text-[#008395] px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-[#008395]/20 transition-colors w-full justify-center">
-                                <Icon name="plus-circle" size={18}/> Agregar otro video
+                            <button type="button" onClick={addVideo} className="mt-4 bg-[#008395]/10 text-[#008395] px-4 py-2.5 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-[#008395]/20 transition-colors w-full justify-center">
+                                <Icon name="plus-circle" size={16}/> Agregar otro video
                             </button>
                         </div>
                     </div>
 
                     <div className="mt-8 pt-5 border-t flex justify-end gap-3">
-                        <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-3 font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancelar</button>
-                        <button type="submit" className="bg-[#008395] text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-[#006a78] transition-colors flex items-center gap-2">
+                        <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-sm">Cancelar</button>
+                        <button type="submit" className="bg-[#008395] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg hover:bg-[#006a78] transition-colors flex items-center gap-2 text-sm">
                             <Icon name="save" size={18}/> Guardar Cambios
                         </button>
                     </div>
@@ -160,7 +163,8 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                             onClick={() => toggleSection('videos')}
                             className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'videos' ? 'border-b border-gray-100' : ''}`}
                         >
-                            <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800"><Icon name="youtube" className="text-red-500"/> Instructivos en Video</h3>
+                            {/* ACHICADO A text-base */}
+                            <h3 className="font-bold text-base flex items-center gap-2 text-gray-800"><Icon name="youtube" className="text-red-500"/> Instructivos en Video</h3>
                             <Icon name={openSection === 'videos' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                         </button>
 
@@ -172,7 +176,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                         <p className="text-sm font-medium">Aún no hay videos instructivos cargados.</p>
                                     </div>
                                 ) : (
-                                    /* ✅ CAMBIO: MÁS COLUMNAS PARA QUE LAS TARJETAS SEAN MÁS CHICAS */
                                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                                         {activeVideos.map((vid, idx) => {
                                             const videoId = getVideoId(vid.url);
@@ -218,7 +221,8 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                     onClick={() => toggleSection('email')}
                                     className="w-full flex justify-between items-center p-6 transition-colors relative z-10"
                                 >
-                                    <h3 className="font-bold text-lg flex items-center gap-2 text-white"><Icon name="mail"/> Correo Directo</h3>
+                                    {/* ACHICADO A text-base */}
+                                    <h3 className="font-bold text-base flex items-center gap-2 text-white"><Icon name="mail" size={18}/> Correo Directo</h3>
                                     <Icon name={openSection === 'email' ? 'chevron-up' : 'chevron-down'} className="text-white/70"/>
                                 </button>
 
@@ -240,11 +244,11 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                                 .sendSupportEmail(config.supportEmail, user.email, user.businessName || 'Local', body);
                                         }}>
                                             <textarea name="mensaje" required rows="4" 
-                                                className="flex-1 w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/50 outline-none focus:bg-white/20 focus:border-white/40 resize-none mb-4 transition-colors"
+                                                className="flex-1 w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/50 outline-none focus:bg-white/20 focus:border-white/40 resize-none mb-4 transition-colors text-sm"
                                                 placeholder="Describe detalladamente tu problema o consulta...">
                                             </textarea>
                                             <div className="flex justify-end mt-auto">
-                                                <button type="submit" className="bg-white text-[#008395] px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg w-full md:w-auto">
+                                                <button type="submit" className="bg-white text-[#008395] px-6 py-2.5 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg w-full md:w-auto text-sm">
                                                     <Icon name="send" size={16}/> Enviar
                                                 </button>
                                             </div>
@@ -264,7 +268,8 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                     onClick={() => toggleSection('whatsapp')}
                                     className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors relative z-10"
                                 >
-                                    <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800"><Icon name="message-circle" className="text-[#25D366]"/> Chat Rápido</h3>
+                                    {/* ACHICADO A text-base */}
+                                    <h3 className="font-bold text-base flex items-center gap-2 text-gray-800"><Icon name="message-circle" className="text-[#25D366]" size={18}/> Chat Rápido</h3>
                                     <Icon name={openSection === 'whatsapp' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                                 </button>
 
@@ -281,11 +286,11 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                             e.target.reset();
                                         }}>
                                             <textarea name="waMensaje" required rows="4" 
-                                                className="flex-1 w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-700 placeholder-gray-400 outline-none focus:bg-white focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none mb-4 transition-all"
+                                                className="flex-1 w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-700 placeholder-gray-400 outline-none focus:bg-white focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none mb-4 transition-all text-sm"
                                                 placeholder="Escribe aquí tu duda o problema rápido...">
                                             </textarea>
                                             <div className="flex justify-end mt-auto">
-                                                <button type="submit" className="bg-[#25D366] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2 shadow-lg w-full md:w-auto">
+                                                <button type="submit" className="bg-[#25D366] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2 shadow-lg w-full md:w-auto text-sm">
                                                     <Icon name="send" size={16}/> Abrir WhatsApp
                                                 </button>
                                             </div>
