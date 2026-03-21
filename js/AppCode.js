@@ -291,13 +291,15 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
             <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                 <button 
                     onClick={() => { setCurrentView('support'); setIsOpen(false); }} 
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-normal hover:opacity-80 transition-opacity"
+                    // Agregamos text-sm y py-2.5 para igualar al resto
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-normal text-sm hover:opacity-80 transition-opacity"
                     style={{ 
                         backgroundColor: currentView === 'support' ? (brandConfig.primaryColor || '#008395') : 'transparent',
                         color: currentView === 'support' ? (brandConfig.sidebarActive || '#ffffff') : (brandConfig.sidebarText || '#9ca3af')
                     }}
                 >
-                    <Icon name="help-circle" size={20} style={{ color: currentView === 'support' ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
+                    {/* Achicamos el ícono a 18 */}
+                    <Icon name="help-circle" size={18} style={{ color: currentView === 'support' ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
                     Soporte y Ayuda
                 </button>
             </div>
