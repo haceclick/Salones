@@ -4,8 +4,22 @@ const { useState, useEffect, useMemo, useRef } = React;
 const MP_LINK_BASE = "https://link.mercadopago.com.ar/tuntocio"; 
 const LOGO_URL = "https://drive.google.com/thumbnail?id=1AJcuAG9Z6Cs62mGWBMdIu1G-ykL4_h_5&sz=w1000";
 
-const Icon = ({ name, size = 24, className = '', style = {} }) => {
-    const ref = React.useRef(null);
+const Icon = ({ name, size = 20, className = '', style = {} }) => {
+    const pascalName = name
+        .split('-')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+
+    const LucideIcon = window.lucide.icons[pascalName];
+
+    if (!LucideIcon) {
+        console.warn(`Icono no encontrado: ${name} (buscado como ${pascalName})`);
+        const Fallback = window.lucide.icons.HelpCircle;
+        return <Fallback size={size} className={className} style={style} />;
+    }
+
+    return <LucideIcon size={size} className={className} style={style} />;
+};
     
     React.useEffect(() => {
         // Le decimos a Lucide que dibuje el ícono SOLO adentro de este span
