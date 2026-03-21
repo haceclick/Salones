@@ -396,11 +396,29 @@ const ClientPortal = ({
     };
 
     if (!isLoggedIn) {
+        // 🔥 LÓGICA DE CONTRASTE DINÁMICO PARA EL LOGIN 🔥
+        const loginBgColor = brandingConfig.sidebarBg || '#f8fafc'; // Fallback a un gris muy claro
+        // Función rápida de contraste (si es claro u oscuro) para los textos que van SOBRE este fondo
+        const getTextColor = (hexcolor) => {
+            if (!hexcolor) return '#1e293b';
+            hexcolor = hexcolor.replace("#", "");
+            const r = parseInt(hexcolor.substr(0, 2), 16);
+            const g = parseInt(hexcolor.substr(2, 2), 16);
+            const b = parseInt(hexcolor.substr(4, 2), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? '#1e293b' : '#ffffff';
+        };
+        const loginTextColor = getTextColor(loginBgColor);
+        const loginTextOpacity = (loginTextColor === '#ffffff') ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
+
         return (
-            <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg p-4">
+            <div 
+                className="min-h-screen w-full flex flex-col items-center justify-center p-4 transition-colors duration-500"
+                style={{ backgroundColor: loginBgColor }} // ⬅️ AQUÍ APLICAMOS EL COLOR DEL SIDEBAR AL FONDO
+            >
                 
                 {/* LA TARJETA BLANCA DE LOGIN/REGISTRO */}
-                <div className="bg-white p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center">
+                <div className="bg-white p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center relative z-10">
                     <div className="flex justify-center mb-6">
                         {brandingConfig.logoBase64 ? <img src={brandingConfig.logoBase64} className="h-40 max-w-[250px] w-auto object-contain drop-shadow-sm" /> : <div className="w-24 h-24 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">S</div>}                    </div>
                     {!isRegistering ? (
@@ -418,7 +436,7 @@ const ClientPortal = ({
                             </button>
                             
                             {/* SELLO DE CONFIANZA */}
-                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[#008395] transition-colors w-full">
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[var(--color-primary)] transition-colors w-full">
                                 <Icon name="shield-check" size={14} /> 
                                 <span className="underline decoration-dashed underline-offset-2">Protegido por HaceClick.ai</span>
                             </button>
@@ -451,7 +469,7 @@ const ClientPortal = ({
                             </div>
                             
                             {/* SELLO DE CONFIANZA */}
-                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[#008395] transition-colors w-full">
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[var(--color-primary)] transition-colors w-full">
                                 <Icon name="shield-check" size={14} /> 
                                 <span className="underline decoration-dashed underline-offset-2">Tus datos están encriptados y seguros</span>
                             </button>
@@ -459,10 +477,11 @@ const ClientPortal = ({
                     )}
                 </div>
 
-                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" EN EL LOGIN */}
-                <div className="mt-8 flex flex-col items-center justify-center transition-opacity duration-300 opacity-60 hover:opacity-100">
+                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" EN EL LOGIN (Ajustado con Contraste Inteligente) */}
+                <div className="mt-8 flex flex-col items-center justify-center transition-opacity duration-300 opacity-60 hover:opacity-100 relative z-10">
                     <div className="flex items-center gap-2">
-                        <p className="text-[9px] font-bold tracking-[0.2em] text-gray-500 mt-1">POWERED BY |</p>
+                        {/* El texto "POWERED BY" ahora cambia de color dependiendo de si el fondo es claro u oscuro */}
+                        <p className="text-[9px] font-bold tracking-[0.2em] mt-1" style={{ color: loginTextOpacity }}>POWERED BY |</p>
                         <a 
                             href="https://haceclick-ai.com/" 
                             target="_blank" 
@@ -473,7 +492,9 @@ const ClientPortal = ({
                             <img 
                                 src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" 
                                 alt="HaceClick.ai" 
-                                className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300" 
+                                className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                                // Si el texto es blanco (fondo oscuro), invertimos los colores del logo para que resalte
+                                style={{ filter: loginTextColor === '#ffffff' ? 'brightness(0) invert(1)' : 'grayscale(100%)' }}
                             />
                         </a>
                     </div>
@@ -482,10 +503,10 @@ const ClientPortal = ({
                 {/* MODAL DE SEGURIDAD (Para que funcione si hacen clic en el sello antes de loguearse) */}
                 {showSecurityModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4 animate-fade-in">
-                        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4 border-[#008395]">
+                        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4" style={{ borderColor: brandConfig.primaryColor || '#008395' }}>
                             <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
                                 <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                    <Icon name="shield-check" className="text-[#008395]"/> Tu Privacidad
+                                    <Icon name="shield-check" style={{ color: brandConfig.primaryColor || '#008395' }}/> Tu Privacidad
                                 </h3>
                                 <button onClick={() => setShowSecurityModal(false)} className="text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2 rounded-full shadow-sm">
                                     <Icon name="x" size={18}/>
@@ -493,9 +514,9 @@ const ClientPortal = ({
                             </div>
                             <div className="p-6 space-y-5 overflow-y-auto max-h-[60vh] custom-scrollbar text-left">
                                 <p className="text-sm text-gray-600 mb-2">Nos tomamos muy en serio la seguridad de tu información. Así es como <strong>HaceClick.ai</strong> protege tus datos en este local:</p>
-                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="server" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Infraestructura Enterprise</h4><p className="text-xs text-gray-500 mt-1">Este sistema corre sobre servidores nativos de Google Cloud, utilizando los mismos protocolos de encriptación (AES-256) que Gmail y Drive.</p></div></div>
-                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="database" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Bases de Datos Aisladas</h4><p className="text-xs text-gray-500 mt-1">A diferencia de otras apps, tus datos no se mezclan con los de otros comercios. Este local tiene una base de datos privada e impenetrable para terceros.</p></div></div>
-                                <div className="flex gap-3"><div className="mt-1 text-[#008395]"><Icon name="lock" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Privacidad Absoluta</h4><p className="text-xs text-gray-500 mt-1">Tus datos le pertenecen 100% al local donde estás reservando. HaceClick.ai solo provee la tecnología; nunca leemos, compartimos ni vendemos tu información.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1" style={{ color: brandConfig.primaryColor || '#008395' }}><Icon name="server" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Infraestructura Enterprise</h4><p className="text-xs text-gray-500 mt-1">Este sistema corre sobre servidores nativos de Google Cloud, utilizando los mismos protocolos de encriptación (AES-256) que Gmail y Drive.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1" style={{ color: brandConfig.primaryColor || '#008395' }}><Icon name="database" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Bases de Datos Aisladas</h4><p className="text-xs text-gray-500 mt-1">A diferencia de otras apps, tus datos no se mezclan con los de otros comercios. Este local tiene una base de datos privada e impenetrable para terceros.</p></div></div>
+                                <div className="flex gap-3"><div className="mt-1" style={{ color: brandConfig.primaryColor || '#008395' }}><Icon name="lock" size={18}/></div><div><h4 className="font-bold text-sm text-gray-800">Privacidad Absoluta</h4><p className="text-xs text-gray-500 mt-1">Tus datos le pertenecen 100% al local donde estás reservando. HaceClick.ai solo provee la tecnología; nunca leemos, compartimos ni vendemos tu información.</p></div></div>
                             </div>
                             <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-center">
                                 <button onClick={() => setShowSecurityModal(false)} className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">Entendido</button>
