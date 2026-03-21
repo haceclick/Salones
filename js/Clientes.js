@@ -55,7 +55,8 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
     return (
       <div className="p-4 md:p-8 h-full flex flex-col bg-brand-bg overflow-hidden relative">
         <header className="flex justify-between items-center mb-8 shrink-0">
-          <div><h2 className="text-3xl font-bold text-brand-text">Clientes</h2><p className="text-brand-text-light">Base de datos</p></div>
+          {/* ACHICADO A text-2xl */}
+          <div><h2 className="text-2xl font-bold text-brand-text">Clientes</h2><p className="text-brand-text-light text-sm mt-1">Base de datos</p></div>
           <div className="flex gap-3">
             <button onClick={() => { setEditingId(null); setFormData({name:'',phone:'',email:'',birthday:'',notes:''}); setIsModalOpen(true); }} className="bg-primary text-brand-text px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-bold hover:bg-primary-dark hover:text-white transition-all"><Icon name="plus" /> Nuevo</button>
           </div>
@@ -82,7 +83,7 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                     <tbody className="divide-y divide-gray-100">
                         {filtered.map(c => (
                             <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
-                                <td className="p-4 pl-6 font-bold text-gray-800 flex items-center gap-3">
+                                <td className="p-4 pl-6 font-bold text-gray-800 flex items-center gap-3 text-sm"> {/* Achicado a text-sm */}
                                     <div className="w-8 h-8 rounded-full bg-[#008395]/10 text-[#008395] flex items-center justify-center text-xs font-black shadow-sm">
                                         {(c?.name || "?").charAt(0).toUpperCase()}
                                     </div>
@@ -90,7 +91,7 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                                 </td>
                                 <td className="p-4 text-gray-600">
                                     <div className="flex items-center gap-2">
-                                        <span className="whitespace-nowrap font-medium">{c?.phone || "-"}</span>
+                                        <span className="whitespace-nowrap font-medium text-sm">{c?.phone || "-"}</span> {/* Achicado a text-sm */}
                                         {/* BOTÓN DE WHATSAPP DIRECTO A LA APP */}
                                         {c?.phone && (
                                             <button 
@@ -122,7 +123,7 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                             </tr>
                         ))}
                         {filtered.length === 0 && (
-                            <tr><td colSpan="5" className="p-12 text-center text-gray-400 italic">No hay Clientes que coincidan con la búsqueda.</td></tr>
+                            <tr><td colSpan="5" className="p-12 text-center text-gray-400 italic text-sm">No hay Clientes que coincidan con la búsqueda.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -135,7 +136,8 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
             <div className="bg-white rounded-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl animate-scale-in">
               
               <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  {/* ACHICADO A text-lg */}
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                       <Icon name="user" className="text-[#008395]"/> {editingId ? 'Editar Cliente' : 'Nuevo Cliente'}
                   </h3>
                   <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-2 rounded-full shadow-sm hover:bg-red-50 transition-colors">
@@ -186,7 +188,8 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                 {/* HISTORIAL */}
                 {editingId && (
                   <div className="flex-1 bg-gray-50/50 rounded-xl p-5 border border-gray-200 flex flex-col h-[400px] lg:h-auto">
-                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-3 shrink-0">
+                    {/* ACHICADO A text-base */}
+                    <h4 className="font-bold text-base text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-3 shrink-0">
                       <Icon name="history" size={18} className="text-[#008395]"/> Historial de Servicios
                     </h4>
                     <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
@@ -221,13 +224,14 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
           </div>
         )}
         
+        {/* MODAL ELIMINAR */}
         {confirmDelete.open && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
                 <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl animate-scale-in">
                     <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Icon name="alert-triangle" size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">¿Eliminar Cliente?</h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar Cliente?</h3>
                     <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer y se perderá su historial.</p>
                     <div className="flex gap-3">
                         <button onClick={()=>setConfirmDelete({open:false, id:null})} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancelar</button>
