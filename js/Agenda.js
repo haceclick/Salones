@@ -189,84 +189,61 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
-        // ✅ LÓGICA DE COBRO CON DESCUENTOS INTELIGENTES
-        const handleCompleteCheckout = () => {
-            if (isProfessional) return; // Bloqueo extra de seguridad
-            
-            const appt = showCheckout;
-            const tr = treatments.find(t => t.id === appt.treatmentId);
-            const client = clients.find(c => c.id === appt.clientId);
-            const agentStr = settings?.find(s => s.id === 'agent_config') || {};
-            
-            const total = parseFloat(tr?.price || 0);
-            const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
-            const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
-            
-            // --- 🚀 CÁLCULO DE DESCUENTO SEGÚN CONFIGURACIÓN ---
-            let safeDiscount = 0;
-            const inputVal = parseFloat(discountValue) || 0;
-            
-            if (agentStr.discountType === 'percentage') {
-                // Si en configuración eligieron %, calculamos el monto real en dinero
-                safeDiscount = total * (inputVal / 100);
-            } else {
-                // Si eligieron $, restamos el monto directo
-                safeDiscount = inputVal;
-            }
-    
-            // Validación: El descuento no puede ser negativo ni superar el total restante
-            const remainingToPay = total - depositAmount;
-            if (safeDiscount < 0) safeDiscount = 0;
-            if (safeDiscount > remainingToPay) safeDiscount = remainingToPay;
-    
-            // Matemática final: Lo que el cliente paga en este momento
-            const finalAmount = total - depositAmount - safeDiscount;
-    
-            // 1. Guardamos el turno con el historial financiero completo
-            const updatedAppointments = appointments.map(a => 
-                a.id === appt.id ? { 
-                    ...a, 
-                    status: 'completed', 
-                    paymentMethod: paymentMethod, 
-                    finalAmount: finalAmount,      // Dinero físico que entra hoy
-                    discountAmount: safeDiscount, // Valor real del descuento aplicado
-                    discountReason: discountReason
-                } : a
-            );
-            
-            saveAppointments(updatedAppointments);
-    
-            // 2. Armamos el ticket para WhatsApp (Personalizado según el pago)
-            const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
-                            `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
-                            `💰 *Detalle del pago:*\n` +
-                            `- Valor Servicio: $${total.toLocaleString()}\n` +
-                            (hasDeposit ? `- Seña abonada: -$${depositAmount.toLocaleString()}\n` : '') +
-                            (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount.toLocaleString()} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
-                            `--------------------------\n` +
-                            `*Total abonado hoy: $${finalAmount.toLocaleString()}*\n` +
-                            `_(Medio: ${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})_\n\n` +
-                            `¡Esperamos verte pronto! 💖`;
-    
-            const phone = String(client.phone).replace(/\D/g, '');
-            window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-            
-            // 3. Limpiamos estados y cerramos modal
-            setShowCheckout(null);
-            setEditingApptId(null);
-            setDiscountValue(0);
-            setDiscountReason('');
-            notify("Servicio finalizado y cobrado exitosamente", "success");
-        };
+    // ✅ LÓGICA DE COBRO CON DESCUENTOS INTELIGENTES
+    const handleCompleteCheckout = () => {
+        if (isProfessional) return; // Bloqueo extra de seguridad
+        
+        const appt = showCheckout;
+        const tr = treatments.find(t => t.id === appt.treatmentId);
+        const client = clients.find(c => c.id === appt.clientId);
+        const agentStr = settings?.find(s => s.id === 'agent_config') || {};
+        
+        const total = parseFloat(tr?.price || 0);
+        const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
+        const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
+        
+        // --- 🚀 CÁLCULO DE DESCUENTO SEGÚN CONFIGURACIÓN ---
+        let safeDiscount = 0;
+        const inputVal = parseFloat(discountValue) || 0;
+        
+        if (agentStr.discountType === 'percentage') {
+            safeDiscount = total * (inputVal / 100);
+        } else {
+            safeDiscount = inputVal;
+        }
+
+        // Validación: El descuento no puede ser negativo ni superar el total restante
+        const remainingToPay = total - depositAmount;
+        if (safeDiscount < 0) safeDiscount = 0;
+        if (safeDiscount > remainingToPay) safeDiscount = remainingToPay;
+
+        // Matemática final: Lo que el cliente paga en este momento
+        const finalAmount = total - depositAmount - safeDiscount;
+
+        // Guardamos el turno
+        const updatedAppointments = appointments.map(a => 
+            a.id === appt.id ? { 
+                ...a, 
+                status: 'completed', 
+                paymentMethod: paymentMethod, 
+                finalAmount: finalAmount,      
+                discountAmount: safeDiscount, 
+                discountReason: discountReason
+            } : a
+        );
+        
+        saveAppointments(updatedAppointments);
 
         // Armamos el ticket para WhatsApp
         const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
-                        `Tu servicio de *${tr?.name}* ha sido finalizado con éxito.\n\n` +
+                        `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
                         `💰 *Detalle del pago:*\n` +
-                        `- Valor Servicio: $${total}\n` +
-                        (hasDeposit ? `- Seña abonada: -$${depositAmount}\n` : '') +
-                        (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
-                        `*Total cobrado: $${finalAmount}* (${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})\n\n` +
+                        `- Valor Servicio: $${total.toLocaleString()}\n` +
+                        (hasDeposit ? `- Seña abonada: -$${depositAmount.toLocaleString()}\n` : '') +
+                        (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount.toLocaleString()} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
+                        `--------------------------\n` +
+                        `*Total abonado hoy: $${finalAmount.toLocaleString()}*\n` +
+                        `_(Medio: ${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})_\n\n` +
                         `¡Esperamos verte pronto! 💖`;
 
         const phone = String(client.phone).replace(/\D/g, '');
@@ -274,8 +251,10 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         
         setShowCheckout(null);
         setEditingApptId(null);
-        notify("Servicio finalizado y cobrado", "success");
-    };
+        setDiscountValue(0);
+        setDiscountReason('');
+        notify("Servicio finalizado y cobrado exitosamente", "success");
+    }; // ✅ AQUÍ CIERRA CORRECTAMENTE LA FUNCIÓN DE CHECKOUT
 
     const openEditModal = (appt) => {
         if (isProfessional) return; // Bloqueo extra
@@ -312,7 +291,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     return (
         <div className="p-4 md:p-8 h-full flex flex-col bg-brand-bg overflow-y-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                {/* ACHICADO A text-2xl */}
                 <h2 className="text-2xl font-bold text-gray-800">Agenda</h2>
                 <div className="flex flex-wrap gap-2 items-center">
                     {!loggedProfId ? (
@@ -329,7 +307,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         </button>
                     )}
                     
-                    {/* 🔥 OCULTAMOS EL BOTÓN DE CREAR TURNO SI ES PROFESIONAL */}
                     {!isProfessional && (
                         <button 
                             onClick={() => { 
@@ -370,7 +347,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         <div className="absolute inset-0 top-16 bg-gray-100/80 flex items-center justify-center z-20">
                                             <span className="font-bold text-2xl -rotate-90 text-gray-400/30 tracking-widest">FERIADO</span>
                                             
-                                            {/* 🔥 OCULTAMOS EL BOTÓN DE BORRAR FERIADO SI ES PROFESIONAL */}
                                             {!isProfessional && (
                                                 <button onClick={(e)=>{ e.stopPropagation(); setConfirmDelete({open:true, id:isHoliday.id}); }} className="absolute top-4 right-2 text-gray-400 hover:text-red-500 bg-white rounded-full p-1 shadow-sm">
                                                     <Icon name="trash-2" size={16}/>
@@ -386,7 +362,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         {hoursGrid.map(h => {
                                             const isWorking = isWorkingHour(filterProf, day, h) && dayIsWorking;
                                             
-                                            // 🔥 DESACTIVAMOS EL CURSOR SI ES PROFESIONAL
                                             const cursorClass = !isWorking ? 'bg-gray-100/60 cursor-not-allowed opacity-50' : (isProfessional ? 'cursor-default' : 'hover:bg-[var(--color-primary)]/5 cursor-pointer');
 
                                             return <div key={h} className={`h-28 border-b border-gray-100 transition-colors ${cursorClass}`} 
@@ -430,7 +405,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                 className={`absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg p-2 cursor-pointer overflow-hidden flex flex-col leading-tight transition-all hover:scale-[1.02] border shadow-sm ${bgClass} ${borderProfColor}`} 
                                                 style={{top:`${top}px`, height:`${height}px`, zIndex: 30}}>
                                                     
-                                                    {/* 🔥 OCULTAMOS EL BOTÓN DE FINALIZAR RÁPIDO SI ES PROFESIONAL */}
                                                     {!isProfessional && appt.status !== 'completed' && appt.status !== 'blocked' && (
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleStatusChange(appt.id, 'completed'); }}
@@ -621,8 +595,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {hasDeposit && (<div className="flex justify-between mb-2 text-green-600 font-bold italic"><span>Seña descontada:</span><span>-${deposit}</span></div>)}
                                     
                                     {/* SECCIÓN DESCUENTOS DINÁMICA */}
-                                    // --- DENTRO DEL MODAL DE CHECKOUT EN Agenda.js ---
-
                                     {discountsEnabled && (
                                         <div className="mt-4 pt-4 border-t border-dashed border-gray-200 animate-fade-in">
                                             <label className="block text-[10px] font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
@@ -647,6 +619,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                     placeholder="Motivo (Ej: Cliente frecuente)"
                                                     value={discountReason}
                                                     onChange={(e) => setDiscountReason(e.target.value)}
+                                                    disabled={!discountValue || discountValue <= 0}
                                                 />
                                             </div>
                                             
