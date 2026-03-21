@@ -396,38 +396,54 @@ const ClientPortal = ({
     };
 
     if (!isLoggedIn) {
-        // 🔥 LÓGICA DE CONTRASTE DINÁMICO PARA EL LOGIN 🔥
-        const loginBgColor = brandingConfig.sidebarBg || '#f8fafc'; // Fallback a un gris muy claro
-        // Función rápida de contraste (si es claro u oscuro) para los textos que van SOBRE este fondo
+        // 🔥 LÓGICA DE CONTRASTE DINÁMICO PARA LA TARJETA 🔥
+        const cardBgColor = brandingConfig.sidebarBg || '#ffffff';
+        
+        // Función rápida de contraste
         const getTextColor = (hexcolor) => {
             if (!hexcolor) return '#1e293b';
             hexcolor = hexcolor.replace("#", "");
+            if (hexcolor.length === 3) hexcolor = hexcolor.split('').map(c => c + c).join('');
             const r = parseInt(hexcolor.substr(0, 2), 16);
             const g = parseInt(hexcolor.substr(2, 2), 16);
             const b = parseInt(hexcolor.substr(4, 2), 16);
             const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
             return (yiq >= 128) ? '#1e293b' : '#ffffff';
         };
-        const loginTextColor = getTextColor(loginBgColor);
-        const loginTextOpacity = (loginTextColor === '#ffffff') ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
+        
+        const cardTextColor = getTextColor(cardBgColor);
+        // Subtítulos un poco más transparentes pero legibles
+        const cardSubtextColor = cardTextColor === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
 
         return (
-            <div 
-                className="min-h-screen w-full flex flex-col items-center justify-center p-4 transition-colors duration-500"
-                style={{ backgroundColor: loginBgColor }} // ⬅️ AQUÍ APLICAMOS EL COLOR DEL SIDEBAR AL FONDO
-            >
+            <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-brand-bg transition-colors duration-500">
                 
-                {/* LA TARJETA BLANCA DE LOGIN/REGISTRO */}
-                <div className="bg-white p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center relative z-10">
+                {/* LA TARJETA DE LOGIN/REGISTRO CON EL COLOR DEL SIDEBAR */}
+                <div 
+                    className="p-8 rounded-brand shadow-2xl w-full max-w-sm border border-brand-border text-center relative z-10 transition-colors duration-300"
+                    style={{ backgroundColor: cardBgColor, color: cardTextColor }}
+                >
                     <div className="flex justify-center mb-6">
-                        {brandingConfig.logoBase64 ? <img src={brandingConfig.logoBase64} className="h-40 max-w-[250px] w-auto object-contain drop-shadow-sm" /> : <div className="w-24 h-24 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">S</div>}                    </div>
+                        {brandingConfig.logoBase64 ? (
+                            <img src={brandingConfig.logoBase64} className="h-40 max-w-[250px] w-auto object-contain drop-shadow-sm" />
+                        ) : (
+                            <div className="w-24 h-24 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">S</div>
+                        )}
+                    </div>
+                    
                     {!isRegistering ? (
                         <form onSubmit={handleLogin} className="space-y-4">
-                            <h2 className="text-2xl font-bold text-brand-text mb-2">Portal de Clientes</h2>
-                            <p className="text-brand-text-light text-sm mb-8">Ingresa con tu WhatsApp.</p>
-                            <input type="tel" required placeholder="Ej: 1155554444" className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg text-center text-lg outline-none focus:border-[var(--color-primary)] transition-colors" value={phone} onChange={e => setPhone(e.target.value)} />
+                            <h2 className="text-2xl font-bold mb-2" style={{ color: cardTextColor }}>Portal de Clientes</h2>
+                            <p className="text-sm mb-8" style={{ color: cardSubtextColor }}>Ingresa con tu WhatsApp.</p>
                             
-                            <button type="submit" disabled={isCheckingLogin} className={`w-full text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isCheckingLogin ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
+                            {/* Inputs con fondo blanco fijo para que resalten siempre */}
+                            <input 
+                                type="tel" required placeholder="Ej: 1155554444" 
+                                className="w-full border-none p-3 rounded-brand text-center text-lg outline-none focus:ring-4 focus:ring-[var(--color-primary)]/50 transition-all bg-white text-gray-900 shadow-inner" 
+                                value={phone} onChange={e => setPhone(e.target.value)} 
+                            />
+                            
+                            <button type="submit" disabled={isCheckingLogin} className={`w-full text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isCheckingLogin ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90 hover:-translate-y-0.5'}`}>
                                 {isCheckingLogin ? (
                                     <span className="flex items-center justify-center gap-2">
                                         <Icon name="loader" size={18} className="animate-spin" /> Verificando...
@@ -435,41 +451,42 @@ const ClientPortal = ({
                                 ) : "Ingresar"}
                             </button>
                             
-                            {/* SELLO DE CONFIANZA */}
-                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[var(--color-primary)] transition-colors w-full">
+                            {/* SELLO DE CONFIANZA ADAPTATIVO */}
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] mt-4 flex items-center justify-center gap-1.5 transition-colors w-full hover:opacity-80" style={{ color: cardSubtextColor }}>
                                 <Icon name="shield-check" size={14} /> 
                                 <span className="underline decoration-dashed underline-offset-2">Protegido por HaceClick.ai</span>
                             </button>
                         </form>
                     ) : (
                         <form onSubmit={handleRegister} className="space-y-4 text-left animate-fade-in">
-                            <h2 className="text-xl font-bold text-brand-text mb-2 text-center">¡Bienvenido!</h2>
+                            <h2 className="text-xl font-bold mb-4 text-center" style={{ color: cardTextColor }}>¡Bienvenido!</h2>
                             
                             <div>
-                                <label className="block text-xs font-bold text-brand-text-light uppercase mb-1">Nombre Completo</label>
-                                <input type="text" required className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" value={clientForm.name} onChange={e=>setClientForm({...clientForm, name:e.target.value})} />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: cardSubtextColor }}>Nombre Completo</label>
+                                <input type="text" required className="w-full border-none p-3 rounded-brand outline-none focus:ring-4 focus:ring-[var(--color-primary)]/50 transition-all bg-white text-gray-900 shadow-inner" value={clientForm.name} onChange={e=>setClientForm({...clientForm, name:e.target.value})} />
                             </div>
                             
                             <div>
-                                <label className="block text-xs font-bold text-brand-text-light uppercase mb-1">Email</label>
-                                <input type="email" required className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" value={clientForm.email} onChange={e=>setClientForm({...clientForm, email:e.target.value})} />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: cardSubtextColor }}>Email</label>
+                                <input type="email" required className="w-full border-none p-3 rounded-brand outline-none focus:ring-4 focus:ring-[var(--color-primary)]/50 transition-all bg-white text-gray-900 shadow-inner" value={clientForm.email} onChange={e=>setClientForm({...clientForm, email:e.target.value})} />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-brand-text-light uppercase mb-1">Fecha de Nacimiento</label>
-                                <input type="date" required className="w-full border border-brand-border p-3 rounded-brand bg-brand-bg outline-none focus:border-[var(--color-primary)] transition-colors" value={clientForm.birthday} onChange={e=>setClientForm({...clientForm, birthday:e.target.value})} />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: cardSubtextColor }}>Fecha de Nacimiento</label>
+                                <input type="date" required className="w-full border-none p-3 rounded-brand outline-none focus:ring-4 focus:ring-[var(--color-primary)]/50 transition-all bg-white text-gray-900 shadow-inner" value={clientForm.birthday} onChange={e=>setClientForm({...clientForm, birthday:e.target.value})} />
                             </div>
 
-                            <div className="flex gap-2 pt-2">
-                                <button type="button" onClick={()=>setIsRegistering(false)} className="w-1/3 bg-gray-100 py-3 rounded-brand font-bold text-gray-600 hover:bg-gray-200 transition-colors">Atrás</button>
+                            <div className="flex gap-2 pt-4">
+                                {/* Botón Atrás semi-transparente para que quede bien en fondos oscuros */}
+                                <button type="button" onClick={()=>setIsRegistering(false)} className="w-1/3 bg-black/10 py-3 rounded-brand font-bold hover:bg-black/20 transition-colors" style={{ color: cardTextColor }}>Atrás</button>
                                 
-                                <button type="submit" disabled={isSavingProfile} className={`w-2/3 text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isSavingProfile ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90'}`}>
+                                <button type="submit" disabled={isSavingProfile} className={`w-2/3 text-white font-bold py-3 rounded-brand shadow-lg transition-all ${isSavingProfile ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:opacity-90 hover:-translate-y-0.5'}`}>
                                     {isSavingProfile ? "Creando..." : "Crear Perfil"}
                                 </button>
                             </div>
                             
-                            {/* SELLO DE CONFIANZA */}
-                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5 hover:text-[var(--color-primary)] transition-colors w-full">
+                            {/* SELLO DE CONFIANZA ADAPTATIVO */}
+                            <button type="button" onClick={() => setShowSecurityModal(true)} className="text-[10px] mt-4 flex items-center justify-center gap-1.5 transition-colors w-full hover:opacity-80" style={{ color: cardSubtextColor }}>
                                 <Icon name="shield-check" size={14} /> 
                                 <span className="underline decoration-dashed underline-offset-2">Tus datos están encriptados y seguros</span>
                             </button>
@@ -477,30 +494,17 @@ const ClientPortal = ({
                     )}
                 </div>
 
-                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" EN EL LOGIN (Ajustado con Contraste Inteligente) */}
+                {/* 🚀 ESTRATEGIA DE GROWTH MARKETING: "Powered By" EN EL FONDO CLARO NORMAL */}
                 <div className="mt-8 flex flex-col items-center justify-center transition-opacity duration-300 opacity-60 hover:opacity-100 relative z-10">
                     <div className="flex items-center gap-2">
-                        {/* El texto "POWERED BY" ahora cambia de color dependiendo de si el fondo es claro u oscuro */}
-                        <p className="text-[9px] font-bold tracking-[0.2em] mt-1" style={{ color: loginTextOpacity }}>POWERED BY |</p>
-                        <a 
-                            href="https://haceclick-ai.com/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            title="Obtén este sistema para tu negocio"
-                            className="transform hover:scale-105 transition-transform"
-                        >
-                            <img 
-                                src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" 
-                                alt="HaceClick.ai" 
-                                className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                                // Si el texto es blanco (fondo oscuro), invertimos los colores del logo para que resalte
-                                style={{ filter: loginTextColor === '#ffffff' ? 'brightness(0) invert(1)' : 'grayscale(100%)' }}
-                            />
+                        <p className="text-[9px] font-bold tracking-[0.2em] mt-1 text-gray-500">POWERED BY |</p>
+                        <a href="https://haceclick-ai.com/" target="_blank" rel="noopener noreferrer" className="transform hover:scale-105 transition-transform">
+                            <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick.ai" className="h-6 md:h-7 object-contain grayscale hover:grayscale-0 transition-all duration-300" />
                         </a>
                     </div>
                 </div>
 
-                {/* MODAL DE SEGURIDAD (Para que funcione si hacen clic en el sello antes de loguearse) */}
+                {/* MODAL DE SEGURIDAD INTERNO */}
                 {showSecurityModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4 animate-fade-in">
                         <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border-t-4" style={{ borderColor: brandConfig.primaryColor || '#008395' }}>
