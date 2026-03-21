@@ -285,7 +285,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 </div>
                             </div>
 
-                           // 2. Busca el bloque de "Descuentos y Promociones" y reemplázalo por este:
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
