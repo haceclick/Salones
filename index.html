@@ -87,6 +87,12 @@
             deleteTenant: function(adminEmail, sheetId) { this._execute('deleteTenant', [adminEmail, sheetId]); },
             getGlobalMessages: function(adminEmail) { this._execute('getGlobalMessages', [adminEmail]); },
             saveGlobalMessagesList: function(adminEmail, msgsArray) { this._execute('saveGlobalMessagesList', [adminEmail, msgsArray]); },
+            
+            // 🔥 AQUÍ ESTÁ LA NUEVA FUNCIÓN PARA EXPORTAR EL ZIP 🔥
+            exportTenantData: function(email, specificId) { 
+              const idToUse = specificId || localStorage.getItem('targetDbId');
+              this._execute('exportTenantData', [email, idToUse]); 
+            },
 
             // --- PROFESIONALES ---
             saveProfessionalWithUser: function(email, json) { this._execute('saveProfessionalWithUser', [email, json]); },
@@ -94,8 +100,6 @@
 
             // --- ARCHIVOS / LOGOS ---
             uploadBrandLogo: function(e, d) { this._execute('uploadBrandLogo', [e, d]); },
-            
-            // 🔥 AQUÍ ESTÁ LA FUNCIÓN QUE FALTABA PARA EL PDF 🔥
             uploadReceiptToDrive: function(email, pdfData, filename) { this._execute('uploadReceiptToDrive', [email, pdfData, filename]); },
 
             // --- SOPORTE ---
