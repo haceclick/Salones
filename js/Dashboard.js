@@ -337,7 +337,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             <div className={`p-4 rounded-brand ${color}`}>{icon}</div>
             <div>
                 <p className="text-brand-text-light text-sm font-medium mb-1">{label}</p>
-                <p className="text-3xl font-bold text-brand-text">{value}</p>
+                <p className="text-2xl font-bold text-brand-text">{value}</p>
             </div>
         </div>
     );
@@ -346,7 +346,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         <div className="p-4 md:p-8 pb-12 space-y-8 bg-brand-bg relative">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-brand-text">Panel General</h2>
+                    <h2 className="text-2xl font-bold text-brand-text">Panel General</h2>
                     <p className="text-brand-text-light mt-1">Bienvenido a tu centro de control.</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -384,7 +384,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             <Icon name="alert-triangle" size={24}/>
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-700 text-lg leading-tight">¡Tienes {unclosedAppts.length} {unclosedAppts.length === 1 ? 'servicio sin cerrar' : 'servicios sin cerrar'}!</h4>
+                            <h4 className="font-bold text-red-700 text-base leading-tight">¡Tienes {unclosedAppts.length} {unclosedAppts.length === 1 ? 'servicio sin cerrar' : 'servicios sin cerrar'}!</h4>
                             <p className="text-sm text-red-600/80 mt-1">Quedaron turnos pasados como "Confirmados". {isProfessional ? 'Avísale a tu administrador para que los cierre.' : 'Ciérralos para mantener tu caja al día:'}</p>
                             
                             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -429,7 +429,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     {/* SOLICITUDES WEB Y NUEVOS CLIENTES */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="globe" className="text-yellow-600"/> Solicitudes Web</h3>
+                            <h3 className="font-bold text-base text-brand-text flex items-center gap-2"><Icon name="globe" className="text-yellow-600"/> Solicitudes Web</h3>
                             {totalPendingRequests > 0 && <span className="bg-yellow-100 text-yellow-700 border border-yellow-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">{totalPendingRequests} Pendientes</span>}
                         </div>
                         
@@ -445,7 +445,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                     <div key={n.id} className="p-4 rounded-brand border bg-green-50 border-green-200 hover:shadow-sm transition-all group">
                                         <div className="flex items-center justify-between mb-3">
                                             <div>
-                                                <p className="font-bold text-lg text-gray-800">{n.clientName}</p>
+                                                <p className="font-bold text-base text-gray-800">{n.clientName}</p>
                                                 <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1"><Icon name="phone" size={12}/> {n.clientPhone}</p>
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
@@ -487,7 +487,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                             
                                             <div className="flex items-center justify-between mb-3">
                                                 <div>
-                                                    <p className={`font-bold text-lg transition-colors ${isAwaiting ? 'text-orange-700' : 'text-gray-800'}`}>{clientName}</p>
+                                                    <p className={`font-bold text-base transition-colors ${isAwaiting ? 'text-orange-700' : 'text-gray-800'}`}>{clientName}</p>
                                                     <p className="text-xs text-gray-500 font-medium">{new Date(a.date).toLocaleDateString('es-ES', {weekday:'short', day:'numeric'})} - {new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</p>
                                                     {tr && <p className="text-[10px] text-gray-400 mt-0.5">{tr.name}</p>}
                                                 </div>
@@ -530,7 +530,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     {/* TURNOS HOY - CON ESTADOS REALES Y COLORES PASTEL */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="calendar"/> Agenda de Hoy</h3>
+                            <h3 className="font-bold text-base text-brand-text flex items-center gap-2"><Icon name="calendar"/> Agenda de Hoy</h3>
                         </div>
                         {myTodaysApps.length === 0 ? 
                             (<div key="empty-today" className="text-center py-12 text-brand-text-light flex flex-col items-center">
@@ -568,7 +568,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
 
                                                 return (
                                                     <div key={a.id} onClick={() => goToAgenda(a.id)} className={`flex items-center p-3 rounded-brand border transition-all cursor-pointer ${rowBg}`}>
-                                                        <span className={`font-bold text-lg w-16 text-center shrink-0 ${isCompleted ? 'text-gray-400' : 'text-gray-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
+                                                        <span className={`font-bold text-base w-16 text-center shrink-0 ${isCompleted ? 'text-gray-400' : 'text-gray-700'}`}>{new Date(a.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
                                                         <div className="flex-1 border-l border-gray-200 pl-4 ml-2 overflow-hidden">
                                                             <p className="font-bold text-gray-800 truncate">{clientName || 'Bloqueo'}</p>
                                                             {tr && <p className="text-[10px] text-gray-500 truncate">{tr.name}</p>}
@@ -591,7 +591,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     {/* AVISOS DEL SISTEMA */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="bell"/> Avisos del Sistema</h3>
+                            <h3 className="font-bold text-base text-brand-text flex items-center gap-2"><Icon name="bell"/> Avisos del Sistema</h3>
                         </div>
                         {allNotifs.length === 0 ? 
                             (<div key="empty-notif" className="p-6 bg-brand-bg rounded-brand border border-brand-border text-center text-sm text-brand-text-light italic">No hay mensajes del administrador.</div>) : 
@@ -641,7 +641,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                     {/* CUMPLEAÑOS DE HOY */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-lg text-brand-text flex items-center gap-2"><Icon name="gift" className="text-pink-500"/> Cumpleaños de Hoy</h3>
+                            <h3 className="font-bold text-base text-brand-text flex items-center gap-2"><Icon name="gift" className="text-pink-500"/> Cumpleaños de Hoy</h3>
                             {birthdayPeople.length > 0 && <span className="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase animate-pulse">¡Hay festejos!</span>}
                         </div>
                         {birthdayPeople.length === 0 ? 
@@ -689,7 +689,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             <button onClick={()=>setHistoryClient(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
                             
                             <div className="mb-6 border-b border-gray-100 pb-4">
-                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                <h3 className="font-bold text-base text-gray-800 flex items-center gap-2">
                                     <Icon name="history" className="text-pink-500"/> Historial de Servicios
                                 </h3>
                                 <p className="font-bold text-brand-text mt-2">{historyClient.name}</p>
@@ -732,7 +732,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             <div className="bg-white p-8 rounded-brand w-full max-w-sm relative shadow-2xl animate-scale-in border border-brand-border text-center">
                                 <button onClick={()=>setSelectedPendingAppt(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><Icon name="x"/></button>
                                 <div className="w-16 h-16 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="lock" size={32}/></div>
-                                <h3 className="font-bold text-lg text-gray-800 mb-2">Acceso Restringido</h3>
+                                <h3 className="font-bold text-base text-gray-800 mb-2">Acceso Restringido</h3>
                                 <p className="text-sm text-gray-500 mb-6">Solo los administradores del local pueden aprobar o modificar solicitudes de turnos web.</p>
                                 <button onClick={()=>setSelectedPendingAppt(null)} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">Entendido</button>
                             </div>
@@ -755,7 +755,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                             
                             <div className="mb-6 text-center border-b border-gray-100 pb-4">
                                 <div className="w-12 h-12 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3"><Icon name="globe" size={24}/></div>
-                                <h3 className="font-bold text-lg text-gray-800">{clientName}</h3>
+                                <h3 className="font-bold text-base text-gray-800">{clientName}</h3>
                                 {client?.phone && <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1"><Icon name="phone" size={12}/> {client.phone}</p>}
                             </div>
                             
@@ -797,7 +797,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
                             <div className="w-10 h-10 bg-[var(--color-primary)]/10 text-[var(--color-primary-dark)] rounded-full flex items-center justify-center border border-[var(--color-primary)]/20"><Icon name="message-square" size={20}/></div>
                             <div>
-                                <h3 className="font-bold text-lg text-gray-800">Central de Avisos</h3>
+                                <h3 className="font-bold text-base text-gray-800">Central de Avisos</h3>
                                 <p className="text-xs text-gray-500">Filtrá turnos y mandá recordatorios por WhatsApp.</p>
                             </div>
                         </div>
@@ -873,7 +873,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         {waModal.loading ? (
                             <div key="loading-state" className="flex flex-col items-center py-6">
                                 <Icon name="loader" size={40} className="animate-spin text-[#25D366] mb-4" />
-                                <h3 className="font-bold text-lg text-gray-800"><span>Generando mensaje...</span></h3>
+                                <h3 className="font-bold text-base text-gray-800"><span>Generando mensaje...</span></h3>
                                 <p className="text-sm text-gray-500 mt-2"><span>Preparando el mensaje de confirmación.</span></p>
                             </div>
                         ) : (
@@ -881,7 +881,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                 <div className="w-16 h-16 bg-[#25D366]/10 text-[#0f763e] border border-[#25D366]/30 rounded-full flex items-center justify-center mb-4">
                                     <Icon name="message-circle" size={32} />
                                 </div>
-                                <h3 className="font-bold text-lg text-gray-800 mb-2"><span>¡Mensaje Listo!</span></h3>
+                                <h3 className="font-bold text-base text-gray-800 mb-2"><span>¡Mensaje Listo!</span></h3>
                                 
                                 <button 
                                     onClick={() => {
