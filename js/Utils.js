@@ -1,43 +1,19 @@
-
-const { useState, useEffect, useMemo, useRef } = React;
-
-const MP_LINK_BASE = "https://link.mercadopago.com.ar/tuntocio"; 
-const LOGO_URL = "https://drive.google.com/thumbnail?id=1AJcuAG9Z6Cs62mGWBMdIu1G-ykL4_h_5&sz=w1000";
-
 const Icon = ({ name, size = 20, className = '', style = {} }) => {
-    const pascalName = name
-        .split('-')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-
-    const LucideIcon = window.lucide.icons[pascalName];
+    if (!name) return null;
+    
+    // Convertir nombres como 'check-circle' a 'CheckCircle'
+    const pascalName = name.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+    
+    // Intentar buscar el icono en la librería Lucide cargada
+    const LucideIcon = window.lucide && window.lucide.icons ? window.lucide.icons[pascalName] : null;
 
     if (!LucideIcon) {
-        console.warn(`Icono no encontrado: ${name} (buscado como ${pascalName})`);
-        const Fallback = window.lucide.icons.HelpCircle;
-        return <Fallback size={size} className={className} style={style} />;
+        // Si no existe, devolvemos un círculo simple para que la app NO CRASHEE
+        return <span className={className} style={{display:'inline-block', width: size, height: size, borderRadius: '50%', backgroundColor: '#ccc', ...style}}></span>;
     }
 
     return <LucideIcon size={size} className={className} style={style} />;
-};
-    
-    React.useEffect(() => {
-        // Le decimos a Lucide que dibuje el ícono SOLO adentro de este span
-        if (window.lucide && ref.current) {
-            window.lucide.createIcons({ root: ref.current });
-        }
-    }, [name]); // Si cambia el nombre del icono, se vuelve a dibujar
-
-    return (
-        <span 
-            ref={ref} 
-            className={`inline-flex items-center justify-center ${className}`} 
-            style={style}
-            // Esto oculta el interior a React, evitando el error 'removeChild'
-            dangerouslySetInnerHTML={{ __html: `<i data-lucide="${name}" style="width:${size}px; height:${size}px; stroke-width:2;"></i>` }}
-        />
-    );
-};
+};;
 
 const Logo = ({ className = "" }) => <img src={LOGO_URL} alt="Logo" className={`object-contain drop-shadow-sm ${className}`} style={{ width: 'auto', maxHeight: '120px' }} />;
 
