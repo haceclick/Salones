@@ -162,13 +162,16 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
         return `https://mail.google.com/mail/?view=cm&fs=1&bcc=${bcc}&su=${subject}&body=${encodeURIComponent(bodyText)}`;
     };
 
-    // ✅ Estilo unificado para los títulos de los acordeones
-    const accordionTitleClass = "font-bold text-lg flex items-center gap-3 text-gray-800";
+    // ✅ Estilo unificado para los títulos de los acordeones (Achicado a text-base)
+    const accordionTitleClass = "font-bold text-base flex items-center gap-3 text-gray-800";
     const accordionIconColor = "text-gray-500";
 
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg">
-            <header className="mb-8"><h2 className="text-3xl font-bold text-gray-800">Ajustes del Local</h2></header>
+            <header className="mb-8">
+                {/* ACHICADO A text-2xl */}
+                <h2 className="text-2xl font-bold text-gray-800">Ajustes del Local</h2>
+            </header>
             <form onSubmit={handleSave} className="w-full space-y-4">
                 
                 {/* 1. NEGOCIO Y PAGOS */}
