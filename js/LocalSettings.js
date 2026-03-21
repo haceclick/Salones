@@ -8,7 +8,8 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
         reschedulePolicy: '24',
         showPolicyModal: false, 
         policyText: '',
-        enableDiscounts: false // ✅ NUEVO: Switch para habilitar descuentos
+        enableDiscounts: false,
+        discountType: 'fixed',
     };
     const defaultMsg = { 
         id: 'messages_config', 
@@ -284,12 +285,12 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 </div>
                             </div>
 
-                            {/* ✅ NUEVO: HABILITAR DESCUENTOS */}
+                           // 2. Busca el bloque de "Descuentos y Promociones" y reemplázalo por este:
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between mb-4">
                                     <div>
                                         <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="tag" size={16} className="text-purple-500"/> Descuentos y Promociones</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">Habilita la opción de aplicar descuentos (en $) al finalizar un servicio.</p>
+                                        <p className="text-[10px] text-gray-500 mt-1">Habilita la opción de aplicar descuentos al finalizar un servicio.</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input 
@@ -298,11 +299,32 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                             onChange={e => setAgentConfig({...agentConfig, enableDiscounts: e.target.checked})} 
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                                     </label>
                                 </div>
+                            
+                                {agentConfig.enableDiscounts && (
+                                    <div className="pt-4 border-t border-gray-200 animate-fade-in">
+                                        <label className="block text-[10px] font-bold text-purple-800 uppercase mb-2">Modo de cálculo predeterminado</label>
+                                        <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
+                                            <button 
+                                                type="button"
+                                                onClick={() => setAgentConfig({...agentConfig, discountType: 'fixed'})}
+                                                className={`px-6 py-2 text-xs font-bold transition-colors ${(!agentConfig.discountType || agentConfig.discountType === 'fixed') ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                            >
+                                                Monto Fijo ($)
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setAgentConfig({...agentConfig, discountType: 'percentage'})}
+                                                className={`px-6 py-2 text-xs font-bold transition-colors ${agentConfig.discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                            >
+                                                Porcentaje (%)
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-
                             {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between">
