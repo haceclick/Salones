@@ -173,77 +173,118 @@ const LoginScreen = ({ onLogin, notify }) => {
     );
 };
 
-// --- COMPONENTE SIDEBAR (CON LECTURA REAL DE PERMISOS) ---
+// --- COMPONENTE SIDEBAR (CON LECTURA REAL DE PERMISOS Y SECCIONES) ---
 const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customLogo, brandConfig, professionals = [] }) => {
 
-    const menuItems = [
-        { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager', 'professional'] },
-        { id: 'agenda', label: 'Agenda', icon: 'calendar', roles: ['admin', 'manager', 'professional'] },
-        { id: 'clients', label: 'Clientes', icon: 'users', roles: ['admin', 'manager'] },
-        { id: 'professionals', label: 'Profesionales', icon: 'briefcase', roles: ['admin', 'manager'] },
-        { id: 'treatments', label: 'Servicios', icon: 'tag', roles: ['admin', 'manager'] },
-        { id: 'billing', label: 'Facturación', icon: 'receipt', roles: ['admin', 'manager', 'professional'] },
-        { id: 'stats', label: 'Estadísticas', icon: 'bar-chart-2', roles: ['admin', 'manager', 'professional'] },
-        { id: 'settings', label: 'Configuración', icon: 'settings', roles: ['admin', 'manager'] },
-        { id: 'agent', label: 'Agente IA', icon: 'bot', roles: ['admin'] },
-        { id: 'superadmin', label: 'Admin Sistema', icon: 'shield-check', roles: ['admin', 'manager'], visible: user?.isSuperAdmin === true }
-    ].filter(item => {
-        // 1. Validar si el rol básico tiene acceso
+    // 1. Definimos los botones con su propiedad 'group'
+    const rawMenuItems = [
+        // GRUPO: PRINCIPAL (Sin título)
+        { id: 'dashboard', label: 'Panel General', icon: 'layout-dashboard', roles: ['admin', 'manager', 'professional'], group: 'MAIN' },
+        { id: 'agenda', label: 'Agenda', icon: 'calendar', roles: ['admin', 'manager', 'professional'], group: 'MAIN' },
+        { id: 'clients', label: 'Clientes', icon: 'users', roles: ['admin', 'manager'], group: 'MAIN' },
+        { id: 'treatments', label: 'Servicios', icon: 'tag', roles: ['admin', 'manager'], group: 'MAIN' },
+        
+        // GRUPO: MI EQUIPO
+        { id: 'professionals', label: 'Profesionales', icon: 'briefcase', roles: ['admin', 'manager'], group: 'TEAM' },
+        
+        // GRUPO: MI NEGOCIO
+        { id: 'billing', label: 'Facturación', icon: 'receipt', roles: ['admin', 'manager', 'professional'], group: 'BUSINESS' },
+        { id: 'stats', label: 'Estadísticas', icon: 'bar-chart-2', roles: ['admin', 'manager', 'professional'], group: 'BUSINESS' },
+        { id: 'settings', label: 'Configuración', icon: 'settings', roles: ['admin', 'manager'], group: 'BUSINESS' },
+        
+        // GRUPO: ADMINISTRADOR
+        { id: 'agent', label: 'Agente IA', icon: 'bot', roles: ['admin'], group: 'ADMIN' },
+        { id: 'superadmin', label: 'Admin Sistema', icon: 'shield-check', roles: ['admin', 'manager'], visible: user?.isSuperAdmin === true, group: 'ADMIN' }
+    ];
+
+    // 2. Filtramos mágicamente qué botones puede ver el usuario logueado
+    const allowedItems = rawMenuItems.filter(item => {
+        // Validar si el rol básico tiene acceso
         if (!item.roles.includes(user?.role)) return false;
         
-        // 2. Validar restricciones explícitas
+        // Validar restricciones explícitas (ej: superadmin)
         if (item.visible === false) return false;
 
-        // 3. 🔥 MAGIA: LECTURA DE PERMISOS REALES DEL PROFESIONAL 🔥
+        // LECTURA DE PERMISOS REALES DEL PROFESIONAL
         if (user?.role === 'professional') {
-            // Buscamos el perfil completo del profesional en la base de datos descargada
             const myProfile = professionals.find(p => p.id === user?.profId);
             const myPerms = myProfile?.permissions || {};
             
-            // Si tiene el permiso configurado, le hacemos caso al switch
             if (myPerms[item.id] !== undefined) {
                 return myPerms[item.id] === true;
             }
-            // Si es un perfil viejo sin permisos configurados, solo ve agenda por defecto
-            return item.id === 'agenda';
+            return item.id === 'agenda'; // Por defecto solo agenda
         }
 
-        // Admin y Manager ven todo
+        // Admin y Manager ven todo lo que pasa los primeros filtros
         return true;
     });
+
+    // 3. Definimos los títulos de cada grupo
+    const menuGroups = [
+        { id: 'MAIN', title: null },
+        { id: 'TEAM', title: 'MI EQUIPO' },
+        { id: 'BUSINESS', title: 'MI NEGOCIO' },
+        { id: 'ADMIN', title: 'ADMINISTRADOR' }
+    ];
 
     return (
         <div 
             className={`fixed md:static inset-y-0 left-0 z-40 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 w-72 flex flex-col shadow-2xl shrink-0`} 
             style={{ backgroundColor: brandConfig.sidebarBg || '#111827' }}
         >
-            <div className="p-8 flex flex-col items-center justify-center min-h-[160px]">
+            {/* LOGO */}
+            <div className="p-8 flex flex-col items-center justify-center min-h-[160px] shrink-0">
                 {customLogo ? (
                     <img src={customLogo} alt="Logo" className="w-[85%] max-h-40 object-contain drop-shadow-xl" />
                 ) : (
-                    <Logo className="h-12" />
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold"><Icon name="scissors" size={24}/></div>
                 )}
             </div>
 
-            <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto custom-scrollbar">
-                {menuItems.map(item => {
-                    const isActive = currentView === item.id;
+            {/* NAVEGACIÓN AGRUPADA */}
+            <nav className="flex-1 px-4 py-2 overflow-y-auto custom-scrollbar">
+                {menuGroups.map(group => {
+                    // Solo obtenemos los botones de este grupo que pasaron el filtro de permisos
+                    const groupItems = allowedItems.filter(item => item.group === group.id);
+                    
+                    // Si el grupo se quedó vacío (por permisos), no lo dibujamos ni ponemos su título
+                    if (groupItems.length === 0) return null;
+
                     return (
-                        <button key={item.id} onClick={() => { setCurrentView(item.id); setIsOpen(false); }} 
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-normal hover:opacity-80 transition-opacity"
-                            style={{ 
-                                backgroundColor: isActive ? (brandConfig.primaryColor || '#008395') : 'transparent',
-                                color: isActive ? (brandConfig.sidebarActive || '#ffffff') : (brandConfig.sidebarText || '#9ca3af')
-                            }}
-                        >
-                            <Icon name={item.icon} size={20} style={{ color: isActive ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
-                            {item.label}
-                        </button>
+                        <div key={group.id} className={group.title ? "mt-8 mb-2" : "mb-2"}>
+                            {/* TÍTULO DEL GRUPO (Si tiene) */}
+                            {group.title && (
+                                <p className="px-4 text-[10px] font-bold tracking-[0.15em] mb-3 opacity-60" style={{ color: brandConfig.sidebarText || '#9ca3af' }}>
+                                    {group.title}
+                                </p>
+                            )}
+                            
+                            {/* BOTONES DEL GRUPO */}
+                            <div className="space-y-1">
+                                {groupItems.map(item => {
+                                    const isActive = currentView === item.id;
+                                    return (
+                                        <button key={item.id} onClick={() => { setCurrentView(item.id); setIsOpen(false); }} 
+                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-normal hover:opacity-80 transition-all"
+                                            style={{ 
+                                                backgroundColor: isActive ? (brandConfig.primaryColor || '#008395') : 'transparent',
+                                                color: isActive ? (brandConfig.sidebarActive || '#ffffff') : (brandConfig.sidebarText || '#9ca3af')
+                                            }}
+                                        >
+                                            <Icon name={item.icon} size={20} style={{ color: isActive ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
+                                            {item.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     );
                 })}
             </nav>
 
-            <div className="px-4 py-3 border-t mt-2" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+            {/* SOPORTE */}
+            <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                 <button 
                     onClick={() => { setCurrentView('support'); setIsOpen(false); }} 
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-normal hover:opacity-80 transition-opacity"
@@ -257,7 +298,8 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                 </button>
             </div>
 
-            <div className="p-4 border-t flex items-center justify-between gap-3" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+            {/* PERFIL Y SALIR */}
+            <div className="p-4 border-t flex items-center justify-between gap-3 shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm uppercase shrink-0 shadow-md"
@@ -276,11 +318,10 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                 </div>
                 <button 
                     onClick={() => { localStorage.clear(); window.location.reload(); }}
-                    className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all shrink-0 shadow-lg active:scale-95"
+                    className="flex items-center justify-center p-2.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-xl transition-all shrink-0 shadow-sm active:scale-95 group"
                     title="Cerrar Sesión"
                 >
-                    <Icon name="log-out" size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Salir</span>
+                    <Icon name="log-out" size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                 </button>
             </div>
         </div>
