@@ -145,8 +145,9 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         <div className="p-8 h-full bg-brand-bg overflow-y-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-800">Profesionales</h2>
-                    <p className="text-gray-500 mt-2">Gestiona tu equipo y sus accesos.</p>
+                    {/* ACHICADO A text-2xl */}
+                    <h2 className="text-2xl font-bold text-gray-800">Profesionales</h2>
+                    <p className="text-sm text-gray-500 mt-1">Gestiona tu equipo y sus accesos.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="bg-white border border-gray-200 flex rounded-xl p-1 shadow-sm">
@@ -182,13 +183,14 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         {(p?.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                        {/* ACHICADO A text-base */}
+                                        <h3 className="font-bold text-base text-gray-800 flex items-center gap-2">
                                             {p?.name || "Sin nombre"} 
                                             {isBirthdayToday(p.birthday) && <span title="¡Hoy es su cumpleaños!">🎂</span>}
                                             {p?.hasCommission && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold" title="Cobra comisión">% Múltiple</span>}
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                                            <Icon name="phone" size={12}/> {p?.phone || '-'}
+                                            <Icon name="phone" size={14}/> {p?.phone || '-'}
                                         </div>
                                         {p?.hasAccess && (
                                             <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold mt-1.5 border border-blue-100">
@@ -237,14 +239,14 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${p.color || 'bg-gray-100'}`}>
                                                         {(p?.name || "?").charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="font-bold text-gray-800 whitespace-nowrap">
+                                                    <span className="font-bold text-gray-800 whitespace-nowrap text-sm"> {/* Achicado a text-sm */}
                                                         {p.name || "Sin nombre"}
                                                         {isBirthdayToday(p.birthday) && <span className="ml-2" title="¡Hoy es su cumpleaños!">🎂</span>}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-medium text-gray-600 whitespace-nowrap">
-                                                {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={12}/> {p.phone}</span> : '-'}
+                                            <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm"> {/* Achicado a text-sm */}
+                                                {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
                                             </td>
                                             <td className="p-4 max-w-xs">
                                                 <div className="flex flex-wrap gap-1">
@@ -293,7 +295,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
                         
                         <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                            <h3 className="font-bold text-xl text-gray-800">Perfil del Profesional</h3>
+                            {/* ACHICADO A text-lg */}
+                            <h3 className="font-bold text-lg text-gray-800">Perfil del Profesional</h3>
                             <button onClick={()=>setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors"><Icon name="x" size={24}/></button>
                         </div>
 
@@ -346,7 +349,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                 {/* SECCIÓN COMISIONES MÚLTIPLES */}
                                 <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-bold text-green-900 flex items-center gap-2"><Icon name="dollar-sign" size={18}/> Pago de Comisiones</h4>
+                                        <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Pago de Comisiones</h4>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" checked={form.hasCommission || false} onChange={e => setForm({...form, hasCommission: e.target.checked})} />
                                             <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
@@ -386,7 +389,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                 {/* ACCESO AL SISTEMA Y PERMISOS */}
                                 <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h4 className="font-bold text-blue-900 flex items-center gap-2"><Icon name="shield" size={18}/> Acceso al Sistema</h4>
+                                        <h4 className="font-bold text-blue-900 flex items-center gap-2 text-sm"><Icon name="shield" size={18}/> Acceso al Sistema</h4>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" checked={form.hasAccess || false} onChange={e => setForm({...form, hasAccess: e.target.checked})} />
                                             <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
@@ -489,7 +492,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                         <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Icon name="alert-triangle" size={24} />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 text-gray-800">¿Eliminar Profesional?</h3>
+                        <h3 className="font-bold text-base mb-2 text-gray-800">¿Eliminar Profesional?</h3>
                         <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer y borrará también su acceso al sistema.</p>
                         <div className="flex gap-3 mt-6">
                             <button onClick={() => setConfirmDelete({open:false, id:null})} className="flex-1 py-2.5 border border-gray-300 hover:bg-gray-50 rounded-lg font-bold text-gray-600 transition-colors">Cancelar</button>
