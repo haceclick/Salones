@@ -17,6 +17,9 @@ const SuperAdminPanel = ({ notify, user }) => {
     // ✅ ESTADO PARA EL ACORDEÓN (Inicia con 'empresas' abierto)
     const [openSection, setOpenSection] = useState('empresas');
 
+    // ✅ NUEVO: ESTADO PARA EXPORTACIÓN
+    const [exportingId, setExportingId] = useState(null);
+
     const toggleSection = (sectionName) => {
         setOpenSection(prev => prev === sectionName ? null : sectionName);
     };
@@ -54,7 +57,7 @@ const SuperAdminPanel = ({ notify, user }) => {
                     notify(res.message, "success");
                     setForm({ email: '', pass: '', name: '', rubro: '' });
                     loadTenants(); 
-                    setOpenSection('empresas'); // Redirige la vista a la tabla de empresas
+                    setOpenSection('empresas'); 
                 } else notify(res.message, "error");
             })
             .createNewTenant(form.email, form.pass, form.name, form.rubro, user.email);
@@ -117,7 +120,6 @@ const SuperAdminPanel = ({ notify, user }) => {
     const startEditMsg = (m) => {
         setMsgForm({ target: m.target, title: m.title, message: m.message });
         setEditingMsgId(m.id);
-        // Ya no hacemos scrollIntoView, simplemente nos aseguramos de que la sección esté abierta
         setOpenSection('avisos');
     };
 
@@ -152,6 +154,28 @@ const SuperAdminPanel = ({ notify, user }) => {
                 } else notify(res.message, "error");
             })
             .updateTenant(user.email, sheetId, editForm.name, editForm.pass);
+    };
+
+    // ✅ NUEVO: FUNCIÓN PARA EXPORTAR BASE DE DATOS DEL CLIENTE
+    const handleExportClientDB = (clientSheetId) => {
+        setExportingId(clientSheetId);
+        notify("Generando archivo ZIP... Esto puede tardar unos segundos.", "info");
+
+        window.google.script.run
+            .withSuccessHandler((res) => {
+                setExportingId(null);
+                if (res.success) {
+                    notify("¡Base de datos exportada con éxito!", "success");
+                    window.open(res.url, '_blank');
+                } else {
+                    notify("Error: " + res.message, "error");
+                }
+            })
+            .withFailureHandler(() => {
+                setExportingId(null);
+                notify("Error de conexión al intentar exportar.", "error");
+            })
+            .exportTenantData(user?.email, clientSheetId);
     };
 
     return (
@@ -255,6 +279,16 @@ const SuperAdminPanel = ({ notify, user }) => {
                                                             </>
                                                         ) : (
                                                             <>
+                                                                {/* ✅ AQUÍ AGREGAMOS EL BOTÓN DE EXPORTAR JSON PARA CADA EMPRESA */}
+                                                                <button 
+                                                                    onClick={()=>handleExportClientDB(client.sheetId)} 
+                                                                    disabled={exportingId === client.sheetId}
+                                                                    className="p-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors shadow-sm disabled:opacity-50" 
+                                                                    title="Exportar Base JSON (ZIP)"
+                                                                >
+                                                                    <Icon name={exportingId === client.sheetId ? "loader" : "download-cloud"} size={16} className={exportingId === client.sheetId ? "animate-spin" : ""}/>
+                                                                </button>
+                                                                
                                                                 <button onClick={()=>startEdit(client)} className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shadow-sm" title="Editar Credenciales"><Icon name="edit-2" size={16}/></button>
                                                                 <button onClick={()=>setDeleteTarget({id:client.sheetId, name:client.businessName})} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors shadow-sm" title="Borrar Acceso"><Icon name="trash-2" size={16}/></button>
                                                                 <a href={`https://docs.google.com/spreadsheets/d/${client.sheetId}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-50 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-lg transition-colors shadow-sm" title="Abrir DB Original en Drive"><Icon name="sheet" size={16}/></a>
