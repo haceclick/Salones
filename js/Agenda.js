@@ -16,6 +16,9 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     // ESTADOS PARA EL COBRO
     const [showCheckout, setShowCheckout] = useState(null); 
     const [paymentMethod, setPaymentMethod] = useState('cash');
+    // ✅ NUEVO: Estados para manejar el descuento en caja
+    const [discountValue, setDiscountValue] = useState(0);
+    const [discountReason, setDiscountReason] = useState('');
 
     useEffect(() => {
         if (targetApptId && appointments.length > 0) {
@@ -150,6 +153,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             if (form.status === 'completed') {
                 setIsCreateOpen(false);
                 setShowCheckout(apptData);
+                setDiscountValue(0); // Reiniciamos el descuento al abrir checkout
+                setDiscountReason('');
                 return;
             }
 
@@ -175,6 +180,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         if (newStatus === 'completed') {
             const appt = appointments.find(a => a.id === apptId);
             setSelectedAppt(null); 
+            setDiscountValue(0); // Limpiamos campos
+            setDiscountReason('');
             setShowCheckout(appt); 
             return;
         }
@@ -182,6 +189,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
+    // ✅ LÓGICA DE COBRO CON DESCUENTOS
     const handleCompleteCheckout = () => {
         if (isProfessional) return; // Bloqueo extra
         const appt = showCheckout;
@@ -192,18 +200,35 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const total = parseFloat(tr?.price || 0);
         const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
-        const finalAmount = total - depositAmount;
+        
+        // Validación del descuento
+        let safeDiscount = parseFloat(discountValue) || 0;
+        if (safeDiscount < 0) safeDiscount = 0;
+        if (safeDiscount > total) safeDiscount = total; // No descontar más de lo que vale el servicio
 
+        // Matemática final
+        const finalAmount = total - depositAmount - safeDiscount;
+
+        // Guardamos el turno añadiendo el historial financiero (importante para "Facturación")
         const updatedAppointments = appointments.map(a => 
-            a.id === appt.id ? { ...a, status: 'completed', paymentMethod: paymentMethod, finalAmount: finalAmount } : a
+            a.id === appt.id ? { 
+                ...a, 
+                status: 'completed', 
+                paymentMethod: paymentMethod, 
+                finalAmount: finalAmount,
+                discountAmount: safeDiscount,
+                discountReason: discountReason
+            } : a
         );
         saveAppointments(updatedAppointments);
 
+        // Armamos el ticket para WhatsApp
         const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
                         `Tu servicio de *${tr?.name}* ha sido finalizado con éxito.\n\n` +
                         `💰 *Detalle del pago:*\n` +
-                        `- Total: $${total}\n` +
+                        `- Valor Servicio: $${total}\n` +
                         (hasDeposit ? `- Seña abonada: -$${depositAmount}\n` : '') +
+                        (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
                         `*Total cobrado: $${finalAmount}* (${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})\n\n` +
                         `¡Esperamos verte pronto! 💖`;
 
@@ -212,7 +237,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         
         setShowCheckout(null);
         setEditingApptId(null);
-        notify("Servicio finalizado y mensaje enviado", "success");
+        notify("Servicio finalizado y cobrado", "success");
     };
 
     const openEditModal = (appt) => {
@@ -323,13 +348,12 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         {hoursGrid.map(h => {
                                             const isWorking = isWorkingHour(filterProf, day, h) && dayIsWorking;
                                             
-                                            // 🔥 DESACTIVAMOS EL CURSOR SI ES PROFESIONAL (Visualmente no parece clickeable)
+                                            // 🔥 DESACTIVAMOS EL CURSOR SI ES PROFESIONAL
                                             const cursorClass = !isWorking ? 'bg-gray-100/60 cursor-not-allowed opacity-50' : (isProfessional ? 'cursor-default' : 'hover:bg-[var(--color-primary)]/5 cursor-pointer');
 
                                             return <div key={h} className={`h-28 border-b border-gray-100 transition-colors ${cursorClass}`} 
                                                 style={!isWorking ? { backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)' } : {}}
                                                 onClick={() => { 
-                                                    // 🔥 BLOQUEO DE CREACIÓN EN EL GRID SI ES PROFESIONAL
                                                     if (isProfessional) return; 
                                                     if (!isWorking || isHoliday) return; 
                                                     setEditingApptId(null); 
@@ -418,7 +442,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 )}
                             </div>
 
-                            {/* 🔥 OCULTAMOS LOS BOTONES DE COBRO Y EDICIÓN SI ES PROFESIONAL */}
                             {!isProfessional && (
                                 <>
                                     {selectedAppt.status !== 'completed' && selectedAppt.status !== 'blocked' && (
@@ -437,7 +460,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 </>
                             )}
 
-                            {/* Si es profesional, solo le mostramos un botón de Cerrar */}
                             {isProfessional && (
                                 <button onClick={()=>setSelectedAppt(null)} className="w-full py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
                                     Cerrar Detalles
@@ -527,28 +549,67 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 </div>
             )}
 
-            {/* MODAL DE CHECKOUT (COBRO FINAL) */}
+            {/* MODAL DE CHECKOUT (COBRO FINAL CON DESCUENTOS) */}
             {showCheckout && (() => {
                 const tr = treatments.find(t => t.id === showCheckout.treatmentId);
                 const agentStr = settings?.find(s => s.id === 'agent_config') || {};
+                
                 const total = parseFloat(tr?.price || 0);
                 const hasDeposit = (showCheckout.status === 'confirmed_paid' || showCheckout.status === 'reserved');
                 const deposit = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
-                const finalAmount = total - deposit;
+                const discountsEnabled = agentStr.enableDiscounts === true;
+
+                // Cálculo Dinámico en vivo
+                let safeDiscount = parseFloat(discountValue) || 0;
+                if (safeDiscount < 0) safeDiscount = 0;
+                if (safeDiscount > total) safeDiscount = total;
+
+                const finalAmount = total - deposit - safeDiscount;
 
                 return (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                            <div className="bg-[var(--color-primary)] p-6 text-white text-center">
+                            <div className="bg-[var(--color-primary)] p-6 text-white text-center relative">
+                                <button onClick={() => setShowCheckout(null)} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"><Icon name="x" size={24}/></button>
                                 <Icon name="check-circle" size={48} className="mx-auto mb-2 opacity-80"/>
                                 <h3 className="text-xl font-bold">Finalizar Servicio</h3>
                                 <p className="opacity-90 text-sm">Registra el pago para cerrar el turno</p>
                             </div>
-                            <div className="p-8 space-y-6">
+                            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
                                     <div className="flex justify-between mb-2"><span className="text-gray-500">Servicio:</span><span className="font-bold text-gray-800">{tr?.name}</span></div>
                                     <div className="flex justify-between mb-2"><span className="text-gray-500">Valor Total:</span><span className="font-bold text-gray-800">${total}</span></div>
+                                    
                                     {hasDeposit && (<div className="flex justify-between mb-2 text-green-600 font-bold italic"><span>Seña descontada:</span><span>-${deposit}</span></div>)}
+                                    
+                                    {/* SECCIÓN DESCUENTOS DINÁMICA */}
+                                    {discountsEnabled && (
+                                        <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+                                            <label className="block text-[10px] font-bold text-purple-600 uppercase mb-2 flex items-center gap-1"><Icon name="tag" size={12}/> Aplicar Descuento / Promo</label>
+                                            <div className="flex gap-2 mb-2">
+                                                <div className="relative w-1/3">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                    <input 
+                                                        type="number" min="0" max={total} step="100"
+                                                        className="w-full border border-gray-200 p-2 pl-7 rounded-lg outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 transition-all" 
+                                                        placeholder="0"
+                                                        value={discountValue || ''}
+                                                        onChange={(e) => setDiscountValue(e.target.value)}
+                                                    />
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    className="flex-1 border border-gray-200 p-2 rounded-lg outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 text-sm transition-all" 
+                                                    placeholder="Motivo (Ej: Promo Amiga)"
+                                                    value={discountReason}
+                                                    onChange={(e) => setDiscountReason(e.target.value)}
+                                                    disabled={!discountValue || discountValue <= 0}
+                                                />
+                                            </div>
+                                            {safeDiscount > 0 && <p className="text-xs text-purple-600 text-right font-medium animate-fade-in">Se descontarán ${safeDiscount} del total.</p>}
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-between pt-3 border-t border-gray-200 mt-2"><span className="text-lg font-bold text-gray-800">Saldo a Cobrar:</span><span className="text-2xl font-black text-[var(--color-primary)]">${finalAmount}</span></div>
                                 </div>
                                 <div>
@@ -562,12 +623,9 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         </button>
                                     </div>
                                 </div>
-                                <div className="flex gap-3 pt-4">
-                                    <button onClick={() => setShowCheckout(null)} className="flex-1 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors">Cancelar</button>
-                                    <button onClick={handleCompleteCheckout} className="flex-[2] bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2">
-                                        <Icon name="send" size={18}/> Finalizar y Saludar
-                                    </button>
-                                </div>
+                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02]">
+                                    <Icon name="send" size={18}/> Finalizar y Saludar por WA
+                                </button>
                             </div>
                         </div>
                     </div>
