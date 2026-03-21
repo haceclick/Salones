@@ -584,15 +584,21 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {hasDeposit && (<div className="flex justify-between mb-2 text-green-600 font-bold italic"><span>Seña descontada:</span><span>-${deposit}</span></div>)}
                                     
                                     {/* SECCIÓN DESCUENTOS DINÁMICA */}
+                                    // --- DENTRO DEL MODAL DE CHECKOUT EN Agenda.js ---
+
                                     {discountsEnabled && (
-                                        <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
-                                            <label className="block text-[10px] font-bold text-purple-600 uppercase mb-2 flex items-center gap-1"><Icon name="tag" size={12}/> Aplicar Descuento / Promo</label>
+                                        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 animate-fade-in">
+                                            <label className="block text-[10px] font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
+                                                <Icon name="tag" size={12}/> Aplicar Descuento ({agentStr.discountType === 'percentage' ? '%' : '$'})
+                                            </label>
                                             <div className="flex gap-2 mb-2">
                                                 <div className="relative w-1/3">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
+                                                        {agentStr.discountType === 'percentage' ? '%' : '$'}
+                                                    </span>
                                                     <input 
-                                                        type="number" min="0" max={total} step="100"
-                                                        className="w-full border border-gray-200 p-2 pl-7 rounded-lg outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 transition-all" 
+                                                        type="number" min="0" step={agentStr.discountType === 'percentage' ? '1' : '100'}
+                                                        className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white" 
                                                         placeholder="0"
                                                         value={discountValue || ''}
                                                         onChange={(e) => setDiscountValue(e.target.value)}
@@ -600,17 +606,24 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                 </div>
                                                 <input 
                                                     type="text" 
-                                                    className="flex-1 border border-gray-200 p-2 rounded-lg outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 text-sm transition-all" 
-                                                    placeholder="Motivo (Ej: Promo Amiga)"
+                                                    className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white" 
+                                                    placeholder="Motivo (Ej: Cliente frecuente)"
                                                     value={discountReason}
                                                     onChange={(e) => setDiscountReason(e.target.value)}
-                                                    disabled={!discountValue || discountValue <= 0}
                                                 />
                                             </div>
-                                            {safeDiscount > 0 && <p className="text-xs text-purple-600 text-right font-medium animate-fade-in">Se descontarán ${safeDiscount} del total.</p>}
+                                            
+                                            {/* Lógica de visualización del ahorro real */}
+                                            {parseFloat(discountValue) > 0 && (
+                                                <p className="text-[10px] text-purple-600 text-right font-bold italic">
+                                                    {agentStr.discountType === 'percentage' 
+                                                        ? `Ahorro calculado: -$${(total * (parseFloat(discountValue)/100)).toLocaleString()}`
+                                                        : `Se descontarán $${parseFloat(discountValue).toLocaleString()} del total.`
+                                                    }
+                                                </p>
+                                            )}
                                         </div>
                                     )}
-
                                     <div className="flex justify-between pt-3 border-t border-gray-200 mt-2"><span className="text-sm font-bold text-gray-800">Saldo a Cobrar:</span><span className="text-xl font-black text-[var(--color-primary)]">${finalAmount}</span></div>
                                 </div>
                                 <div>
