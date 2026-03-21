@@ -261,18 +261,22 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setIsOpen, user, customL
                             )}
                             
                             {/* BOTONES DEL GRUPO */}
-                            <div className="space-y-1">
+                            {/* 1. Cambiamos space-y-1 por space-y-2 para darle más aire vertical */}
+                            <div className="space-y-2">
                                 {groupItems.map(item => {
                                     const isActive = currentView === item.id;
                                     return (
                                         <button key={item.id} onClick={() => { setCurrentView(item.id); setIsOpen(false); }} 
-                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-normal hover:opacity-80 transition-all"
+                                            // 2. Agregamos 'text-sm' (o text-[13px]) para achicar la letra
+                                            // y ajustamos un poco el padding vertical (py-2.5 en vez de py-3)
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-normal text-sm hover:opacity-80 transition-all"
                                             style={{ 
                                                 backgroundColor: isActive ? (brandConfig.primaryColor || '#008395') : 'transparent',
                                                 color: isActive ? (brandConfig.sidebarActive || '#ffffff') : (brandConfig.sidebarText || '#9ca3af')
                                             }}
                                         >
-                                            <Icon name={item.icon} size={20} style={{ color: isActive ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
+                                            {/* 3. Achicamos un poquito el ícono de 20 a 18 para que acompañe la nueva letra */}
+                                            <Icon name={item.icon} size={18} style={{ color: isActive ? (brandConfig.sidebarActive || '#ffffff') : 'inherit' }} />
                                             {item.label}
                                         </button>
                                     );
