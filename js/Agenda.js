@@ -189,9 +189,10 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
-        // ✅ LÓGICA DE COBRO CON DESCUENTOS
+        // ✅ LÓGICA DE COBRO CON DESCUENTOS INTELIGENTES
         const handleCompleteCheckout = () => {
-            if (isProfessional) return; // Bloqueo extra
+            if (isProfessional) return; // Bloqueo extra de seguridad
+            
             const appt = showCheckout;
             const tr = treatments.find(t => t.id === appt.treatmentId);
             const client = clients.find(c => c.id === appt.clientId);
@@ -201,56 +202,61 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
             const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
             
-            // --- 🚀 NUEVA LÓGICA DE DESCUENTO CONFIGURABLE ---
+            // --- 🚀 CÁLCULO DE DESCUENTO SEGÚN CONFIGURACIÓN ---
             let safeDiscount = 0;
             const inputVal = parseFloat(discountValue) || 0;
             
-            // Verificamos qué tipo de cálculo eligió el admin en configuración
             if (agentStr.discountType === 'percentage') {
-                // Si es porcentaje, calculamos cuánto es ese % del total
+                // Si en configuración eligieron %, calculamos el monto real en dinero
                 safeDiscount = total * (inputVal / 100);
             } else {
-                // Si es monto fijo (o no hay nada definido), usamos el valor directo
+                // Si eligieron $, restamos el monto directo
                 safeDiscount = inputVal;
             }
     
-            // Validaciones de seguridad
+            // Validación: El descuento no puede ser negativo ni superar el total restante
+            const remainingToPay = total - depositAmount;
             if (safeDiscount < 0) safeDiscount = 0;
-            if (safeDiscount > (total - depositAmount)) safeDiscount = (total - depositAmount); // No descontar más de lo que queda por cobrar
+            if (safeDiscount > remainingToPay) safeDiscount = remainingToPay;
     
-            // Matemática final (Monto que el cliente entrega físicamente ahora)
+            // Matemática final: Lo que el cliente paga en este momento
             const finalAmount = total - depositAmount - safeDiscount;
     
-            // Guardamos el turno añadiendo el historial financiero (importante para "Facturación")
+            // 1. Guardamos el turno con el historial financiero completo
             const updatedAppointments = appointments.map(a => 
                 a.id === appt.id ? { 
                     ...a, 
                     status: 'completed', 
                     paymentMethod: paymentMethod, 
-                    finalAmount: finalAmount, // Lo que entró a caja hoy
-                    discountAmount: safeDiscount, // El valor real en $ del descuento aplicado
+                    finalAmount: finalAmount,      // Dinero físico que entra hoy
+                    discountAmount: safeDiscount, // Valor real del descuento aplicado
                     discountReason: discountReason
                 } : a
             );
             
             saveAppointments(updatedAppointments);
     
-            // --- TICKET DE WHATSAPP ---
+            // 2. Armamos el ticket para WhatsApp (Personalizado según el pago)
             const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
                             `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
                             `💰 *Detalle del pago:*\n` +
-                            `- Valor Servicio: $${total}\n` +
-                            (hasDeposit ? `- Seña abonada: -$${depositAmount}\n` : '') +
+                            `- Valor Servicio: $${total.toLocaleString()}\n` +
+                            (hasDeposit ? `- Seña abonada: -$${depositAmount.toLocaleString()}\n` : '') +
                             (safeDiscount > 0 ? `- Descuento aplicado: -$${safeDiscount.toLocaleString()} ${discountReason ? '('+discountReason+')' : ''}\n` : '') +
-                            `*Total cobrado hoy: $${finalAmount.toLocaleString()}* (${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})\n\n` +
+                            `--------------------------\n` +
+                            `*Total abonado hoy: $${finalAmount.toLocaleString()}*\n` +
+                            `_(Medio: ${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})_\n\n` +
                             `¡Esperamos verte pronto! 💖`;
     
             const phone = String(client.phone).replace(/\D/g, '');
             window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
             
+            // 3. Limpiamos estados y cerramos modal
             setShowCheckout(null);
             setEditingApptId(null);
-            notify("Servicio finalizado y cobrado", "success");
+            setDiscountValue(0);
+            setDiscountReason('');
+            notify("Servicio finalizado y cobrado exitosamente", "success");
         };
 
         // Armamos el ticket para WhatsApp
@@ -315,7 +321,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             <option value="all">👥 Todos los Profesionales</option>
                             {professionals.map(p => <option key={p.id} value={p.id}>👤 {p.name}</option>)}
                         </select>
-                    ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="user" size={16}/> Mi Agenda</div>}
+                    ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="users" size={16}/> Mi Agenda</div>}
                     
                     {!isProfessional && (
                         <button onClick={() => setBlockModal({open:true, type:'day', date:'', time:'', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')})} className="bg-gray-800 text-white px-3 py-2 rounded-lg font-bold flex gap-2 hover:bg-black transition-colors shadow-sm">
@@ -469,7 +475,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 {selectedAppt.status !== 'blocked' && (
                                     <>
                                         <p className="flex items-center gap-3"><Icon name="tag" size={18} className="text-[var(--color-primary)]"/> {tr ? `${tr.category} - ${tr.name}` : 'Servicio no asignado'}</p>
-                                        <p className="flex items-center gap-3"><Icon name="user" size={18} className="text-[var(--color-primary)]"/> {prof ? prof.name : 'Cualquier Profesional'}</p>
+                                        <p className="flex items-center gap-3"><Icon name="users" size={18} className="text-[var(--color-primary)]"/> {prof ? prof.name : 'Cualquier Profesional'}</p>
                                     </>
                                 )}
                             </div>
@@ -486,7 +492,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     )}
 
                                     <div className="flex gap-4">
-                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="edit" size={18}/> Editar</button>}
+                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="pencil" size={18}/> Editar</button>}
                                         <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
                                     </div>
                                 </>
