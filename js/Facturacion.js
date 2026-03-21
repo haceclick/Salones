@@ -58,17 +58,24 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); 
     }, [appointments, dateRange, activeProfFilter, paymentFilter, searchClient, clients]);
 
-    // Procesamiento de datos para métricas y gráficas
+    // Procesamiento de datos para métricas y gráficas (AJUSTADO PARA DESCUENTOS)
     const statsData = useMemo(() => {
         let totalBruto = 0;
         let totalComisiones = 0;
+        let totalDescuentos = 0; // ✅ Nuevo contador
         const dailyMap = {};
         const profMap = {};
 
         filteredAppointments.forEach(appt => {
             const treatment = treatments.find(t => t.id === appt.treatmentId);
             const professional = professionals.find(p => p.id === appt.professionalId);
-            const price = Number(appt.finalAmount || treatment?.price || 0);
+            
+            // ✅ Leemos el precio original y el descuento
+            const originalPrice = Number(treatment?.price || 0);
+            const discount = Number(appt.discountAmount || 0);
+            
+            // ⚠️ La comisión y el ingreso bruto se calculan sobre el precio POST-descuento
+            const priceAfterDiscount = originalPrice - discount; 
             
             // Lógica de Comisión
             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
@@ -81,16 +88,19 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                     rate = Number(professional.commissionRate);
                 }
             }
-            const comm = price * (rate / 100);
-            const gananciaLocal = price - comm;
+            
+            // La comisión se calcula sobre la plata real que ingresó
+            const comm = priceAfterDiscount * (rate / 100);
+            const gananciaLocal = priceAfterDiscount - comm;
 
-            totalBruto += price;
+            totalBruto += priceAfterDiscount;
             totalComisiones += comm;
+            totalDescuentos += discount;
 
             // Datos para gráfica de evolución
             const dateKey = new Date(appt.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
             if (!dailyMap[dateKey]) dailyMap[dateKey] = { day: dateKey, bruto: 0, neto: 0 };
-            dailyMap[dateKey].bruto += price;
+            dailyMap[dateKey].bruto += priceAfterDiscount;
             dailyMap[dateKey].neto += gananciaLocal;
 
             // Datos para gráfica por profesional
@@ -102,6 +112,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         return {
             totalBruto,
             totalComisiones,
+            totalDescuentos, // ✅ Exportamos el total
             netoLocal: totalBruto - totalComisiones,
             chartTimeline: Object.values(dailyMap),
             chartProfs: Object.values(profMap)
@@ -317,9 +328,11 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 animate-fade-in print:hidden">
                     {reportMode === 'local' ? (
                         <>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Ingreso Bruto Total</p>
                                 <p className="text-2xl font-black text-gray-900">${statsData.totalBruto.toLocaleString()}</p>
+                                {/* ✅ INFO DESCUENTOS */}
+                                {statsData.totalDescuentos > 0 && <span className="absolute top-6 right-6 text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-200">-{statsData.totalDescuentos} en Promos</span>}
                             </div>
                             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                                 <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Comisiones (Egresos)</p>
@@ -439,8 +452,8 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                 <tr className="text-[11px] uppercase text-gray-400 font-bold border-b border-gray-200">
                                     <th className="pb-4 px-2">Fecha / Hora</th>
                                     <th className="pb-4 px-2">Cliente / Servicio</th>
-                                    <th className="pb-4 px-2">Medio</th>
-                                    <th className="pb-4 px-2 text-right">Cobrado</th>
+                                    <th className="pb-4 px-2 text-center">Promo</th> {/* ✅ NUEVA COLUMNA DE PROMO */}
+                                    <th className="pb-4 px-2 text-right">Monto Bruto</th> {/* ✅ ACTUALIZADO */}
                                     
                                     {reportMode === 'local' ? (
                                         <>
@@ -457,14 +470,18 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                             </thead>
                             <tbody>
                                 {filteredAppointments.length === 0 ? (
-                                    <tr><td colSpan="6" className="py-10 text-center text-gray-300 italic text-sm">No hay operaciones en este período.</td></tr>
+                                    <tr><td colSpan="7" className="py-10 text-center text-gray-300 italic text-sm">No hay operaciones en este período.</td></tr>
                                 ) : (
                                     filteredAppointments.map(appt => {
                                         const treatment = treatments.find(t => t.id === appt.treatmentId);
                                         const client = clients.find(c => c.id === appt.clientId);
-                                        const price = Number(appt.finalAmount || treatment?.price || 0);
                                         const professional = professionals.find(p => p.id === appt.professionalId);
                                         
+                                        // ✅ LECTURA DEL DESCUENTO
+                                        const originalPrice = Number(treatment?.price || 0);
+                                        const discount = Number(appt.discountAmount || 0);
+                                        const finalPrice = originalPrice - discount;
+
                                         const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
                                         const treatmentCategory = treatment?.category || '';
                                         let rate = 0;
@@ -472,7 +489,9 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                             if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) rate = Number(professional.commissionRates[treatmentCategory]);
                                             else if (professional?.commissionRate) rate = Number(professional.commissionRate);
                                         }
-                                        const comm = price * (rate / 100);
+                                        
+                                        // La comisión se calcula post-descuento
+                                        const comm = finalPrice * (rate / 100);
 
                                         return (
                                             <tr key={appt.id} className="text-sm border-b border-gray-50">
@@ -486,18 +505,32 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                                         {treatment?.name || 'Servicio'} 
                                                         {reportMode === 'local' && <span className="font-medium text-blue-500 ml-1">({professional?.name || 'Sin asignar'})</span>}
                                                     </p>
-                                                </td>
-                                                <td className="py-4 px-2">
-                                                    <span className="text-[9px] font-bold uppercase text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                    <span className="text-[9px] font-bold uppercase text-gray-400 mt-1 inline-block">
                                                         {appt.paymentMethod === 'transfer' ? 'Transf.' : 'Efectivo'}
                                                     </span>
                                                 </td>
-                                                <td className="py-4 px-2 text-right font-medium text-gray-900">${price.toLocaleString()}</td>
+
+                                                {/* ✅ CELDA DE PROMOCIÓN VISUAL */}
+                                                <td className="py-4 px-2 text-center">
+                                                    {discount > 0 ? (
+                                                        <div className="inline-flex flex-col items-center">
+                                                            <span className="text-[10px] font-bold uppercase text-purple-600 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">-${discount}</span>
+                                                            {appt.discountReason && <span className="text-[8px] text-purple-400 max-w-[80px] truncate" title={appt.discountReason}>{appt.discountReason}</span>}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-300">-</span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-4 px-2 text-right">
+                                                    {discount > 0 && <span className="text-xs text-gray-400 line-through block">${originalPrice}</span>}
+                                                    <span className="font-bold text-gray-900">${finalPrice.toLocaleString()}</span>
+                                                </td>
                                                 
                                                 {reportMode === 'local' ? (
                                                     <>
                                                         <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
-                                                        <td className="py-4 px-2 text-right font-black text-green-700">${(price - comm).toLocaleString()}</td>
+                                                        <td className="py-4 px-2 text-right font-black text-green-700">${(finalPrice - comm).toLocaleString()}</td>
                                                     </>
                                                 ) : (
                                                     <>
