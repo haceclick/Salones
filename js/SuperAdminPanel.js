@@ -189,7 +189,8 @@ const SuperAdminPanel = ({ notify, user }) => {
                             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon name="alert-triangle" size={32} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">¿Eliminar Acceso?</h3>
+                            {/* ACHICADO A text-lg */}
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar Acceso?</h3>
                             <p className="text-gray-500 text-sm mb-6">
                                 Se borrará el acceso para <strong>{deleteTarget.name}</strong>.<br/>
                                 <span className="text-xs text-red-500 mt-2 block font-medium">El archivo de Excel quedará intacto en Google Drive por seguridad.</span>
@@ -209,7 +210,8 @@ const SuperAdminPanel = ({ notify, user }) => {
                         <Icon name="shield-check" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-bold text-gray-800">Administración Central</h2>
+                        {/* ACHICADO A text-2xl */}
+                        <h2 className="text-2xl font-bold text-gray-800">Administración Central</h2>
                         <p className="text-sm text-gray-500 mt-1">Gestión global de clientes SaaS y notificaciones del sistema.</p>
                     </div>
                 </div>
@@ -225,7 +227,8 @@ const SuperAdminPanel = ({ notify, user }) => {
                         className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'empresas' ? 'border-b border-gray-100' : ''}`}
                     >
                         <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-lg flex items-center gap-2"><Icon name="server" className="text-[var(--color-primary)]"/> Empresas Activas</h3>
+                            {/* ACHICADO A text-base */}
+                            <h3 className="font-bold text-base flex items-center gap-2"><Icon name="server" className="text-[var(--color-primary)]"/> Empresas Activas</h3>
                             <span className="bg-[#008395]/10 text-[#008395] text-xs font-bold px-2.5 py-0.5 rounded-full">{tenants.length}</span>
                         </div>
                         <div className="flex items-center gap-4">
@@ -261,13 +264,13 @@ const SuperAdminPanel = ({ notify, user }) => {
                                             <tr key={i} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="p-4 pl-6 font-bold text-gray-800">
                                                     {editingId === client.sheetId 
-                                                        ? <input className="border border-[#008395] p-2 rounded-lg w-full outline-none ring-2 ring-[#008395]/20" value={editForm.name} onChange={e=>setEditForm({...editForm, name:e.target.value})}/> 
+                                                        ? <input className="border border-[#008395] p-2 rounded-lg w-full outline-none ring-2 ring-[#008395]/20 text-sm" value={editForm.name} onChange={e=>setEditForm({...editForm, name:e.target.value})}/> 
                                                         : client.businessName}
                                                 </td>
                                                 <td className="p-4 text-gray-500">{client.email}</td>
                                                 <td className="p-4 font-mono text-gray-600">
                                                     {editingId === client.sheetId 
-                                                        ? <input className="border border-[#008395] p-2 rounded-lg w-28 outline-none ring-2 ring-[#008395]/20" value={editForm.pass} onChange={e=>setEditForm({...editForm, pass:e.target.value})}/> 
+                                                        ? <input className="border border-[#008395] p-2 rounded-lg w-28 outline-none ring-2 ring-[#008395]/20 text-sm" value={editForm.pass} onChange={e=>setEditForm({...editForm, pass:e.target.value})}/> 
                                                         : <span className="bg-gray-100 px-2.5 py-1 rounded-md text-xs">{client.password}</span>}
                                                 </td>
                                                 <td className="p-4 pr-6">
@@ -312,7 +315,8 @@ const SuperAdminPanel = ({ notify, user }) => {
                         onClick={() => toggleSection('nuevo')}
                         className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'nuevo' ? 'border-b border-[#008395]/20' : ''}`}
                     >
-                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#008395]"><Icon name="user-plus"/> Alta de Nueva Empresa</h3>
+                        {/* ACHICADO A text-base */}
+                        <h3 className="font-bold text-base flex items-center gap-2 text-[#008395]"><Icon name="user-plus"/> Alta de Nueva Empresa</h3>
                         <Icon name={openSection === 'nuevo' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                     </button>
 
@@ -325,11 +329,11 @@ const SuperAdminPanel = ({ notify, user }) => {
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-600 mb-1">Empresa</label>
-                                                <input required className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} placeholder="Nombre comercial"/>
+                                                <input required className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all text-sm" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} placeholder="Nombre comercial"/>
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-600 mb-1">Rubro / Categoría</label>
-                                                <select required className="w-full border border-gray-200 p-3 rounded-lg outline-none bg-white focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all" value={form.rubro} onChange={e=>setForm({...form, rubro: e.target.value})}>
+                                                <select required className="w-full border border-gray-200 p-3 rounded-lg outline-none bg-white focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all text-sm" value={form.rubro} onChange={e=>setForm({...form, rubro: e.target.value})}>
                                                     <option value="">Seleccionar...</option>
                                                     <option value="Estetica">Centro de Estética</option>
                                                     <option value="Barberia">Barbería / Peluquería</option>
@@ -345,11 +349,11 @@ const SuperAdminPanel = ({ notify, user }) => {
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-600 mb-1">Email del Dueño (Login)</label>
-                                                <input required type="email" className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all" value={form.email} onChange={e=>setForm({...form, email: e.target.value})} placeholder="ejemplo@correo.com"/>
+                                                <input required type="email" className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all text-sm" value={form.email} onChange={e=>setForm({...form, email: e.target.value})} placeholder="ejemplo@correo.com"/>
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-600 mb-1">Contraseña Temporal</label>
-                                                <input required className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all" value={form.pass} onChange={e=>setForm({...form, pass: e.target.value})} placeholder="La cambiará al ingresar"/>
+                                                <input required className="w-full border border-gray-200 p-3 rounded-lg outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all text-sm" value={form.pass} onChange={e=>setForm({...form, pass: e.target.value})} placeholder="La cambiará al ingresar"/>
                                             </div>
                                         </div>
                                     </div>
@@ -372,7 +376,8 @@ const SuperAdminPanel = ({ notify, user }) => {
                         className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'avisos' ? 'border-b border-blue-100' : ''}`}
                     >
                         <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-lg flex items-center gap-2 text-blue-600"><Icon name="message-square"/> Avisos a Clientes SaaS</h3>
+                            {/* ACHICADO A text-base */}
+                            <h3 className="font-bold text-base flex items-center gap-2 text-blue-600"><Icon name="message-square"/> Avisos a Clientes SaaS</h3>
                             {messages.length > 0 && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">{messages.length} Activos</span>}
                         </div>
                         <Icon name={openSection === 'avisos' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
@@ -387,7 +392,7 @@ const SuperAdminPanel = ({ notify, user }) => {
                                 <form onSubmit={handleSaveMsg} className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Destinatario</label>
-                                        <select required className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white text-blue-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" value={msgForm.target} onChange={e=>setMsgForm({...msgForm, target:e.target.value})}>
+                                        <select required className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white text-blue-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm" value={msgForm.target} onChange={e=>setMsgForm({...msgForm, target:e.target.value})}>
                                             <option value="ALL">📢 A Todas las Empresas (Global)</option>
                                             <optgroup label="Específico (Solo a 1 local)">
                                                 {tenants.map(t => <option key={t.sheetId} value={t.sheetId}>{t.businessName}</option>)}
@@ -396,11 +401,11 @@ const SuperAdminPanel = ({ notify, user }) => {
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Título del Aviso</label>
-                                        <input required type="text" className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-blue-900" value={msgForm.title} onChange={e=>setMsgForm({...msgForm, title:e.target.value})} placeholder="Ej: Nueva Función Disponible"/>
+                                        <input required type="text" className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-blue-900 text-sm" value={msgForm.title} onChange={e=>setMsgForm({...msgForm, title:e.target.value})} placeholder="Ej: Nueva Función Disponible"/>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold uppercase text-blue-800 mb-1">Mensaje</label>
-                                        <textarea required className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-blue-900" rows="3" value={msgForm.message} onChange={e=>setMsgForm({...msgForm, message:e.target.value})} placeholder="Escribe el mensaje que verán en sus Dashboards..."></textarea>
+                                        <textarea required className="w-full border border-blue-200 p-3 rounded-xl outline-none bg-white resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-blue-900 text-sm" rows="3" value={msgForm.message} onChange={e=>setMsgForm({...msgForm, message:e.target.value})} placeholder="Escribe el mensaje que verán en sus Dashboards..."></textarea>
                                     </div>
                                     <div className="pt-2 flex gap-2">
                                         {editingMsgId && <button type="button" onClick={() => {setEditingMsgId(null); setMsgForm({target:'ALL', title:'', message:''})}} className="w-1/3 border border-blue-200 text-blue-600 bg-white p-3 rounded-xl font-bold hover:bg-blue-50 transition-colors">Cancelar</button>}
