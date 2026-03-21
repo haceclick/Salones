@@ -120,8 +120,9 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
       <div className="p-8 bg-brand-bg min-h-full overflow-x-auto relative">
         <header className="flex justify-between items-center mb-8 min-w-[800px]">
           <div>
-            <h2 className="text-3xl font-bold text-brand-text">Servicios</h2>
-            <p className="text-brand-text-light">Gestión de precios y tiempos</p>
+            {/* ACHICADO A text-2xl */}
+            <h2 className="text-2xl font-bold text-brand-text">Servicios</h2>
+            <p className="text-sm text-brand-text-light mt-1">Gestión de precios y tiempos</p>
           </div>
           <div className="flex gap-3">
             {/* BOTÓN REDES */}
@@ -160,7 +161,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             {categories.map(cat => (
                 <div key={cat.id} className="w-80 bg-white rounded-brand shadow-card border border-brand-border flex flex-col overflow-hidden">
                     <div className="p-5 border-b border-brand-border bg-brand-bg flex justify-between items-center">
-                        <h3 className="font-bold text-brand-text uppercase tracking-wide text-sm">{cat.name}</h3>
+                        <h3 className="font-bold text-brand-text uppercase tracking-wide text-xs">{cat.name}</h3> {/* Achicado a text-xs tracking-wide */}
                         <button onClick={() => setSubCatModal({open: true, catId: cat.id, catName: cat.name})} className="text-brand-text-light hover:text-primary p-1 rounded-md hover:bg-white transition-colors" title="Agregar opciones rápidas"><Icon name="plus-circle" size={18} /></button>
                     </div>
                     <div className="p-4 space-y-3">
@@ -200,7 +201,8 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             <div className="fixed inset-0 bg-brand-text/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-brand p-6 w-full max-w-sm shadow-2xl animate-scale-in border border-brand-border">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-brand-text">Categorías</h3>
+                        {/* ACHICADO A text-lg */}
+                        <h3 className="text-lg font-bold text-brand-text">Categorías</h3>
                         <button onClick={()=>setIsCatManagerOpen(false)}><Icon name="x" className="text-gray-400 hover:text-black"/></button>
                     </div>
                     <div className="flex gap-2 mb-6">
@@ -210,7 +212,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     <div className="space-y-2 max-h-60 overflow-auto pr-2 custom-scrollbar">
                         {categories.map(cat => (
                             <div key={cat.id} className="flex justify-between items-center bg-brand-bg p-3 rounded-brand border border-brand-border">
-                                <span className="font-medium text-brand-text-light">{cat.name}</span>
+                                <span className="font-medium text-brand-text-light text-sm">{cat.name}</span> {/* Achicado a text-sm */}
                                 <button onClick={() => setConfirmDelete({open:true, id:cat.id, type:'cat'})} className="text-accent hover:text-primary transition-colors"><Icon name="trash-2" size={16}/></button>
                             </div>
                         ))}
@@ -226,7 +228,8 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <div>
                             <p className="text-[10px] text-brand-text-light uppercase tracking-wider">Agregar a</p>
-                            <h3 className="text-lg font-bold text-primary-dark leading-tight">{subCatModal.catName}</h3>
+                            {/* ACHICADO A text-base */}
+                            <h3 className="text-base font-bold text-primary-dark leading-tight">{subCatModal.catName}</h3>
                         </div>
                         <button onClick={()=>setSubCatModal({open:false, catId:null, catName:''})}><Icon name="x" className="text-gray-400 hover:text-black"/></button>
                     </div>
@@ -267,13 +270,13 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                             )}
                         </div>
 
-                        <button onClick={handleAddSubCategory} className="w-full bg-secondary text-brand-text py-2 rounded-brand font-bold hover:text-white transition-colors mt-2 flex justify-center gap-2">
+                        <button onClick={handleAddSubCategory} className="w-full bg-secondary text-brand-text py-2 rounded-brand font-bold hover:text-white transition-colors mt-2 flex justify-center gap-2 text-sm"> {/* text-sm al boton */}
                             <Icon name="plus-circle" size={18}/> Crear Servicio
                         </button>
                     </div>
 
                     <div className="space-y-1 max-h-40 overflow-auto pr-2 border-t pt-2 custom-scrollbar">
-                        <p className="text-xs text-gray-400 mb-2">Servicios existentes en esta categoría:</p>
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-2">Servicios existentes en esta categoría:</p>
                         {(categories.find(c=>c.id===subCatModal.catId)?.subs || []).map(sub => (
                             <div key={sub} className="flex justify-between items-center text-xs text-brand-text-light bg-gray-50 p-1.5 rounded px-2">
                                 <span>{sub}</span>
@@ -289,19 +292,20 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
         {isModalOpen && (
             <div className="fixed inset-0 bg-brand-text/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-brand w-full max-w-md p-8 shadow-2xl animate-scale-in border border-brand-border">
-                    <h3 className="text-xl font-bold mb-6 text-brand-text">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h3>
+                    {/* ACHICADO A text-lg */}
+                    <h3 className="text-lg font-bold mb-6 text-brand-text">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-brand-text-light ml-1">Categoría</label>
-                                <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, subCategory: ''})}>
+                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Categoría</label>
+                                <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary text-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, subCategory: ''})}>
                                     <option value="">Seleccionar...</option>
                                     {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-brand-text-light ml-1">Opción</label>
-                                <select required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} disabled={!(categories.find(c => c.name === formData.category)?.subs || []).length}>
+                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Opción</label>
+                                <select required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary text-sm" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} disabled={!(categories.find(c => c.name === formData.category)?.subs || []).length}>
                                     <option value="">Seleccionar...</option>
                                     {(categories.find(c => c.name === formData.category)?.subs || []).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
@@ -309,11 +313,11 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-brand-text-light ml-1">Precio ($)</label>
+                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Precio ($)</label>
                                 <input type="number" required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none font-bold text-brand-text focus:border-primary" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-brand-text-light ml-1">Minutos</label>
+                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Minutos</label>
                                 <input type="number" required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
                             </div>
                         </div>
@@ -342,8 +346,8 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-brand-border">
-                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-brand-text-light font-medium hover:text-brand-text transition-colors">Cancelar</button>
-                            <button type="submit" className="px-6 py-2 bg-primary text-[var(--color-primary-text)] rounded-brand font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Guardar</button>
+                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-brand-text-light text-sm font-medium hover:text-brand-text transition-colors">Cancelar</button>
+                            <button type="submit" className="px-6 py-2.5 bg-primary text-[var(--color-primary-text)] rounded-brand font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-sm">Guardar</button>
                         </div>
                     </form>
                 </div>
@@ -364,7 +368,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                         <div className="w-full h-full p-8 flex flex-col items-center z-10">
                             <div className="mb-6 text-center flex flex-col items-center w-full">
                                 {brandingConfig.logoBase64 && <img src={brandingConfig.logoBase64} alt="Logo" className="h-24 object-contain mb-3 drop-shadow-sm" />}
-                                <h2 contentEditable suppressContentEditableWarning className="text-base ont-bold text-brand-text mb-1 tracking-widest outline-none uppercase font-serif leading-none text-center">
+                                <h2 contentEditable suppressContentEditableWarning className="text-base font-bold text-brand-text mb-1 tracking-widest outline-none uppercase font-serif leading-none text-center">
                                     LISTA DE PRECIOS
                                 </h2>
                             </div>
@@ -418,18 +422,19 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Icon name="alert-triangle" size={24} />
                     </div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-800">¿Eliminar?</h3>
+                    {/* ACHICADO A text-base */}
+                    <h3 className="font-bold text-base mb-2 text-gray-800">¿Eliminar?</h3>
                     <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
                     <div className="flex gap-3">
                         <button 
                             onClick={() => setConfirmDelete({open:false, id:null, type:'item'})} 
-                            className="flex-1 py-2.5 border border-gray-200 rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="flex-1 py-2.5 border border-gray-200 rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors text-sm"
                         >
                             Cancelar
                         </button>
                         <button 
                             onClick={handleDeleteItem} 
-                            className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-bold shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors"
+                            className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-bold shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors text-sm"
                         >
                             Sí, Eliminar
                         </button>
