@@ -18,7 +18,12 @@ const Icon = ({ name, size = 20, className = '', style = {} }) => {
 const Logo = ({ className = "" }) => <img src={LOGO_URL} alt="Logo" className={`object-contain drop-shadow-sm ${className}`} style={{ width: 'auto', maxHeight: '120px' }} />;
 
 const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(val);
-const formatDate = (dateStr) => { if (!dateStr) return '-'; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; };
+const formatDate = (dateStr) => { 
+    if (!dateStr) return '-'; 
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr; // Por si no es una fecha válida
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 const formatPhoneForWhatsApp = (phone) => {
   if (!phone) return '';
   let cleaned = phone.replace(/[^0-9]/g, '');
