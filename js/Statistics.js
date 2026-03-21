@@ -1,4 +1,3 @@
-
 const Statistics = ({ appointments, treatments, clients, professionals = [], loggedProfId }) => {
     // Si hay un profesional logueado, forzamos el filtro a su ID, si no, arranca en 'ALL'
     const [filterProf, setFilterProf] = useState(loggedProfId || 'ALL');
@@ -42,19 +41,21 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
         <div className="bg-white p-6 rounded-brand shadow-card border border-brand-border flex items-center gap-5">
             <div className={`p-4 rounded-full ${color} text-white shadow-inner`}><Icon name={icon} size={24}/></div>
             <div>
-                <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">{title}</p>
-                <p className="text-3xl font-bold text-gray-800">{value}</p>
+                <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+                {/* ACHICADO A text-2xl */}
+                <p className="text-2xl font-bold text-gray-800">{value}</p>
                 {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
             </div>
         </div>
     );
 
     return (
-        <div className="p-4 md:p-8 space-y-8 bg-brand-bg overflow-y-auto h-full">
+        <div className="p-4 md:p-8 space-y-8 bg-brand-bg overflow-y-auto h-full custom-scrollbar">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-brand-text">Estadísticas y Rendimiento</h2>
-                    <p className="text-brand-text-light mt-1">Analiza los datos de tu negocio para tomar mejores decisiones.</p>
+                    {/* ACHICADO A text-2xl */}
+                    <h2 className="text-2xl font-bold text-brand-text">Estadísticas y Rendimiento</h2>
+                    <p className="text-sm text-brand-text-light mt-1">Analiza los datos de tu negocio para tomar mejores decisiones.</p>
                 </div>
                 
                 {/* SI ES ADMIN VE EL SELECTOR, SI ES PROFESIONAL VE UN BADGE FIJO */}
@@ -64,7 +65,7 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
                         <select 
                             value={filterProf} 
                             onChange={e => setFilterProf(e.target.value)}
-                            className="bg-transparent border-none outline-none font-bold text-gray-700 pr-2 cursor-pointer"
+                            className="bg-transparent border-none outline-none font-bold text-gray-700 pr-2 cursor-pointer text-sm"
                         >
                             <option value="ALL">Consolidado (Todos)</option>
                             {professionals.map(p => <option key={p.id} value={p.id}>Solo {p.name}</option>)}
@@ -85,13 +86,14 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-6 md:p-8 rounded-brand shadow-card border border-brand-border">
-                    <h3 className="font-bold text-lg text-gray-800 mb-6 flex items-center gap-2"><Icon name="bar-chart-2" className="text-primary"/> Tráfico por Día</h3>
+                    {/* ACHICADO A text-base */}
+                    <h3 className="font-bold text-base text-gray-800 mb-6 flex items-center gap-2"><Icon name="bar-chart-2" className="text-[var(--color-primary)]"/> Tráfico por Día</h3>
                     <div className="flex items-end justify-between h-48 gap-2 mt-4 border-b border-gray-100 pb-2">
                         {workDays.map((day, i) => (
                             <div key={day} className="flex flex-col items-center flex-1 group h-full">
-                                <div className="w-full bg-primary/10 rounded-t-lg relative flex items-end justify-center transition-all group-hover:bg-primary/20 h-full">
+                                <div className="w-full bg-[var(--color-primary)]/10 rounded-t-lg relative flex items-end justify-center transition-all group-hover:bg-[var(--color-primary)]/20 h-full">
                                     <div 
-                                        className="w-full bg-primary rounded-t-lg transition-all duration-1000 flex items-start justify-center pt-2 text-xs font-bold text-white shadow-md" 
+                                        className="w-full bg-[var(--color-primary)] rounded-t-lg transition-all duration-1000 flex items-start justify-center pt-2 text-xs font-bold text-[var(--color-primary-text)] shadow-md" 
                                         style={{height: `${(workDayStats[i]/maxDayCount)*100}%`, minHeight: workDayStats[i] > 0 ? '24px' : '0'}}>
                                         {workDayStats[i] > 0 ? workDayStats[i] : ''}
                                     </div>
@@ -103,7 +105,8 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
                 </div>
 
                 <div className="bg-white p-6 md:p-8 rounded-brand shadow-card border border-brand-border">
-                    <h3 className="font-bold text-lg text-gray-800 mb-6 flex items-center gap-2"><Icon name="clock" className="text-blue-500"/> Horarios Pico</h3>
+                    {/* ACHICADO A text-base */}
+                    <h3 className="font-bold text-base text-gray-800 mb-6 flex items-center gap-2"><Icon name="clock" className="text-blue-500"/> Horarios Pico</h3>
                     <div className="flex items-end justify-between h-48 gap-1 mt-4 border-b border-gray-100 pb-2">
                         {Object.keys(hourStats).map(hour => (
                             <div key={hour} className="flex flex-col items-center flex-1 group h-full">
@@ -121,9 +124,10 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
                 <div className="lg:col-span-1 bg-white p-6 rounded-brand shadow-card border border-brand-border">
-                    <h3 className="font-bold text-lg text-gray-800 mb-6">Top 5 Servicios</h3>
+                    {/* ACHICADO A text-base */}
+                    <h3 className="font-bold text-base text-gray-800 mb-6">Top 5 Servicios</h3>
                     <div className="space-y-4">
                         {treatmentStats.every(t => t.count === 0) ? (
                             <p className="text-sm text-gray-400 italic text-center py-4">No hay datos suficientes en este filtro.</p>
@@ -132,10 +136,10 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
                                 <div key={t.id}>
                                     <div className="flex justify-between text-sm mb-1">
                                         <span className="font-bold text-gray-700">{i+1}. {t.name}</span>
-                                        <span className="font-bold text-primary">{t.count}</span>
+                                        <span className="font-bold text-[var(--color-primary)]">{t.count}</span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-primary h-2 rounded-full" style={{width: `${(t.count/treatmentStats[0].count)*100}%`}}></div>
+                                        <div className="bg-[var(--color-primary)] h-2 rounded-full" style={{width: `${(t.count/treatmentStats[0].count)*100}%`}}></div>
                                     </div>
                                 </div>
                             ))
@@ -144,17 +148,20 @@ const Statistics = ({ appointments, treatments, clients, professionals = [], log
                 </div>
 
                 <div className="lg:col-span-2 bg-gradient-to-br from-gray-800 to-black p-6 md:p-8 rounded-brand shadow-card text-white">
-                    <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-yellow-400"><Icon name="lightbulb"/> Tips de Negocio</h3>
+                    {/* ACHICADO A text-lg */}
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-yellow-400"><Icon name="lightbulb"/> Tips de Negocio</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-white/10 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
-                            <h4 className="font-bold text-lg mb-2">Potenciá los días lentos</h4>
-                            <p className="text-sm text-gray-300 leading-relaxed">
+                            {/* ACHICADO A text-base */}
+                            <h4 className="font-bold text-base mb-2">Potenciá los días lentos</h4>
+                            <p className="text-xs text-gray-300 leading-relaxed">
                                 {slowestDay ? `Las estadísticas indican que los días ${slowestDay} tienen menor concurrencia. Creá una campaña de WhatsApp ofreciendo un beneficio exclusivo para reservas en este día.` : `Aún no hay suficientes datos para determinar un día de baja concurrencia.`}
                             </p>
                         </div>
                         <div className="bg-white/10 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
-                            <h4 className="font-bold text-lg mb-2">Asegurá el éxito de tu top</h4>
-                            <p className="text-sm text-gray-300 leading-relaxed">
+                            {/* ACHICADO A text-base */}
+                            <h4 className="font-bold text-base mb-2">Asegurá el éxito de tu top</h4>
+                            <p className="text-xs text-gray-300 leading-relaxed">
                                 {topTreatment && topTreatment.count > 0 ? `Tu servicio más popular es ${topTreatment.name}. Creá paquetes o cuponeras para este servicio. Los clientes ya lo aman, convertilos en recurrentes.` : `Registrá más turnos para obtener esta recomendación.`}
                             </p>
                         </div>
