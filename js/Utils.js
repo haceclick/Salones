@@ -1,29 +1,25 @@
 const Icon = ({ name, size = 20, className = '', style = {} }) => {
     if (!name) return null;
-    
-    // Convertir nombres como 'check-circle' a 'CheckCircle'
     const pascalName = name.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
-    
-    // Intentar buscar el icono en la librería Lucide cargada
     const LucideIcon = window.lucide && window.lucide.icons ? window.lucide.icons[pascalName] : null;
 
     if (!LucideIcon) {
-        // Si no existe, devolvemos un círculo simple para que la app NO CRASHEE
         return <span className={className} style={{display:'inline-block', width: size, height: size, borderRadius: '50%', backgroundColor: '#ccc', ...style}}></span>;
     }
-
     return <LucideIcon size={size} className={className} style={style} />;
-};;
+};
 
 const Logo = ({ className = "" }) => <img src={LOGO_URL} alt="Logo" className={`object-contain drop-shadow-sm ${className}`} style={{ width: 'auto', maxHeight: '120px' }} />;
 
 const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(val);
+
 const formatDate = (dateStr) => { 
     if (!dateStr) return '-'; 
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr; // Por si no es una fecha válida
+    if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
+
 const formatPhoneForWhatsApp = (phone) => {
   if (!phone) return '';
   let cleaned = phone.replace(/[^0-9]/g, '');
@@ -38,41 +34,33 @@ const canClientModify = (dateIso) => {
     return diffHrs >= 48;
 };
 
-const StorageService = {
-  loadAllData: (email) => new Promise((resolve) => google.script.run.withSuccessHandler(resolve).loadInitialData(email)),
-  saveGeneric: (email, type, data) => new Promise((resolve) => google.script.run.withSuccessHandler(resolve).saveData(email, type, JSON.stringify(data)))
-};
-
 const ToastContainer = ({ toasts, removeToast }) => {
+    if (!toasts || toasts.length === 0) return null;
     return (
-        <div className="fixed top-6 right-6 z-[200] flex flex-col gap-3">
+        <div className="fixed top-6 right-6 z-[500] flex flex-col gap-3">
             {toasts.map(t => (
-                <div key={t.id} className={`min-w-[280px] p-4 rounded-brand shadow-soft flex items-center gap-3 animate-bounce transition-all border ${
-                    t.type === 'success' ? 'bg-white border-primary text-brand-text' : 
-                    t.type === 'error' ? 'bg-white border-accent text-brand-text' : 
-                    'bg-white border-brand-border text-brand-text'
-                }`}>
-                    <Icon name={t.type === 'success' ? 'check-circle' : 'alert-circle'} size={20} className={t.type === 'success' ? 'text-primary-dark' : 'text-accent'} />
-                    <span className="text-sm font-medium">{t.msg}</span>
-                    <button onClick={() => removeToast(t.id)} className="ml-auto opacity-40 hover:opacity-100"><Icon name="x" size={14}/></button>
+                <div key={t.id} className="min-w-[280px] p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in transition-all bg-white border border-gray-100">
+                    <Icon name={t.type === 'success' ? 'check-circle' : 'alert-circle'} size={20} className={t.type === 'success' ? 'text-green-500' : 'text-red-500'} />
+                    <span className="text-sm font-bold text-gray-700">{t.msg}</span>
+                    <button onClick={() => removeToast(t.id)} className="ml-auto text-gray-400 hover:text-gray-600"><Icon name="x" size={14}/></button>
                 </div>
             ))}
         </div>
-    )
+    );
 };
 
 const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirmar", cancelText = "Cancelar" }) => {
     if (!isOpen) return null;
     return (
-      <div className="fixed inset-0 bg-brand-text/20 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-         <div className="bg-white rounded-brand p-8 w-full max-w-sm shadow-soft border border-brand-border animate-bounce">
-            <h3 className="text-xl font-bold text-brand-text mb-3">{title}</h3>
-            <p className="text-brand-text-light mb-8 leading-relaxed whitespace-pre-line">{message}</p>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[500] flex items-center justify-center p-4">
+         <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-scale-in">
+            <h3 className="text-xl font-bold text-gray-800 mb-3">{title}</h3>
+            <p className="text-gray-500 mb-8 leading-relaxed text-sm">{message}</p>
             <div className="flex gap-3 justify-end">
-                <button onClick={onCancel} className="px-5 py-2.5 text-brand-text-light font-medium hover:bg-brand-bg rounded-brand transition-colors">{cancelText}</button>
-                <button onClick={onConfirm} className="px-5 py-2.5 bg-primary text-brand-text font-bold rounded-brand hover:bg-primary-dark hover:text-white shadow-lg shadow-primary/20 transition-all">{confirmText}</button>
+                <button onClick={onCancel} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition-colors">{cancelText}</button>
+                <button onClick={onConfirm} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg transition-all">{confirmText}</button>
             </div>
          </div>
       </div>
-    )
+    );
 };
