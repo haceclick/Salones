@@ -1,13 +1,14 @@
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto (✅ AGREGAMOS showPolicyModal y policyText)
+    // 1. Valores por defecto (✅ AGREGAMOS enableDiscounts)
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
         requireDeposit: false, depositType: 'link', depositAmount: '', paymentUrl: '', 
         transferAlias: '', transferName: '', transferCuit: '',
-        reschedulePolicy: '24', // 24 horas por defecto
-        showPolicyModal: false, // ✅ Nuevo: switch para activar cartel
-        policyText: '' // ✅ Nuevo: texto de los términos
+        reschedulePolicy: '24',
+        showPolicyModal: false, 
+        policyText: '',
+        enableDiscounts: false // ✅ NUEVO: Switch para habilitar descuentos
     };
     const defaultMsg = { 
         id: 'messages_config', 
@@ -161,6 +162,10 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
         return `https://mail.google.com/mail/?view=cm&fs=1&bcc=${bcc}&su=${subject}&body=${encodeURIComponent(bodyText)}`;
     };
 
+    // ✅ Estilo unificado para los títulos de los acordeones
+    const accordionTitleClass = "font-bold text-lg flex items-center gap-3 text-gray-800";
+    const accordionIconColor = "text-gray-500";
+
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg">
             <header className="mb-8"><h2 className="text-3xl font-bold text-gray-800">Ajustes del Local</h2></header>
@@ -173,7 +178,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                         onClick={() => toggleSection('negocio')}
                         className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'negocio' ? 'border-b border-gray-100' : ''}`}
                     >
-                        <h3 className="font-bold text-lg flex items-center gap-2"><Icon name="store" className="text-[var(--color-primary)]"/> Negocio y Pagos</h3>
+                        <h3 className={accordionTitleClass}><Icon name="store" className={accordionIconColor}/> Negocio y Pagos</h3>
                         <Icon name={openSection === 'negocio' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                     </button>
                     
@@ -223,7 +228,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 )}
                             </div>
 
-                            {/* ✅ POLÍTICA DE REPROGRAMACIÓN Y TÉRMINOS (TARJETA INDEPENDIENTE) */}
+                            {/* POLÍTICA DE REPROGRAMACIÓN Y TÉRMINOS */}
                             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                                 <div className="mb-4">
                                     <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="calendar" size={16} className="text-[var(--color-primary)]"/> Políticas del Local</h4>
@@ -275,7 +280,25 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                     )}
                                 </div>
                             </div>
-                            {/* FIN SECCIÓN POLÍTICAS */}
+
+                            {/* ✅ NUEVO: HABILITAR DESCUENTOS */}
+                            <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="tag" size={16} className="text-purple-500"/> Descuentos y Promociones</h4>
+                                        <p className="text-[10px] text-gray-500 mt-1">Habilita la opción de aplicar descuentos (en $) al finalizar un servicio.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={agentConfig.enableDiscounts || false} 
+                                            onChange={e => setAgentConfig({...agentConfig, enableDiscounts: e.target.checked})} 
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                    </label>
+                                </div>
+                            </div>
 
                             {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
@@ -364,7 +387,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                         onClick={() => toggleSection('branding')}
                         className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'branding' ? 'border-b border-gray-100' : ''}`}
                     >
-                        <h3 className="font-bold text-lg flex items-center gap-2"><Icon name="palette" className="text-[var(--color-primary)]"/> Identidad de Marca</h3>
+                        <h3 className={accordionTitleClass}><Icon name="palette" className={accordionIconColor}/> Identidad de Marca</h3>
                         <Icon name={openSection === 'branding' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                     </button>
 
@@ -396,78 +419,78 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                 </div>
 
                 {/* 3. PLANTILLAS DE WHATSAPP */}
-                <div className={`bg-white rounded-brand shadow-sm border ${openSection === 'whatsapp' ? 'border-[#25D366]' : 'border-brand-border'} overflow-hidden transition-all`}>
+                <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
                     <button 
                         type="button" 
                         onClick={() => toggleSection('whatsapp')}
-                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'whatsapp' ? 'border-b border-[#25D366]/20' : ''}`}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'whatsapp' ? 'border-b border-gray-100' : ''}`}
                     >
-                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#25D366]"><Icon name="message-circle"/> Plantillas de WhatsApp</h3>
+                        <h3 className={accordionTitleClass}><Icon name="message-circle" className={accordionIconColor}/> Plantillas de WhatsApp</h3>
                         <Icon name={openSection === 'whatsapp' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                     </button>
 
                     {openSection === 'whatsapp' && (
-                        <div className="p-6 space-y-6 animate-fade-in bg-green-50/20">
-                            <p className="text-xs text-gray-500 mb-2 border-b border-green-100 pb-4">Personaliza los mensajes automáticos. Los datos del cliente y del turno se completarán solos.</p>
+                        <div className="p-6 space-y-6 animate-fade-in bg-gray-50/50">
+                            <p className="text-xs text-gray-500 mb-2 border-b border-gray-200 pb-4">Personaliza los mensajes automáticos. Los datos del cliente y del turno se completarán solos.</p>
 
-                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
-                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">👋 Bienvenida a Nuevos Clientes</label>
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <label className="block text-xs font-bold text-gray-800 uppercase mb-2">👋 Bienvenida a Nuevos Clientes</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*!</div>
-                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
                             </div>
-                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
-                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">✅ Confirmación de Turno</label>
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <label className="block text-xs font-bold text-gray-800 uppercase mb-2">✅ Confirmación de Turno</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te confirmamos tu turno para *[Servicio]* el *[Día]* a las *[Hora]*.</div>
-                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
                                 <div className="text-sm text-gray-400 mt-2 italic">[Link de Google Maps] + [Link de Calendario]</div>
                             </div>
-                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
-                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">❌ Rechazo / Reprogramación</label>
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <label className="block text-xs font-bold text-gray-800 uppercase mb-2">❌ Rechazo / Reprogramación</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te escribimos de *[Tu Local]*.</div>
-                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
                             </div>
-                            <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
-                                <label className="block text-xs font-bold text-green-800 uppercase mb-2">🎂 Saludo de Cumpleaños</label>
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <label className="block text-xs font-bold text-gray-800 uppercase mb-2">🎂 Saludo de Cumpleaños</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! En este día especial te deseamos un ¡MUY FELIZ CUMPLEAÑOS!</div>
-                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[#25D366] focus:ring-2 focus:ring-green-100 text-gray-700 resize-none transition-all" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* 4. EMAIL MARKETING */}
-                <div className={`bg-white rounded-brand shadow-sm border ${openSection === 'email' ? 'border-orange-400' : 'border-brand-border'} overflow-hidden transition-all`}>
+                <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
                     <button 
                         type="button" 
                         onClick={() => toggleSection('email')}
-                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'email' ? 'border-b border-orange-100' : ''}`}
+                        className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'email' ? 'border-b border-gray-100' : ''}`}
                     >
-                        <h3 className="font-bold text-lg flex items-center gap-2 text-orange-500"><Icon name="mail"/> Email Marketing Masivo</h3>
+                        <h3 className={accordionTitleClass}><Icon name="mail" className={accordionIconColor}/> Email Marketing Masivo</h3>
                         <Icon name={openSection === 'email' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                     </button>
 
                     {openSection === 'email' && (
                         <div className="p-6 animate-fade-in">
                             <div className="space-y-4 mb-6">
-                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-3 rounded-lg focus:border-orange-400 outline-none transition-colors" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
-                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-3 rounded-lg focus:border-orange-400 outline-none resize-none transition-colors" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] outline-none transition-colors" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] outline-none resize-none transition-colors" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
                             </div>
 
-                            <div className="bg-orange-50 p-6 rounded-xl border border-orange-200">
+                            <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                                 {emailGroups.length === 0 ? (
-                                    <button type="button" onClick={handlePreparePromo} className="bg-orange-500 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-sm"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
+                                    <button type="button" onClick={handlePreparePromo} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-sm"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
                                 ) : (
                                     <div className="space-y-4">
-                                        <p className="text-xs text-orange-800 font-medium">Se han creado {emailGroups.length} grupos de 50 correos. Haz clic en cada uno para abrir tu correo:</p>
+                                        <p className="text-xs text-gray-700 font-medium">Se han creado {emailGroups.length} grupos de 50 correos. Haz clic en cada uno para abrir tu correo:</p>
                                         <div className="flex flex-wrap gap-2">
                                             {emailGroups.map((group, index) => (
                                                 <div key={index} className="flex shadow-sm hover:shadow-md transition-shadow rounded-lg">
-                                                    <a href={getGmailLink(group)} target="_blank" rel="noopener noreferrer" className="bg-white border border-orange-300 text-orange-700 px-4 py-2 rounded-l-lg font-bold text-xs no-underline hover:bg-orange-50 flex items-center gap-1 transition-colors"><Icon name="mail" size={14}/> Abrir en Gmail (G{index + 1})</a>
-                                                    <button type="button" onClick={() => { navigator.clipboard.writeText(group.join(',')); notify("Correos copiados. Pégalos en CCO/BCC de tu correo.", "success"); }} className="bg-white border-y border-r border-orange-300 text-orange-700 px-3 py-2 rounded-r-lg hover:bg-orange-50 transition-colors" title="Copiar lista de correos"><Icon name="copy" size={14}/></button>
+                                                    <a href={getGmailLink(group)} target="_blank" rel="noopener noreferrer" className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-l-lg font-bold text-xs no-underline hover:bg-gray-50 flex items-center gap-1 transition-colors"><Icon name="mail" size={14}/> Abrir en Gmail (G{index + 1})</a>
+                                                    <button type="button" onClick={() => { navigator.clipboard.writeText(group.join(',')); notify("Correos copiados. Pégalos en CCO/BCC de tu correo.", "success"); }} className="bg-white border-y border-r border-gray-300 text-gray-700 px-3 py-2 rounded-r-lg hover:bg-gray-50 transition-colors" title="Copiar lista de correos"><Icon name="copy" size={14}/></button>
                                                 </div>
                                             ))}
                                         </div>
-                                        <button type="button" onClick={() => setEmailGroups([])} className="text-xs text-orange-600 hover:text-orange-800 font-bold underline decoration-orange-300 underline-offset-2">Reiniciar lista de envío</button>
+                                        <button type="button" onClick={() => setEmailGroups([])} className="text-xs text-gray-500 hover:text-gray-800 font-bold underline decoration-gray-300 underline-offset-2">Reiniciar lista de envío</button>
                                     </div>
                                 )}
                             </div>
