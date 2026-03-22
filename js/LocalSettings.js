@@ -286,10 +286,10 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                             </div>
 
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between">
                                     <div>
                                         <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Icon name="tag" size={16} className="text-purple-500"/> Descuentos y Promociones</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">Habilita la opción de aplicar descuentos al finalizar un servicio.</p>
+                                        <p className="text-[10px] text-gray-500 mt-1">Habilita la opción de aplicar descuentos (en $ o %) al finalizar un servicio.</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input 
@@ -298,9 +298,10 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                             onChange={e => setAgentConfig({...agentConfig, enableDiscounts: e.target.checked})} 
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                                     </label>
                                 </div>
+                            </div>
                             
                                 {agentConfig.enableDiscounts && (
                                     <div className="pt-4 border-t border-gray-200 animate-fade-in">
