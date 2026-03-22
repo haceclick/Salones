@@ -19,7 +19,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         workingDays: defaultDays(),
         hasAccess: false, email: '', password: '',
         permissions: defaultPermissions, 
-        hasCommission: false, commissionRates: {} 
+        hasCommission: false, 
+        commissionType: 'percentage', // ✅ NUEVO: Tipo de modelo de pago
+        commissionValue: '', // ✅ NUEVO: Monto para fijos
+        commissionRates: {} 
     });
 
     const colors = ['bg-red-100 text-red-800', 'bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800', 'bg-pink-100 text-pink-800', 'bg-indigo-100 text-indigo-800', 'bg-teal-100 text-teal-800'];
@@ -42,10 +45,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         google.script.run
             .withSuccessHandler((res) => {
                 if (res && res.success === false) {
-                    // 🔥 SI ALGO FALLA EN GOOGLE, VEREMOS EL ERROR AQUÍ 🔥
                     notify("⚠️ " + res.message, "error"); 
                 } else {
-                    // SI TODO SALE BIEN, NOS AVISA QUÉ HIZO
                     notify("✅ " + res.message, "success");
                 }
             })
@@ -116,6 +117,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             workingDays: prof?.workingDays || defaultDays(),
             specialties: prof?.specialties || [],
             hasCommission: prof?.hasCommission || false, 
+            commissionType: prof?.commissionType || 'percentage', // Carga el tipo
+            commissionValue: prof?.commissionValue || '', // Carga el monto fijo
             commissionRates: prof?.commissionRates || (prof?.commissionRate ? { "GENERAL": prof.commissionRate } : {})
         });
         setIsModalOpen(true);
@@ -127,7 +130,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             workingDays: defaultDays(),
             hasAccess: false, email: '', password: '',
             permissions: defaultPermissions, 
-            hasCommission: false, commissionRates: {}
+            hasCommission: false, 
+            commissionType: 'percentage', // Nuevo
+            commissionValue: '', // Nuevo
+            commissionRates: {}
         });
         setIsModalOpen(true);
     };
@@ -145,7 +151,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         <div className="p-8 h-full bg-brand-bg overflow-y-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    {/* ACHICADO A text-2xl */}
                     <h2 className="text-2xl font-bold text-gray-800">Profesionales</h2>
                     <p className="text-sm text-gray-500 mt-1">Gestiona tu equipo y sus accesos.</p>
                 </div>
@@ -183,11 +188,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         {(p?.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        {/* ACHICADO A text-base */}
                                         <h3 className="font-bold text-base text-gray-800 flex items-center gap-2">
                                             {p?.name || "Sin nombre"} 
                                             {isBirthdayToday(p.birthday) && <span title="¡Hoy es su cumpleaños!">🎂</span>}
-                                            {p?.hasCommission && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold" title="Cobra comisión">% Múltiple</span>}
+                                            {p?.hasCommission && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold" title="Cobra comisión">$</span>}
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                             <Icon name="phone" size={14}/> {p?.phone || '-'}
@@ -239,13 +243,13 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${p.color || 'bg-gray-100'}`}>
                                                         {(p?.name || "?").charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="font-bold text-gray-800 whitespace-nowrap text-sm"> {/* Achicado a text-sm */}
+                                                    <span className="font-bold text-gray-800 whitespace-nowrap text-sm">
                                                         {p.name || "Sin nombre"}
                                                         {isBirthdayToday(p.birthday) && <span className="ml-2" title="¡Hoy es su cumpleaños!">🎂</span>}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm"> {/* Achicado a text-sm */}
+                                            <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm">
                                                 {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
                                             </td>
                                             <td className="p-4 max-w-xs">
@@ -267,9 +271,14 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             </td>
                                             <td className="p-4 text-center">
                                                 {p.hasCommission ? (
-                                                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[9px] px-2 py-1 rounded font-bold uppercase">
-                                                        <Icon name="dollar-sign" size={10}/> Activo
-                                                    </span>
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded font-bold uppercase">
+                                                            <Icon name="dollar-sign" size={10}/> Activo
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase truncate max-w-[80px]">
+                                                            {p.commissionType === 'fixed_service' ? 'Fijo x Serv.' : p.commissionType === 'fixed_day' ? 'Fijo x Día' : '% Especialidad'}
+                                                        </span>
+                                                    </div>
                                                 ) : (
                                                     <span className="text-gray-300 text-xs">-</span>
                                                 )}
@@ -295,7 +304,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
                         
                         <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                            {/* ACHICADO A text-lg */}
                             <h3 className="font-bold text-lg text-gray-800">Perfil del Profesional</h3>
                             <button onClick={()=>setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors"><Icon name="x" size={24}/></button>
                         </div>
@@ -306,15 +314,15 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre Completo</label>
-                                        <input type="text" required className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.name || ""} onChange={e=>setForm({...form, name:e.target.value})} />
+                                        <input type="text" required className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors text-sm" value={form.name || ""} onChange={e=>setForm({...form, name:e.target.value})} />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Teléfono</label>
-                                        <input type="tel" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.phone || ""} onChange={e=>setForm({...form, phone:e.target.value})} />
+                                        <input type="tel" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors text-sm" value={form.phone || ""} onChange={e=>setForm({...form, phone:e.target.value})} />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nacimiento (Opcional)</label>
-                                        <input type="date" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors" value={form.birthday || ""} onChange={e=>setForm({...form, birthday:e.target.value})} />
+                                        <input type="date" className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-800 transition-colors text-sm" value={form.birthday || ""} onChange={e=>setForm({...form, birthday:e.target.value})} />
                                     </div>
                                     <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Color Agenda</label>
@@ -346,10 +354,10 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                 </div>
 
-                                {/* SECCIÓN COMISIONES MÚLTIPLES */}
+                                {/* ✅ SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA) */}
                                 <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Pago de Comisiones</h4>
+                                        <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Esquema de Pago</h4>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" checked={form.hasCommission || false} onChange={e => setForm({...form, hasCommission: e.target.checked})} />
                                             <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
@@ -357,30 +365,63 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                     
                                     {form.hasCommission && (
-                                        <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-3">
-                                            {(form.specialties || []).length > 0 ? (
-                                                <>
-                                                    <p className="text-[10px] uppercase font-bold text-green-800">Define el porcentaje (%) por especialidad:</p>
-                                                    {(form.specialties || []).map(spec => (
-                                                        <div key={spec} className="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200">
-                                                            <span className="text-xs font-bold text-gray-700">{spec}</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <input 
-                                                                    type="number" min="0" max="100" 
-                                                                    className="w-16 border border-gray-300 p-1.5 rounded text-center text-sm font-bold text-green-700 outline-none focus:border-green-500 transition-colors" 
-                                                                    value={form.commissionRates?.[spec] || ''} 
-                                                                    onChange={e => setForm({
-                                                                        ...form, 
-                                                                        commissionRates: { ...form.commissionRates, [spec]: e.target.value }
-                                                                    })} 
-                                                                />
-                                                                <span className="text-xs text-gray-500 font-bold">%</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </>
-                                            ) : (
-                                                <p className="text-xs text-orange-600 italic font-medium">Sube a la sección de arriba y marca las especialidades de este profesional para asignar los porcentajes.</p>
+                                        <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-4">
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-bold text-green-800 mb-1.5">Modelo de Pago</label>
+                                                <select 
+                                                    className="w-full border border-green-200 p-2.5 rounded-lg text-sm text-green-900 outline-none focus:border-green-500 bg-white font-medium"
+                                                    value={form.commissionType || 'percentage'}
+                                                    onChange={e => setForm({...form, commissionType: e.target.value})}
+                                                >
+                                                    <option value="percentage">Porcentaje (%) por Especialidad</option>
+                                                    <option value="fixed_service">Monto Fijo ($) por Servicio Asistido</option>
+                                                    <option value="fixed_day">Monto Fijo ($) por Día Trabajado</option>
+                                                </select>
+                                            </div>
+
+                                            {form.commissionType === 'percentage' && (
+                                                <div className="space-y-3">
+                                                    {(form.specialties || []).length > 0 ? (
+                                                        <>
+                                                            <p className="text-[10px] uppercase font-bold text-green-800">Porcentaje por especialidad:</p>
+                                                            {(form.specialties || []).map(spec => (
+                                                                <div key={spec} className="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200">
+                                                                    <span className="text-xs font-bold text-gray-700">{spec}</span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input 
+                                                                            type="number" min="0" max="100" 
+                                                                            className="w-16 border border-gray-300 p-1.5 rounded text-center text-sm font-bold text-green-700 outline-none focus:border-green-500 transition-colors" 
+                                                                            value={form.commissionRates?.[spec] || ''} 
+                                                                            onChange={e => setForm({
+                                                                                ...form, 
+                                                                                commissionRates: { ...form.commissionRates, [spec]: e.target.value }
+                                                                            })} 
+                                                                        />
+                                                                        <span className="text-xs text-gray-500 font-bold">%</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-xs text-orange-600 italic font-medium">Sube a la sección de arriba y marca las especialidades de este profesional para asignar los porcentajes.</p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {(form.commissionType === 'fixed_service' || form.commissionType === 'fixed_day') && (
+                                                <div className="animate-fade-in">
+                                                    <label className="block text-[10px] uppercase font-bold text-green-800 mb-1.5">Monto a Pagar ($)</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                                                        <input 
+                                                            type="number" min="0" step="100"
+                                                            className="w-full border border-green-200 p-2.5 pl-7 rounded-lg text-sm font-bold text-green-700 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 bg-white transition-all"
+                                                            value={form.commissionValue || ''}
+                                                            onChange={e => setForm({...form, commissionValue: e.target.value})}
+                                                            placeholder="Ej: 2000"
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -476,8 +517,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                         </div>
 
                         <div className="p-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-4 shrink-0">
-                            <button onClick={()=>setIsModalOpen(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:text-gray-800 transition-colors">Cancelar</button>
-                            <button onClick={handleSave} className="px-8 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2">
+                            <button onClick={()=>setIsModalOpen(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:text-gray-800 transition-colors text-sm">Cancelar</button>
+                            <button onClick={handleSave} className="px-8 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2 text-sm">
                                 <Icon name="save" size={18}/> Guardar Perfil
                             </button>
                         </div>
