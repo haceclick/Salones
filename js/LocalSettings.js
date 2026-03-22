@@ -201,31 +201,33 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 <p className="text-xs text-blue-700 mb-4">Este es el link que compartirás en tu Instagram. Asegúrate de configurarlo correctamente.</p>
                                 
                                 {!isEditingAlias ? (
-                                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                                        <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full overflow-hidden">
+                                        {/* ✅ AGREGADO: overflow-x-auto, custom-scrollbar y whitespace-nowrap */}
+                                        <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm overflow-x-auto custom-scrollbar whitespace-nowrap">
                                             <span className="text-gray-400">salones.haceclick-ai.com/?local=</span>
                                             <strong className="text-blue-900 ml-0.5">{agentConfig.tenantAlias || 'tu-local'}</strong>
                                         </div>
-                                        <button type="button" onClick={startAliasEdit} className="w-full sm:w-auto bg-blue-100 text-blue-700 px-6 py-3 rounded-lg font-bold hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
+                                        <button type="button" onClick={startAliasEdit} className="w-full sm:w-auto bg-blue-100 text-blue-700 px-6 py-3 rounded-lg font-bold hover:bg-blue-200 transition-colors flex items-center justify-center gap-2 shrink-0 text-sm">
                                             <Icon name="edit-2" size={16}/> Editar
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col sm:flex-row items-center gap-2 animate-fade-in">
-                                        <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner">
-                                            <span className="text-gray-400 text-sm font-mono whitespace-nowrap">salones.haceclick-ai.com/?local=</span>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 animate-fade-in w-full overflow-hidden">
+                                        {/* ✅ AGREGADO: overflow-x-auto y scroll */}
+                                        <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner overflow-x-auto custom-scrollbar whitespace-nowrap">
+                                            <span className="text-gray-400 text-sm font-mono">salones.haceclick-ai.com/?local=</span>
                                             <input 
                                                 type="text" autoFocus
-                                                className="outline-none font-bold text-blue-900 font-mono w-full bg-transparent ml-0.5" 
+                                                className="outline-none font-bold text-blue-900 font-mono min-w-[150px] bg-transparent ml-0.5 text-sm" 
                                                 value={tempAlias} onChange={handleAliasTyping} placeholder="ej: peluqueria-marcela" 
                                             />
                                         </div>
-                                        <div className="flex gap-2 w-full sm:w-auto">
-                                            <button type="button" onClick={() => setIsEditingAlias(false)} className="flex-1 sm:flex-none bg-gray-200 text-gray-600 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors" title="Cancelar">
-                                                <Icon name="x" size={20} className="mx-auto"/>
+                                        <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                                            <button type="button" onClick={() => setIsEditingAlias(false)} className="flex-1 sm:flex-none bg-gray-200 text-gray-600 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-colors text-sm" title="Cancelar">
+                                                <Icon name="x" size={18} className="mx-auto"/>
                                             </button>
-                                            <button type="button" onClick={confirmAliasEdit} className="flex-1 sm:flex-none bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-600 shadow-md transition-colors flex items-center justify-center gap-2">
-                                                <Icon name="check" size={18}/> Fijar
+                                            <button type="button" onClick={confirmAliasEdit} className="flex-1 sm:flex-none bg-green-500 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-600 shadow-md transition-colors flex items-center justify-center gap-2 text-sm">
+                                                <Icon name="check" size={16}/> Fijar
                                             </button>
                                         </div>
                                     </div>
