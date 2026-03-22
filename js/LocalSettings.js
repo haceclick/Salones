@@ -285,6 +285,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 </div>
                             </div>
 
+                            {/* ✅ NUEVO: HABILITAR DESCUENTOS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -303,28 +304,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 </div>
                             </div>
                             
-                                {agentConfig.enableDiscounts && (
-                                    <div className="pt-4 border-t border-gray-200 animate-fade-in">
-                                        <label className="block text-[10px] font-bold text-purple-800 uppercase mb-2">Modo de cálculo predeterminado</label>
-                                        <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden w-full md:w-max shadow-sm">
-                                            <button 
-                                                type="button"
-                                                onClick={() => setAgentConfig({...agentConfig, discountType: 'fixed'})}
-                                                className={`px-6 py-2 text-xs font-bold transition-colors ${(!agentConfig.discountType || agentConfig.discountType === 'fixed') ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                                            >
-                                                Monto Fijo ($)
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                onClick={() => setAgentConfig({...agentConfig, discountType: 'percentage'})}
-                                                className={`px-6 py-2 text-xs font-bold transition-colors ${agentConfig.discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                                            >
-                                                Porcentaje (%)
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            
                             {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between">
