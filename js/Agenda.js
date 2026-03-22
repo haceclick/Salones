@@ -14,11 +14,12 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [blockModal, setBlockModal] = useState({ open: false, type: 'day', date: '', time: '', profId: loggedProfId || '' });
 
     // ESTADOS PARA EL COBRO
+// ESTADOS PARA EL COBRO
     const [showCheckout, setShowCheckout] = useState(null); 
     const [paymentMethod, setPaymentMethod] = useState('cash');
-    // ✅ NUEVO: Estados para manejar el descuento en caja
     const [discountValue, setDiscountValue] = useState(0);
     const [discountReason, setDiscountReason] = useState('');
+    const [discountType, setDiscountType] = useState('fixed'); // ✅ NUEVO: Controla si es $ o %
 
     useEffect(() => {
         if (targetApptId && appointments.length > 0) {
@@ -203,10 +204,12 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
         
         // --- 🚀 CÁLCULO DE DESCUENTO SEGÚN CONFIGURACIÓN ---
+        // --- 🚀 CÁLCULO DE DESCUENTO ---
         let safeDiscount = 0;
         const inputVal = parseFloat(discountValue) || 0;
         
-        if (agentStr.discountType === 'percentage') {
+        // ✅ AHORA EVALÚA EL ESTADO LOCAL 'discountType' (Elegido en el modal de cobro)
+        if (discountType === 'percentage') {
             safeDiscount = total * (inputVal / 100);
         } else {
             safeDiscount = inputVal;
@@ -597,17 +600,39 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {/* SECCIÓN DESCUENTOS DINÁMICA */}
                                     {discountsEnabled && (
                                         <div className="mt-4 pt-4 border-t border-dashed border-gray-200 animate-fade-in">
-                                            <label className="block text-[10px] font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
-                                                <Icon name="tag" size={12}/> Aplicar Descuento ({agentStr.discountType === 'percentage' ? '%' : '$'})
-                                            </label>
+                                            
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1">
+                                                    <Icon name="tag" size={12}/> Aplicar Descuento
+                                                </label>
+                                                
+                                                {/* ✅ SELECTOR LOCAL DE TIPO DE DESCUENTO */}
+                                                <div className="flex bg-white rounded-lg border border-purple-200 overflow-hidden shadow-sm">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setDiscountType('fixed'); setDiscountValue(0); }}
+                                                        className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'fixed' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}
+                                                    >
+                                                        Monto ($)
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setDiscountType('percentage'); setDiscountValue(0); }}
+                                                        className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}
+                                                    >
+                                                        Porcentaje (%)
+                                                    </button>
+                                                </div>
+                                            </div>
+
                                             <div className="flex gap-2 mb-2">
-                                                <div className="relative w-1/3">
+                                                <div className="relative w-1/3 shrink-0">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-                                                        {agentStr.discountType === 'percentage' ? '%' : '$'}
+                                                        {discountType === 'percentage' ? '%' : '$'}
                                                     </span>
                                                     <input 
-                                                        type="number" min="0" step={agentStr.discountType === 'percentage' ? '1' : '100'}
-                                                        className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white" 
+                                                        type="number" min="0" step={discountType === 'percentage' ? '1' : '100'}
+                                                        className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white transition-all" 
                                                         placeholder="0"
                                                         value={discountValue || ''}
                                                         onChange={(e) => setDiscountValue(e.target.value)}
@@ -615,8 +640,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                 </div>
                                                 <input 
                                                     type="text" 
-                                                    className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white" 
-                                                    placeholder="Motivo (Ej: Cliente frecuente)"
+                                                    className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white transition-all" 
+                                                    placeholder="Motivo (Ej: Promo Amiga)"
                                                     value={discountReason}
                                                     onChange={(e) => setDiscountReason(e.target.value)}
                                                     disabled={!discountValue || discountValue <= 0}
@@ -625,8 +650,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                             
                                             {/* Lógica de visualización del ahorro real */}
                                             {parseFloat(discountValue) > 0 && (
-                                                <p className="text-[10px] text-purple-600 text-right font-bold italic">
-                                                    {agentStr.discountType === 'percentage' 
+                                                <p className="text-[10px] text-purple-600 text-right font-bold italic animate-fade-in">
+                                                    {discountType === 'percentage' 
                                                         ? `Ahorro calculado: -$${(total * (parseFloat(discountValue)/100)).toLocaleString()}`
                                                         : `Se descontarán $${parseFloat(discountValue).toLocaleString()} del total.`
                                                     }
