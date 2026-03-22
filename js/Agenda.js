@@ -8,7 +8,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [errorModal, setErrorModal] = useState({ open: false, message: '' }); 
     const [editingApptId, setEditingApptId] = useState(null);
     
-    // ✅ ESTADO ACTUALIZADO: Agregamos assistantId
     const [form, setForm] = useState({ clientId: '', treatmentId: '', profId: loggedProfId || '', assistantId: '', date: '', time: '', status: 'confirmed' });
     
     const [filterProf, setFilterProf] = useState(loggedProfId || 'all');
@@ -141,7 +140,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 return; 
             }
 
-            // ✅ GUARDAMOS EL ASISTENTE SI SE ELIGIÓ
             const apptData = { 
                 id: editingApptId || Date.now().toString(), 
                 clientId: form.clientId,
@@ -194,7 +192,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
-    // ✅ LÓGICA DE COBRO CON ASISTENTES Y COMISIONES
     const handleCompleteCheckout = () => {
         if (isProfessional) return;
         
@@ -207,7 +204,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
         
-        // --- 1. CÁLCULO DE DESCUENTO ---
         let safeDiscount = 0;
         const inputVal = parseFloat(discountValue) || 0;
         
@@ -223,25 +219,20 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
 
         const finalAmount = total - depositAmount - safeDiscount;
 
-        // --- 2. CÁLCULO DE COMISIÓN DE ASISTENTE (NUEVO) ---
         let assistantCommission = 0;
         if (appt.assistantId) {
             const assistant = professionals.find(p => p.id === appt.assistantId);
             if (assistant && assistant.hasCommission) {
                 if (assistant.commissionType === 'percentage') {
-                    // Si cobra %, buscamos si tiene un % específico para la categoría del servicio
                     const rateStr = assistant.commissionRates?.[tr?.category] || '0';
                     const rate = parseFloat(rateStr);
                     assistantCommission = total * (rate / 100);
                 } else if (assistant.commissionType === 'fixed_service') {
-                    // Si cobra un fijo por servicio, le sumamos el valor fijo
                     assistantCommission = parseFloat(assistant.commissionValue || 0);
                 }
-                // Si es 'fixed_day', no sumamos por servicio, se calcula al final del día en facturación.
             }
         }
 
-        // --- 3. GUARDAR ---
         const updatedAppointments = appointments.map(a => 
             a.id === appt.id ? { 
                 ...a, 
@@ -250,7 +241,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 finalAmount: finalAmount,      
                 discountAmount: safeDiscount, 
                 discountReason: discountReason,
-                assistantCommission: assistantCommission // Guardamos cuánto le toca al asistente
+                assistantCommission: assistantCommission
             } : a
         );
         
@@ -292,7 +283,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             clientId: appt.clientId || '', 
             treatmentId: appt.treatmentId || '', 
             profId: safeProfId, 
-            assistantId: appt.assistantId || '', // ✅ Carga asistente si existía
+            assistantId: appt.assistantId || '', 
             date: `${yyyy}-${mm}-${dd}`, 
             time: `${hh}:${min}`, 
             status: appt.status || 'confirmed' 
@@ -326,10 +317,10 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 <h2 className="text-2xl font-bold text-gray-800">Agenda</h2>
                 <div className="flex flex-wrap gap-2 items-center">
                     {!loggedProfId ? (
-                        <select value={filterProf} onChange={(e) => setFilterProf(e.target.value)}
-                            className="border border-gray-300 p-2 rounded-lg bg-white font-bold text-sm outline-none shadow-sm text-gray-700 focus:border-[var(--color-primary)] transition-colors">
-                            <option value="all">👥 Todos los Profesionales</option>
-                            {professionals.map(p => <option key={p.id} value={p.id}>👤 {p.name}</option>)}
+                        <select style={{ colorScheme: 'light' }} value={filterProf} onChange={(e) => setFilterProf(e.target.value)}
+                            className="border border-gray-300 p-2 rounded-lg bg-white font-bold text-sm text-gray-700 outline-none shadow-sm focus:border-[var(--color-primary)]">
+                            <option value="all" className="bg-white text-gray-800">👥 Todos los Profesionales</option>
+                            {professionals.map(p => <option key={p.id} value={p.id} className="bg-white text-gray-800">👤 {p.name}</option>)}
                         </select>
                     ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="users" size={16}/> Mi Agenda</div>}
                     
@@ -463,7 +454,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 </div>
             </div>
 
-            {/* MODAL DETALLE TURNO */}
             {selectedAppt && (() => {
                 const tr = treatments.find(t => t.id === selectedAppt.treatmentId);
                 const prof = professionals.find(p => p.id === selectedAppt.professionalId);
@@ -518,31 +508,37 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 );
             })()}
             
-            {/* MODAL AGENDAR / EDITAR */}
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
                         <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><Icon name="calendar" className="text-[var(--color-primary)]"/> {editingApptId ? 'Editar Turno' : 'Agendar Turno'}</h3>
                         <form onSubmit={handleSave} className="space-y-4 text-left">
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cliente</label>
-                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}><option value="">Seleccione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <select style={{ colorScheme: 'light' }} required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}>
+                                    <option value="" className="bg-white text-gray-800">Seleccione...</option>
+                                    {clients.map(c=><option key={c.id} value={c.id} className="bg-white text-gray-800">{c.name}</option>)}
+                                </select>
+                            </div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Servicio</label>
-                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.treatmentId} onChange={e=>setForm({...form, treatmentId:e.target.value})}><option value="">Seleccione...</option>{treatments.map(t=><option key={t.id} value={t.id}>{t.category} - {t.name}</option>)}</select></div>
+                                <select style={{ colorScheme: 'light' }} required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.treatmentId} onChange={e=>setForm({...form, treatmentId:e.target.value})}>
+                                    <option value="" className="bg-white text-gray-800">Seleccione...</option>
+                                    {treatments.map(t=><option key={t.id} value={t.id} className="bg-white text-gray-800">{t.category} - {t.name}</option>)}
+                                </select>
+                            </div>
                             
                             <div className="grid grid-cols-1 gap-2">
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Profesional Principal</label>
-                                    <select required disabled={!!loggedProfId} className={`w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none transition-colors text-sm ${loggedProfId ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'focus:border-[var(--color-primary)]'}`} value={form.profId} onChange={e=>setForm({...form, profId:e.target.value})}>
-                                        <option value="">Seleccione...</option>
-                                        {professionals.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                                    <select style={{ colorScheme: 'light' }} required disabled={!!loggedProfId} className={`w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none text-sm ${loggedProfId ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'focus:border-[var(--color-primary)]'}`} value={form.profId} onChange={e=>setForm({...form, profId:e.target.value})}>
+                                        <option value="" className="bg-white text-gray-800">Seleccione...</option>
+                                        {professionals.map(p=><option key={p.id} value={p.id} className="bg-white text-gray-800">{p.name}</option>)}
                                     </select>
                                 </div>
-                                {/* ✅ NUEVO: SELECTOR DE ASISTENTE */}
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Asistente / Lavado (Opcional)</label>
-                                    <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.assistantId} onChange={e=>setForm({...form, assistantId:e.target.value})}>
-                                        <option value="">Nadie / No requiere</option>
-                                        {professionals.filter(p => p.id !== form.profId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    <select style={{ colorScheme: 'light' }} className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.assistantId} onChange={e=>setForm({...form, assistantId:e.target.value})}>
+                                        <option value="" className="bg-white text-gray-800">Nadie / No requiere</option>
+                                        {professionals.filter(p => p.id !== form.profId).map(p => <option key={p.id} value={p.id} className="bg-white text-gray-800">{p.name}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -552,13 +548,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
                             </div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado</label>
-                                <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 outline-none font-bold focus:border-[var(--color-primary)] transition-colors text-sm" value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
-                                    <option value="reserved">🟡 Reserva (Pendiente)</option>
-                                    <option value="confirmed">🟢 Confirmado</option>
-                                    <option value="confirmed_paid">🟢 Confirmado (Pagó seña)</option>
-                                    <option value="completed">🔵 Finalizar Servicio (Cobrar)</option>
+                                <select style={{ colorScheme: 'light' }} className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-800 outline-none font-bold focus:border-[var(--color-primary)] text-sm" value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
+                                    <option value="reserved" className="bg-white text-gray-800">🟡 Reserva (Pendiente)</option>
+                                    <option value="confirmed" className="bg-white text-gray-800">🟢 Confirmado</option>
+                                    <option value="confirmed_paid" className="bg-white text-gray-800">🟢 Confirmado (Pagó seña)</option>
+                                    <option value="completed" className="bg-white text-gray-800">🔵 Finalizar Servicio (Cobrar)</option>
                                 </select></div>
-                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button></div>
+                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button></div>
                         </form>
                     </div>
                 </div>
@@ -572,7 +568,14 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg"><button type="button" onClick={()=>setBlockModal({...blockModal, type:'day'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='day'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Día Completo</button><button type="button" onClick={()=>setBlockModal({...blockModal, type:'slot'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='slot'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Hora Específica</button></div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
                             {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
-                            {!loggedProfId && (<div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label><select className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.profId} onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}><option value="">Todo el local (Todos los profesionales)</option>{professionals.map(p=><option key={p.id} value={p.id}>Solo a {p.name}</option>)}</select></div>)}
+                            {!loggedProfId && (
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label>
+                                    <select style={{ colorScheme: 'light' }} className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-gray-800 text-sm" value={blockModal.profId} onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}>
+                                        <option value="" className="bg-white text-gray-800">Todo el local (Todos los profesionales)</option>
+                                        {professionals.map(p=><option key={p.id} value={p.id} className="bg-white text-gray-800">Solo a {p.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                             <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-colors shadow-md text-sm">Confirmar Bloqueo</button></div>
                         </form>
                     </div>
