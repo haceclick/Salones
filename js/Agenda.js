@@ -7,7 +7,9 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [selectedAppt, setSelectedAppt] = useState(null);
     const [errorModal, setErrorModal] = useState({ open: false, message: '' }); 
     const [editingApptId, setEditingApptId] = useState(null);
-    const [form, setForm] = useState({ clientId: '', treatmentId: '', profId: loggedProfId || '', date: '', time: '', status: 'confirmed' });
+    
+    // ✅ ESTADO ACTUALIZADO: Agregamos assistantId
+    const [form, setForm] = useState({ clientId: '', treatmentId: '', profId: loggedProfId || '', assistantId: '', date: '', time: '', status: 'confirmed' });
     
     const [filterProf, setFilterProf] = useState(loggedProfId || 'all');
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
@@ -18,7 +20,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [discountValue, setDiscountValue] = useState(0);
     const [discountReason, setDiscountReason] = useState('');
-    const [discountType, setDiscountType] = useState('fixed'); // ✅ NUEVO: Controla si es $ o %
+    const [discountType, setDiscountType] = useState('fixed'); 
 
     useEffect(() => {
         if (targetApptId && appointments.length > 0) {
@@ -97,7 +99,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         });
     }, [appointments, filterProf]);
 
-    // WHATSAPP NATIVO
     const sendWhatsAppMsg = (appt, client, treatment, isDepositRequest = false) => {
         if (!client || !client.phone) return;
         const phone = String(client.phone).replace(/\D/g, ''); 
@@ -140,11 +141,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 return; 
             }
 
+            // ✅ GUARDAMOS EL ASISTENTE SI SE ELIGIÓ
             const apptData = { 
                 id: editingApptId || Date.now().toString(), 
                 clientId: form.clientId,
                 treatmentId: form.treatmentId,
                 professionalId: finalProfId,
+                assistantId: form.assistantId || null, 
                 date: iso,
                 status: form.status,
                 origin: editingApptId ? (appointments.find(a => a.id === editingApptId)?.origin || 'manual') : 'manual'
@@ -191,7 +194,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setSelectedAppt(prev => prev ? {...prev, status: newStatus} : null);
     };
 
-    // ✅ LÓGICA DE COBRO CON DESCUENTOS INTELIGENTES
+    // ✅ LÓGICA DE COBRO CON ASISTENTES Y COMISIONES
     const handleCompleteCheckout = () => {
         if (isProfessional) return;
         
@@ -204,7 +207,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
         
-        // --- 🚀 CÁLCULO DE DESCUENTO ---
+        // --- 1. CÁLCULO DE DESCUENTO ---
         let safeDiscount = 0;
         const inputVal = parseFloat(discountValue) || 0;
         
@@ -220,6 +223,25 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
 
         const finalAmount = total - depositAmount - safeDiscount;
 
+        // --- 2. CÁLCULO DE COMISIÓN DE ASISTENTE (NUEVO) ---
+        let assistantCommission = 0;
+        if (appt.assistantId) {
+            const assistant = professionals.find(p => p.id === appt.assistantId);
+            if (assistant && assistant.hasCommission) {
+                if (assistant.commissionType === 'percentage') {
+                    // Si cobra %, buscamos si tiene un % específico para la categoría del servicio
+                    const rateStr = assistant.commissionRates?.[tr?.category] || '0';
+                    const rate = parseFloat(rateStr);
+                    assistantCommission = total * (rate / 100);
+                } else if (assistant.commissionType === 'fixed_service') {
+                    // Si cobra un fijo por servicio, le sumamos el valor fijo
+                    assistantCommission = parseFloat(assistant.commissionValue || 0);
+                }
+                // Si es 'fixed_day', no sumamos por servicio, se calcula al final del día en facturación.
+            }
+        }
+
+        // --- 3. GUARDAR ---
         const updatedAppointments = appointments.map(a => 
             a.id === appt.id ? { 
                 ...a, 
@@ -227,7 +249,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 paymentMethod: paymentMethod, 
                 finalAmount: finalAmount,      
                 discountAmount: safeDiscount, 
-                discountReason: discountReason
+                discountReason: discountReason,
+                assistantCommission: assistantCommission // Guardamos cuánto le toca al asistente
             } : a
         );
         
@@ -253,10 +276,10 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setDiscountReason('');
         setDiscountType('fixed');
         notify("Servicio finalizado y cobrado exitosamente", "success");
-    };
+    }; 
 
     const openEditModal = (appt) => {
-        if (isProfessional) return;
+        if (isProfessional) return; 
         const d = new Date(appt.date);
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -264,7 +287,17 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const hh = String(d.getHours()).padStart(2, '0');
         const min = String(d.getMinutes()).padStart(2, '0');
         let safeProfId = (appt.professionalId && appt.professionalId !== 'any' && appt.professionalId !== 'ALL') ? appt.professionalId : (appt.professionalId === 'any' ? 'any' : '');
-        setForm({ clientId: appt.clientId || '', treatmentId: appt.treatmentId || '', profId: safeProfId, date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${min}`, status: appt.status || 'confirmed' });
+        
+        setForm({ 
+            clientId: appt.clientId || '', 
+            treatmentId: appt.treatmentId || '', 
+            profId: safeProfId, 
+            assistantId: appt.assistantId || '', // ✅ Carga asistente si existía
+            date: `${yyyy}-${mm}-${dd}`, 
+            time: `${hh}:${min}`, 
+            status: appt.status || 'confirmed' 
+        });
+        
         setEditingApptId(appt.id);
         setSelectedAppt(null); 
         setIsCreateOpen(true); 
@@ -301,8 +334,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                     ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="users" size={16}/> Mi Agenda</div>}
                     
                     {!isProfessional && (
-                        <button onClick={() => setBlockModal({open:true, type:'day', date:'', time:'', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')})} className="bg-gray-800 text-white px-3 py-2 rounded-lg font-bold flex gap-2 hover:bg-black transition-colors shadow-sm">
-                            <Icon name="lock" size={18}/> Bloquear
+                        <button onClick={() => setBlockModal({open:true, type:'day', date:'', time:'', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')})} className="bg-gray-800 text-white px-3 py-2 rounded-lg font-bold flex gap-2 hover:bg-black transition-colors shadow-sm text-sm">
+                            <Icon name="lock" size={16}/> Bloquear
                         </button>
                     )}
                     
@@ -310,12 +343,12 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         <button 
                             onClick={() => { 
                                 setEditingApptId(null); 
-                                setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), date: '', time: '', status: 'confirmed' }); 
+                                setForm({ clientId: '', treatmentId: '', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), assistantId: '', date: '', time: '', status: 'confirmed' }); 
                                 setIsCreateOpen(true); 
                             }} 
-                            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-text)] px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md"
+                            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-text)] px-4 py-2 rounded-lg font-bold flex gap-2 transition-all shadow-md text-sm"
                         >
-                            <Icon name="plus" size={18}/> Nuevo
+                            <Icon name="plus" size={16}/> Nuevo
                         </button>
                     )}                
                 </div>
@@ -323,7 +356,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
 
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex justify-center items-center gap-6">
                 <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="hover:bg-gray-100 p-2 rounded-full transition-colors"><Icon name="chevron-left" /></button>
-                <span className="font-bold text-gray-700 capitalize">Semana del {weekDays[0].toLocaleDateString('es-ES', {day: 'numeric', month: 'long'})}</span>
+                <span className="font-bold text-gray-700 capitalize text-sm">Semana del {weekDays[0].toLocaleDateString('es-ES', {day: 'numeric', month: 'long'})}</span>
                 <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="hover:bg-gray-100 p-2 rounded-full transition-colors"><Icon name="chevron-right" /></button>
             </div>
 
@@ -372,7 +405,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                     const yyyy = day.getFullYear(); 
                                                     const mm = String(day.getMonth() + 1).padStart(2, '0'); 
                                                     const dd = String(day.getDate()).padStart(2, '0'); 
-                                                    setForm({...form, date: `${yyyy}-${mm}-${dd}`, time: `${h.toString().padStart(2,'0')}:00`, status: 'confirmed', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : '')}); 
+                                                    setForm({...form, date: `${yyyy}-${mm}-${dd}`, time: `${h.toString().padStart(2,'0')}:00`, status: 'confirmed', profId: loggedProfId ? loggedProfId : (filterProf !== 'all' ? filterProf : ''), assistantId: ''}); 
                                                     setIsCreateOpen(true); 
                                                 }}></div>;
                                         })}
@@ -382,6 +415,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                             const top = ((apptTime.getHours() - 7) * 112) + (apptTime.getMinutes() * 112 / 60);
                                             const height = (dur / 60) * 112;
                                             const prof = professionals.find(p => p.id === appt.professionalId);
+                                            const asis = professionals.find(p => p.id === appt.assistantId);
                                             
                                             let bgClass = "";
                                             let borderProfColor = "border-transparent";
@@ -418,6 +452,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                         {appt.status==='blocked' ? 'BLOQUEO' : clientName} 
                                                     </span>
                                                     {tr && dur >= 40 && <span className="text-[9px] md:text-[10px] truncate opacity-90 mt-0.5 font-medium">{tr.name}</span>}
+                                                    {asis && dur >= 60 && <span className="text-[8px] truncate mt-1 opacity-70 bg-white/30 rounded px-1 w-max">Asis: {asis.name.split(' ')[0]}</span>}
                                                 </div>;
                                         })}
                                     </div>
@@ -432,6 +467,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             {selectedAppt && (() => {
                 const tr = treatments.find(t => t.id === selectedAppt.treatmentId);
                 const prof = professionals.find(p => p.id === selectedAppt.professionalId);
+                const asis = professionals.find(p => p.id === selectedAppt.assistantId);
                 const clientName = selectedAppt.status==='blocked' ? 'BLOQUEO' : (selectedAppt.clientId?.startsWith('CHAT') ? selectedAppt.clientNameTemp : clients.find(c=>c.id===selectedAppt.clientId)?.name);
                 const apptDate = new Date(selectedAppt.date);
                 return (
@@ -448,7 +484,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 {selectedAppt.status !== 'blocked' && (
                                     <>
                                         <p className="flex items-center gap-3"><Icon name="tag" size={18} className="text-[var(--color-primary)]"/> {tr ? `${tr.category} - ${tr.name}` : 'Servicio no asignado'}</p>
-                                        <p className="flex items-center gap-3"><Icon name="users" size={18} className="text-[var(--color-primary)]"/> {prof ? prof.name : 'Cualquier Profesional'}</p>
+                                        <p className="flex items-center gap-3"><Icon name="user" size={18} className="text-[var(--color-primary)]"/> {prof ? prof.name : 'Cualquier Profesional'}</p>
+                                        {asis && <p className="flex items-center gap-3 pl-8 text-xs text-gray-500 border-l-2 border-dashed ml-[9px]"><Icon name="users" size={14}/> Asiste: {asis.name}</p>}
                                     </>
                                 )}
                             </div>
@@ -465,14 +502,14 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     )}
 
                                     <div className="flex gap-4">
-                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="pencil" size={18}/> Editar</button>}
-                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
+                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-2.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="pencil" size={16}/> Editar</button>}
+                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-2.5 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={16}/> Eliminar</button>
                                     </div>
                                 </>
                             )}
 
                             {isProfessional && (
-                                <button onClick={()=>setSelectedAppt(null)} className="w-full py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                                <button onClick={()=>setSelectedAppt(null)} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">
                                     Cerrar Detalles
                                 </button>
                             )}
@@ -481,34 +518,47 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 );
             })()}
             
+            {/* MODAL AGENDAR / EDITAR */}
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
                         <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><Icon name="calendar" className="text-[var(--color-primary)]"/> {editingApptId ? 'Editar Turno' : 'Agendar Turno'}</h3>
                         <form onSubmit={handleSave} className="space-y-4 text-left">
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cliente</label>
-                                <select required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}><option value="">Seleccione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}><option value="">Seleccione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Servicio</label>
-                                <select required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors" value={form.treatmentId} onChange={e=>setForm({...form, treatmentId:e.target.value})}><option value="">Seleccione...</option>{treatments.map(t=><option key={t.id} value={t.id}>{t.category} - {t.name}</option>)}</select></div>
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Profesional</label>
-                                <select required disabled={!!loggedProfId} className={`w-full border border-gray-300 p-3 rounded-lg bg-white outline-none transition-colors ${loggedProfId ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'focus:border-[var(--color-primary)]'}`} value={form.profId} onChange={e=>setForm({...form, profId:e.target.value})}>
-                                    <option value="">Seleccione...</option>
-                                    {professionals.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
+                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.treatmentId} onChange={e=>setForm({...form, treatmentId:e.target.value})}><option value="">Seleccione...</option>{treatments.map(t=><option key={t.id} value={t.id}>{t.category} - {t.name}</option>)}</select></div>
+                            
+                            <div className="grid grid-cols-1 gap-2">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Profesional Principal</label>
+                                    <select required disabled={!!loggedProfId} className={`w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none transition-colors text-sm ${loggedProfId ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'focus:border-[var(--color-primary)]'}`} value={form.profId} onChange={e=>setForm({...form, profId:e.target.value})}>
+                                        <option value="">Seleccione...</option>
+                                        {professionals.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                {/* ✅ NUEVO: SELECTOR DE ASISTENTE */}
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Asistente / Lavado (Opcional)</label>
+                                    <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.assistantId} onChange={e=>setForm({...form, assistantId:e.target.value})}>
+                                        <option value="">Nadie / No requiere</option>
+                                        {professionals.filter(p => p.id !== form.profId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
                             </div>
+
                             <div className="flex gap-4">
-                                <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha</label><input type="date" required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
-                                <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
+                                <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
+                                <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
                             </div>
                             <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado</label>
-                                <select className="w-full border border-gray-300 p-3 rounded-lg bg-gray-50 outline-none font-bold focus:border-[var(--color-primary)] transition-colors" value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
+                                <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 outline-none font-bold focus:border-[var(--color-primary)] transition-colors text-sm" value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
                                     <option value="reserved">🟡 Reserva (Pendiente)</option>
                                     <option value="confirmed">🟢 Confirmado</option>
                                     <option value="confirmed_paid">🟢 Confirmado (Pagó seña)</option>
                                     <option value="completed">🔵 Finalizar Servicio (Cobrar)</option>
                                 </select></div>
-                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button><button className="px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2"><Icon name="save" size={18}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button></div>
+                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 transition-all shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button></div>
                         </form>
                     </div>
                 </div>
@@ -520,10 +570,10 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         <h3 className="font-bold text-lg mb-5 text-gray-800 flex items-center gap-2"><Icon name="lock" className="text-gray-800"/> Bloquear Agenda</h3>
                         <form onSubmit={handleBlock} className="space-y-5 text-left">
                             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg"><button type="button" onClick={()=>setBlockModal({...blockModal, type:'day'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='day'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Día Completo</button><button type="button" onClick={()=>setBlockModal({...blockModal, type:'slot'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='slot'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Hora Específica</button></div>
-                            <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
-                            {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
-                            {!loggedProfId && (<div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label><select className="w-full border border-gray-300 p-3 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors" value={blockModal.profId} onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}><option value="">Todo el local (Todos los profesionales)</option>{professionals.map(p=><option key={p.id} value={p.id}>Solo a {p.name}</option>)}</select></div>)}
-                            <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-colors shadow-md">Confirmar Bloqueo</button></div>
+                            <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
+                            {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
+                            {!loggedProfId && (<div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label><select className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.profId} onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}><option value="">Todo el local (Todos los profesionales)</option>{professionals.map(p=><option key={p.id} value={p.id}>Solo a {p.name}</option>)}</select></div>)}
+                            <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-colors shadow-md text-sm">Confirmar Bloqueo</button></div>
                         </form>
                     </div>
                 </div>
@@ -560,7 +610,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 </div>
             )}
 
-            {/* MODAL DE CHECKOUT (COBRO FINAL CON DESCUENTOS) */}
+            {/* MODAL DE CHECKOUT */}
             {showCheckout && (() => {
                 const tr = treatments.find(t => t.id === showCheckout.treatmentId);
                 const agentStr = settings?.find(s => s.id === 'agent_config') || {};
@@ -570,7 +620,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 const deposit = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
                 const discountsEnabled = agentStr.enableDiscounts === true;
 
-                // Cálculo Dinámico en vivo
                 let safeDiscount = parseFloat(discountValue) || 0;
                 if (safeDiscount < 0) safeDiscount = 0;
                 if (safeDiscount > total) safeDiscount = total;
@@ -588,67 +637,32 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             </div>
                             <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-                                    <div className="flex justify-between mb-2"><span className="text-gray-500">Servicio:</span><span className="font-bold text-gray-800">{tr?.name}</span></div>
-                                    <div className="flex justify-between mb-2"><span className="text-gray-500">Valor Total:</span><span className="font-bold text-gray-800">${total}</span></div>
+                                    <div className="flex justify-between mb-2"><span className="text-gray-500 text-sm">Servicio:</span><span className="font-bold text-gray-800 text-sm">{tr?.name}</span></div>
+                                    <div className="flex justify-between mb-2"><span className="text-gray-500 text-sm">Valor Total:</span><span className="font-bold text-gray-800 text-sm">${total}</span></div>
                                     
-                                    {hasDeposit && (<div className="flex justify-between mb-2 text-green-600 font-bold italic"><span>Seña descontada:</span><span>-${deposit}</span></div>)}
+                                    {hasDeposit && (<div className="flex justify-between mb-2 text-green-600 font-bold italic text-sm"><span>Seña descontada:</span><span>-${deposit}</span></div>)}
                                     
-                                    {/* SECCIÓN DESCUENTOS DINÁMICA */}
                                     {discountsEnabled && (
                                         <div className="mt-4 pt-4 border-t border-dashed border-gray-200 animate-fade-in">
-                                            
                                             <div className="flex items-center justify-between mb-3">
                                                 <label className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1">
                                                     <Icon name="tag" size={12}/> Aplicar Descuento
                                                 </label>
-                                                
                                                 <div className="flex bg-white rounded-lg border border-purple-200 overflow-hidden shadow-sm">
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => { setDiscountType('fixed'); setDiscountValue(0); }}
-                                                        className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'fixed' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}
-                                                    >
-                                                        Monto ($)
-                                                    </button>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => { setDiscountType('percentage'); setDiscountValue(0); }}
-                                                        className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}
-                                                    >
-                                                        Porcentaje (%)
-                                                    </button>
+                                                    <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'fixed' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Monto ($)</button>
+                                                    <button type="button" onClick={() => { setDiscountType('percentage'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Porcentaje (%)</button>
                                                 </div>
                                             </div>
-
                                             <div className="flex gap-2 mb-2">
                                                 <div className="relative w-1/3 shrink-0">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-                                                        {discountType === 'percentage' ? '%' : '$'}
-                                                    </span>
-                                                    <input 
-                                                        type="number" min="0" step={discountType === 'percentage' ? '1' : '100'}
-                                                        className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white transition-all" 
-                                                        placeholder="0"
-                                                        value={discountValue || ''}
-                                                        onChange={(e) => setDiscountValue(e.target.value)}
-                                                    />
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{discountType === 'percentage' ? '%' : '$'}</span>
+                                                    <input type="number" min="0" step={discountType === 'percentage' ? '1' : '100'} className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white transition-all text-sm" placeholder="0" value={discountValue || ''} onChange={(e) => setDiscountValue(e.target.value)} />
                                                 </div>
-                                                <input 
-                                                    type="text" 
-                                                    className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white transition-all" 
-                                                    placeholder="Motivo (Ej: Promo Amiga)"
-                                                    value={discountReason}
-                                                    onChange={(e) => setDiscountReason(e.target.value)}
-                                                    disabled={!discountValue || discountValue <= 0}
-                                                />
+                                                <input type="text" className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white transition-all" placeholder="Motivo (Ej: Promo Amiga)" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} disabled={!discountValue || discountValue <= 0} />
                                             </div>
-                                            
                                             {parseFloat(discountValue) > 0 && (
                                                 <p className="text-[10px] text-purple-600 text-right font-bold italic animate-fade-in">
-                                                    {discountType === 'percentage' 
-                                                        ? `Ahorro calculado: -$${(total * (parseFloat(discountValue)/100)).toLocaleString()}`
-                                                        : `Se descontarán $${parseFloat(discountValue).toLocaleString()} del total.`
-                                                    }
+                                                    {discountType === 'percentage' ? `Ahorro calculado: -$${(total * (parseFloat(discountValue)/100)).toLocaleString()}` : `Se descontarán $${parseFloat(discountValue).toLocaleString()} del total.`}
                                                 </p>
                                             )}
                                         </div>
@@ -666,8 +680,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                         </button>
                                     </div>
                                 </div>
-                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02]">
-                                    <Icon name="send" size={18}/> Finalizar y Saludar por WA
+                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] text-sm">
+                                    <Icon name="send" size={16}/> Finalizar y Saludar por WA
                                 </button>
                             </div>
                         </div>
