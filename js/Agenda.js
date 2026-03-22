@@ -14,7 +14,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [blockModal, setBlockModal] = useState({ open: false, type: 'day', date: '', time: '', profId: loggedProfId || '' });
 
     // ESTADOS PARA EL COBRO
-// ESTADOS PARA EL COBRO
     const [showCheckout, setShowCheckout] = useState(null); 
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [discountValue, setDiscountValue] = useState(0);
@@ -118,7 +117,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleSave = (e) => {
-        if (isProfessional) return; // Bloqueo de seguridad extra
+        if (isProfessional) return; 
         e.preventDefault();
         try {
             const [year, month, day] = form.date.split('-').map(Number);
@@ -154,8 +153,9 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             if (form.status === 'completed') {
                 setIsCreateOpen(false);
                 setShowCheckout(apptData);
-                setDiscountValue(0); // Reiniciamos el descuento al abrir checkout
+                setDiscountValue(0);
                 setDiscountReason('');
+                setDiscountType('fixed');
                 return;
             }
 
@@ -167,7 +167,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleBlock = (e) => {
-        if (isProfessional) return; // Bloqueo extra
+        if (isProfessional) return;
         e.preventDefault();
         const iso = blockModal.type === 'day' ? new Date(`${blockModal.date}T00:00:00`).toISOString() : new Date(`${blockModal.date}T${blockModal.time}`).toISOString();
         const blockProfId = loggedProfId ? loggedProfId : (blockModal.profId || 'ALL');
@@ -177,12 +177,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     };
 
     const handleStatusChange = (apptId, newStatus) => {
-        if (isProfessional) return; // Bloqueo extra
+        if (isProfessional) return;
         if (newStatus === 'completed') {
             const appt = appointments.find(a => a.id === apptId);
             setSelectedAppt(null); 
-            setDiscountValue(0); // Limpiamos campos
+            setDiscountValue(0);
             setDiscountReason('');
+            setDiscountType('fixed');
             setShowCheckout(appt); 
             return;
         }
@@ -192,7 +193,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
 
     // ✅ LÓGICA DE COBRO CON DESCUENTOS INTELIGENTES
     const handleCompleteCheckout = () => {
-        if (isProfessional) return; // Bloqueo extra de seguridad
+        if (isProfessional) return;
         
         const appt = showCheckout;
         const tr = treatments.find(t => t.id === appt.treatmentId);
@@ -203,27 +204,22 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         const hasDeposit = (appt.status === 'confirmed_paid' || appt.status === 'reserved');
         const depositAmount = hasDeposit ? parseFloat(agentStr.depositAmount || 0) : 0;
         
-        // --- 🚀 CÁLCULO DE DESCUENTO SEGÚN CONFIGURACIÓN ---
         // --- 🚀 CÁLCULO DE DESCUENTO ---
         let safeDiscount = 0;
         const inputVal = parseFloat(discountValue) || 0;
         
-        // ✅ AHORA EVALÚA EL ESTADO LOCAL 'discountType' (Elegido en el modal de cobro)
         if (discountType === 'percentage') {
             safeDiscount = total * (inputVal / 100);
         } else {
             safeDiscount = inputVal;
         }
 
-        // Validación: El descuento no puede ser negativo ni superar el total restante
         const remainingToPay = total - depositAmount;
         if (safeDiscount < 0) safeDiscount = 0;
         if (safeDiscount > remainingToPay) safeDiscount = remainingToPay;
 
-        // Matemática final: Lo que el cliente paga en este momento
         const finalAmount = total - depositAmount - safeDiscount;
 
-        // Guardamos el turno
         const updatedAppointments = appointments.map(a => 
             a.id === appt.id ? { 
                 ...a, 
@@ -237,7 +233,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         
         saveAppointments(updatedAppointments);
 
-        // Armamos el ticket para WhatsApp
         const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
                         `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
                         `💰 *Detalle del pago:*\n` +
@@ -256,11 +251,12 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         setEditingApptId(null);
         setDiscountValue(0);
         setDiscountReason('');
+        setDiscountType('fixed');
         notify("Servicio finalizado y cobrado exitosamente", "success");
-    }; // ✅ AQUÍ CIERRA CORRECTAMENTE LA FUNCIÓN DE CHECKOUT
+    };
 
     const openEditModal = (appt) => {
-        if (isProfessional) return; // Bloqueo extra
+        if (isProfessional) return;
         const d = new Date(appt.date);
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -606,7 +602,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                     <Icon name="tag" size={12}/> Aplicar Descuento
                                                 </label>
                                                 
-                                                {/* ✅ SELECTOR LOCAL DE TIPO DE DESCUENTO */}
                                                 <div className="flex bg-white rounded-lg border border-purple-200 overflow-hidden shadow-sm">
                                                     <button 
                                                         type="button"
@@ -648,7 +643,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                 />
                                             </div>
                                             
-                                            {/* Lógica de visualización del ahorro real */}
                                             {parseFloat(discountValue) > 0 && (
                                                 <p className="text-[10px] text-purple-600 text-right font-bold italic animate-fade-in">
                                                     {discountType === 'percentage' 
