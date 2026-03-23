@@ -120,7 +120,6 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
       <div className="p-8 bg-brand-bg min-h-full overflow-x-auto relative">
         <header className="flex justify-between items-center mb-8 min-w-[800px]">
           <div>
-            {/* ACHICADO A text-2xl */}
             <h2 className="text-2xl font-bold text-brand-text">Servicios</h2>
             <p className="text-sm text-brand-text-light mt-1">Gestión de precios y tiempos</p>
           </div>
@@ -128,18 +127,18 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             {/* BOTÓN REDES */}
             <button 
                 onClick={() => setIsSocialMode(true)} 
-                className="bg-secondary text-brand-text px-4 py-2.5 rounded-brand font-bold shadow-lg shadow-secondary/20 flex items-center gap-2 hover:animate-pulse transition-all"
+                className="bg-secondary text-brand-text px-4 py-2.5 rounded-brand font-bold shadow-lg shadow-secondary/20 flex items-center gap-2 hover:animate-pulse transition-all text-sm"
             >
-                <Icon name="instagram" size={18} /> 
+                <Icon name="instagram" size={16} /> 
                 <span>Redes</span>
             </button>
 
             {/* BOTÓN CATEGORÍAS */}
              <button 
                 onClick={() => setIsCatManagerOpen(true)} 
-                className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors"
+                className="bg-white border border-brand-border text-brand-text-light px-4 py-2.5 rounded-brand font-medium shadow-sm hover:bg-brand-bg flex items-center gap-2 transition-colors text-sm"
             >
-                <Icon name="list" /> Categorías
+                <Icon name="list" size={16}/> Categorías
              </button>
 
              {/* BOTÓN MANUAL */}
@@ -149,9 +148,9 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     setFormData({category:categories[0]?.name||'',subCategory:'',price:'',duration:'30', hasMargin: false, margin: '15'}); 
                     setIsModalOpen(true); 
                 }} 
-                className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex gap-2 font-medium hover:bg-primary-dark transition-all"
+                className="bg-primary text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand shadow-lg shadow-primary/20 flex items-center gap-2 font-bold hover:bg-primary-dark transition-all text-sm"
             >
-                <Icon name="plus" /> Manual
+                <Icon name="plus" size={16} /> Manual
             </button>
           </div>
         </header>
@@ -161,7 +160,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             {categories.map(cat => (
                 <div key={cat.id} className="w-80 bg-white rounded-brand shadow-card border border-brand-border flex flex-col overflow-hidden">
                     <div className="p-5 border-b border-brand-border bg-brand-bg flex justify-between items-center">
-                        <h3 className="font-bold text-brand-text uppercase tracking-wide text-xs">{cat.name}</h3> {/* Achicado a text-xs tracking-wide */}
+                        <h3 className="font-bold text-brand-text uppercase tracking-wide text-xs">{cat.name}</h3>
                         <button onClick={() => setSubCatModal({open: true, catId: cat.id, catName: cat.name})} className="text-brand-text-light hover:text-primary p-1 rounded-md hover:bg-white transition-colors" title="Agregar opciones rápidas"><Icon name="plus-circle" size={18} /></button>
                     </div>
                     <div className="p-4 space-y-3">
@@ -201,18 +200,17 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
             <div className="fixed inset-0 bg-brand-text/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-brand p-6 w-full max-w-sm shadow-2xl animate-scale-in border border-brand-border">
                     <div className="flex justify-between items-center mb-4">
-                        {/* ACHICADO A text-lg */}
                         <h3 className="text-lg font-bold text-brand-text">Categorías</h3>
                         <button onClick={()=>setIsCatManagerOpen(false)}><Icon name="x" className="text-gray-400 hover:text-black"/></button>
                     </div>
                     <div className="flex gap-2 mb-6">
-                        <input autoFocus className="border border-brand-border p-2 rounded-brand flex-1 outline-none focus:border-primary bg-brand-bg" placeholder="Ej: Manos, Pies..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCategory()} />
+                        <input autoFocus className="border border-brand-border p-2 rounded-brand flex-1 outline-none focus:border-primary bg-brand-bg text-sm" placeholder="Ej: Manos, Pies..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCategory()} />
                         <button onClick={handleAddCategory} className="bg-primary text-[var(--color-primary-text)] px-3 rounded-brand hover:opacity-90 transition-opacity"><Icon name="plus"/></button>
                     </div>
                     <div className="space-y-2 max-h-60 overflow-auto pr-2 custom-scrollbar">
                         {categories.map(cat => (
                             <div key={cat.id} className="flex justify-between items-center bg-brand-bg p-3 rounded-brand border border-brand-border">
-                                <span className="font-medium text-brand-text-light text-sm">{cat.name}</span> {/* Achicado a text-sm */}
+                                <span className="font-medium text-brand-text-light text-sm">{cat.name}</span>
                                 <button onClick={() => setConfirmDelete({open:true, id:cat.id, type:'cat'})} className="text-accent hover:text-primary transition-colors"><Icon name="trash-2" size={16}/></button>
                             </div>
                         ))}
@@ -228,7 +226,6 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <div>
                             <p className="text-[10px] text-brand-text-light uppercase tracking-wider">Agregar a</p>
-                            {/* ACHICADO A text-base */}
                             <h3 className="text-base font-bold text-primary-dark leading-tight">{subCatModal.catName}</h3>
                         </div>
                         <button onClick={()=>setSubCatModal({open:false, catId:null, catName:''})}><Icon name="x" className="text-gray-400 hover:text-black"/></button>
@@ -237,16 +234,16 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                     <div className="space-y-3 mb-6">
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Nombre del Servicio</label>
-                            <input autoFocus className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg" placeholder="Ej: Semipermanente" value={newSub.name} onChange={e=>setNewSub({...newSub, name:e.target.value})} />
+                            <input autoFocus className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg text-sm" placeholder="Ej: Semipermanente" value={newSub.name} onChange={e=>setNewSub({...newSub, name:e.target.value})} />
                         </div>
                         <div className="flex gap-3">
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">Precio ($)</label>
-                                <input type="number" className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg font-bold" placeholder="0" value={newSub.price} onChange={e=>setNewSub({...newSub, price:e.target.value})} />
+                                <input type="number" className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg font-bold text-sm" placeholder="0" value={newSub.price} onChange={e=>setNewSub({...newSub, price:e.target.value})} />
                             </div>
                             <div className="w-24">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">Minutos</label>
-                                <input type="number" className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg text-center" placeholder="30" value={newSub.duration} onChange={e=>setNewSub({...newSub, duration:e.target.value})} />
+                                <input type="number" className="w-full border border-brand-border p-2 rounded-brand outline-none focus:border-secondary bg-brand-bg text-center text-sm" placeholder="30" value={newSub.duration} onChange={e=>setNewSub({...newSub, duration:e.target.value})} />
                             </div>
                         </div>
 
@@ -270,8 +267,8 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                             )}
                         </div>
 
-                        <button onClick={handleAddSubCategory} className="w-full bg-secondary text-brand-text py-2 rounded-brand font-bold hover:text-white transition-colors mt-2 flex justify-center gap-2 text-sm"> {/* text-sm al boton */}
-                            <Icon name="plus-circle" size={18}/> Crear Servicio
+                        <button onClick={handleAddSubCategory} className="w-full bg-secondary text-brand-text py-2 rounded-brand font-bold hover:text-white transition-colors mt-2 flex justify-center items-center gap-2 text-sm">
+                            <Icon name="plus-circle" size={16}/> Crear Servicio
                         </button>
                     </div>
 
@@ -292,33 +289,46 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
         {isModalOpen && (
             <div className="fixed inset-0 bg-brand-text/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-brand w-full max-w-md p-8 shadow-2xl animate-scale-in border border-brand-border">
-                    {/* ACHICADO A text-lg */}
                     <h3 className="text-lg font-bold mb-6 text-brand-text">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        
+                        {/* ✅ REEMPLAZAMOS LOS <select> POR <CustomSelect> */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Categoría</label>
-                                <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary text-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, subCategory: ''})}>
-                                    <option value="">Seleccionar...</option>
-                                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                </select>
+                                <label className="block text-[10px] uppercase font-bold text-brand-text-light mb-1 ml-1">Categoría</label>
+                                <CustomSelect 
+                                    value={formData.category} 
+                                    onChange={e => setFormData({...formData, category: e.target.value, subCategory: ''})}
+                                    options={[
+                                        { value: '', label: 'Seleccionar...' },
+                                        ...categories.map(c => ({ value: c.name, label: c.name }))
+                                    ]}
+                                    placeholder="Seleccionar..."
+                                />
                             </div>
                             <div>
-                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Opción</label>
-                                <select required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary text-sm" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} disabled={!(categories.find(c => c.name === formData.category)?.subs || []).length}>
-                                    <option value="">Seleccionar...</option>
-                                    {(categories.find(c => c.name === formData.category)?.subs || []).map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                                <label className="block text-[10px] uppercase font-bold text-brand-text-light mb-1 ml-1">Opción</label>
+                                <CustomSelect 
+                                    value={formData.subCategory} 
+                                    onChange={e => setFormData({...formData, subCategory: e.target.value})}
+                                    disabled={!(categories.find(c => c.name === formData.category)?.subs || []).length}
+                                    options={[
+                                        { value: '', label: 'Seleccionar...' },
+                                        ...(categories.find(c => c.name === formData.category)?.subs || []).map(s => ({ value: s, label: s }))
+                                    ]}
+                                    placeholder="Seleccionar..."
+                                />
                             </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Precio ($)</label>
-                                <input type="number" required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none font-bold text-brand-text focus:border-primary" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                                <label className="block text-[10px] uppercase font-bold text-brand-text-light mb-1 ml-1">Precio ($)</label>
+                                <input type="number" required className="w-full bg-brand-bg border border-brand-border p-2.5 rounded-brand outline-none font-bold text-brand-text focus:border-primary text-sm" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                             </div>
                             <div>
-                                <label className="text-[10px] uppercase font-bold text-brand-text-light ml-1">Minutos</label>
-                                <input type="number" required className="w-full bg-brand-bg border border-brand-border p-3 rounded-brand outline-none focus:border-primary" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
+                                <label className="block text-[10px] uppercase font-bold text-brand-text-light mb-1 ml-1">Minutos</label>
+                                <input type="number" required className="w-full bg-brand-bg border border-brand-border p-2.5 rounded-brand outline-none focus:border-primary text-sm" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
                             </div>
                         </div>
 
@@ -327,7 +337,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h4 className="font-bold text-yellow-800 text-sm flex items-center gap-2"><Icon name="clock" size={16}/> Margen de Limpieza</h4>
-                                    <p className="text-[9px] text-yellow-600 mt-0.5 leading-tight">Tiempo extra que se bloquea en la agenda pero no lo ve el cliente.</p>
+                                    <p className="text-[9px] text-yellow-600 mt-0.5 leading-tight">Tiempo extra bloqueado post-servicio.</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                     <input type="checkbox" className="sr-only peer" checked={formData.hasMargin || false} onChange={e => setFormData({...formData, hasMargin: e.target.checked})} />
@@ -347,7 +357,7 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-brand-border">
                             <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-brand-text-light text-sm font-medium hover:text-brand-text transition-colors">Cancelar</button>
-                            <button type="submit" className="px-6 py-2.5 bg-primary text-[var(--color-primary-text)] rounded-brand font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-sm">Guardar</button>
+                            <button type="submit" className="px-6 py-2.5 bg-primary text-[var(--color-primary-text)] rounded-brand font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-sm flex items-center gap-2"><Icon name="save" size={16}/> Guardar</button>
                         </div>
                     </form>
                 </div>
@@ -418,11 +428,10 @@ const Treatments = ({ treatments = [], setTreatments, saveTreatments, categories
         {/* --- MODAL CONFIRMAR BORRADO --- */}
         {confirmDelete.open && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100 transform transition-all">
+                <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100 transform transition-all animate-scale-in">
                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Icon name="alert-triangle" size={24} />
                     </div>
-                    {/* ACHICADO A text-base */}
                     <h3 className="font-bold text-base mb-2 text-gray-800">¿Eliminar?</h3>
                     <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
                     <div className="flex gap-3">
