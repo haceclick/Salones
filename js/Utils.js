@@ -90,3 +90,59 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
       </div>
     );
 };
+
+// ✅ NUEVO DESPLEGABLE PERSONALIZADO (ANTI MODO-OSCURO Y ANTI-LAG)
+const CustomSelect = ({ value, onChange, options, placeholder = "Seleccione...", disabled = false, className = "" }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const dropdownRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Buscar la opción seleccionada
+    const selectedOption = options.find(opt => String(opt.value) === String(value));
+    const displayLabel = selectedOption ? selectedOption.label : placeholder;
+
+    return (
+        <div className={`relative ${className}`} ref={dropdownRef}>
+            <div 
+                className={`w-full border border-gray-300 p-2.5 rounded-lg bg-white text-sm flex justify-between items-center transition-colors ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-[var(--color-primary)] shadow-sm'}`}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+            >
+                <span className={`truncate ${!value ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>{displayLabel}</span>
+                <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} className="text-gray-400 shrink-0" />
+            </div>
+            
+            {isOpen && !disabled && (
+                <div className="absolute z-[1000] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                    {options.length === 0 ? (
+                        <div className="p-3 text-sm text-gray-500 italic text-center">Sin opciones</div>
+                    ) : (
+                        options.map((opt, i) => {
+                            const isSelected = String(opt.value) === String(value);
+                            return (
+                                <div 
+                                    key={i}
+                                    className={`p-3 text-sm cursor-pointer transition-colors ${isSelected ? 'bg-[var(--color-primary)] text-white font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                                    onClick={() => {
+                                        onChange({ target: { value: opt.value } }); // Simulamos el evento (e.target.value)
+                                        setIsOpen(false);
+                                    }}
+                                >
+                                    {opt.label}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
