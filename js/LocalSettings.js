@@ -1,5 +1,5 @@
 const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBrandingState, user, targetEmail }) => {
-    // 1. Valores por defecto (✅ AGREGAMOS enableDiscounts)
+    // 1. Valores por defecto
     const defaultBranding = { id: 'branding', primaryColor: '#008395', sidebarBg: '#111827', sidebarText: '#9ca3af', sidebarActive: '#ffffff', logoBase64: '', adminEmail: '' };
     const defaultAgent = { 
         id: 'agent_config', businessName: '', whatsapp: '', address: '', tenantAlias: '', mapsUrl: '',
@@ -163,14 +163,12 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
         return `https://mail.google.com/mail/?view=cm&fs=1&bcc=${bcc}&su=${subject}&body=${encodeURIComponent(bodyText)}`;
     };
 
-    // ✅ Estilo unificado para los títulos de los acordeones (Achicado a text-base)
     const accordionTitleClass = "font-bold text-base flex items-center gap-3 text-gray-800";
     const accordionIconColor = "text-gray-500";
 
     return (
         <div className="p-4 md:p-8 h-full bg-brand-bg">
             <header className="mb-8">
-                {/* ACHICADO A text-2xl */}
                 <h2 className="text-2xl font-bold text-gray-800">Ajustes del Local</h2>
             </header>
             <form onSubmit={handleSave} className="w-full space-y-4">
@@ -189,10 +187,10 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                     {openSection === 'negocio' && (
                         <div className="p-6 space-y-6 animate-fade-in">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Nombre Comercial</label><input type="text" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.businessName || ''} onChange={e => setAgentConfig({...agentConfig, businessName: e.target.value})} /></div>
-                                <div><label className="block text-xs font-bold text-gray-500 mb-2">WhatsApp</label><input type="tel" placeholder="Ej: 5491112345678" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.whatsapp || ''} onChange={e => setAgentConfig({...agentConfig, whatsapp: e.target.value})} /></div>
-                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Dirección Física</label><input type="text" placeholder="Ej: Av. Santa Fe 1234" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.address || ''} onChange={e => setAgentConfig({...agentConfig, address: e.target.value})} /></div>
-                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Link Google Maps</label><input type="url" placeholder="https://maps.app.goo.gl/..." className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)]" value={agentConfig.mapsUrl || ''} onChange={e => setAgentConfig({...agentConfig, mapsUrl: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Nombre Comercial</label><input type="text" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm" value={agentConfig.businessName || ''} onChange={e => setAgentConfig({...agentConfig, businessName: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">WhatsApp</label><input type="tel" placeholder="Ej: 5491112345678" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm" value={agentConfig.whatsapp || ''} onChange={e => setAgentConfig({...agentConfig, whatsapp: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Dirección Física</label><input type="text" placeholder="Ej: Av. Santa Fe 1234" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm" value={agentConfig.address || ''} onChange={e => setAgentConfig({...agentConfig, address: e.target.value})} /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 mb-2">Link Google Maps</label><input type="url" placeholder="https://maps.app.goo.gl/..." className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm" value={agentConfig.mapsUrl || ''} onChange={e => setAgentConfig({...agentConfig, mapsUrl: e.target.value})} /></div>
                             </div>
 
                             {/* ENLACE PÚBLICO */}
@@ -202,7 +200,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 
                                 {!isEditingAlias ? (
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full overflow-hidden">
-                                        {/* ✅ AGREGADO: overflow-x-auto, custom-scrollbar y whitespace-nowrap */}
                                         <div className="bg-white border border-gray-300 p-3 rounded-lg text-gray-700 text-sm font-mono flex-1 w-full flex items-center shadow-sm overflow-x-auto custom-scrollbar whitespace-nowrap">
                                             <span className="text-gray-400">salones.haceclick-ai.com/?local=</span>
                                             <strong className="text-blue-900 ml-0.5">{agentConfig.tenantAlias || 'tu-local'}</strong>
@@ -213,7 +210,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                     </div>
                                 ) : (
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 animate-fade-in w-full overflow-hidden">
-                                        {/* ✅ AGREGADO: overflow-x-auto y scroll */}
                                         <div className="bg-white border-2 border-blue-400 p-2.5 rounded-lg flex items-center flex-1 w-full focus-within:ring-4 focus-within:ring-blue-100 transition-all shadow-inner overflow-x-auto custom-scrollbar whitespace-nowrap">
                                             <span className="text-gray-400 text-sm font-mono">salones.haceclick-ai.com/?local=</span>
                                             <input 
@@ -241,18 +237,19 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                     <p className="text-[10px] text-gray-500 mt-1">Límite de tiempo previo al turno para que el cliente pueda reprogramarlo desde el portal.</p>
                                 </div>
                                 <div className="w-full md:w-1/2 mb-6">
-                                    <select 
-                                        className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none bg-gray-50 focus:bg-white text-sm font-medium text-gray-800 transition-all"
-                                        value={agentConfig.reschedulePolicy || '24'}
+                                    {/* ✅ IMPLEMENTACIÓN DEL CUSTOM SELECT */}
+                                    <CustomSelect 
+                                        value={agentConfig.reschedulePolicy || '24'} 
                                         onChange={e => setAgentConfig({...agentConfig, reschedulePolicy: e.target.value})}
-                                    >
-                                        <option value="0">En cualquier momento (Sin límite)</option>
-                                        <option value="12">Hasta 12 horas antes del turno</option>
-                                        <option value="24">Hasta 24 horas antes del turno</option>
-                                        <option value="48">Hasta 48 horas antes del turno</option>
-                                        <option value="72">Hasta 72 horas antes del turno</option>
-                                        <option value="disabled">No permitir reprogramar</option>
-                                    </select>
+                                        options={[
+                                            { value: '0', label: 'En cualquier momento (Sin límite)' },
+                                            { value: '12', label: 'Hasta 12 horas antes del turno' },
+                                            { value: '24', label: 'Hasta 24 horas antes del turno' },
+                                            { value: '48', label: 'Hasta 48 horas antes del turno' },
+                                            { value: '72', label: 'Hasta 72 horas antes del turno' },
+                                            { value: 'disabled', label: 'No permitir reprogramar' }
+                                        ]}
+                                    />
                                 </div>
 
                                 {/* SWITCH Y TEXTO DE TÉRMINOS Y CONDICIONES */}
@@ -287,7 +284,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                 </div>
                             </div>
 
-                            {/* ✅ NUEVO: HABILITAR DESCUENTOS */}
+                            {/* HABILITAR DESCUENTOS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -305,7 +302,6 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                     </label>
                                 </div>
                             </div>
-                            
                             
                             {/* COBRO DE SEÑAS */}
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 transition-all">
@@ -331,7 +327,7 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Monto de la Seña ($)</label>
                                             <input 
                                                 type="number" 
-                                                className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition-all" 
+                                                className="w-full md:w-1/2 border p-2.5 rounded-lg focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition-all text-sm" 
                                                 value={agentConfig.depositAmount || ''} 
                                                 onChange={e => setAgentConfig({...agentConfig, depositAmount: e.target.value})} 
                                                 placeholder="Ej: 2000" 
@@ -361,21 +357,21 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                                             {(!agentConfig.depositType || agentConfig.depositType === 'link') ? (
                                                 <div className="animate-fade-in">
                                                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Link de Pago (MercadoPago, Stripe...)</label>
-                                                    <input type="url" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.paymentUrl || ''} onChange={e => setAgentConfig({...agentConfig, paymentUrl: e.target.value})} placeholder="https://..." />
+                                                    <input type="url" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none text-sm" value={agentConfig.paymentUrl || ''} onChange={e => setAgentConfig({...agentConfig, paymentUrl: e.target.value})} placeholder="https://..." />
                                                 </div>
                                             ) : (
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Alias / CBU</label>
-                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferAlias || ''} onChange={e => setAgentConfig({...agentConfig, transferAlias: e.target.value})} placeholder="mi.alias.mp" />
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none text-sm" value={agentConfig.transferAlias || ''} onChange={e => setAgentConfig({...agentConfig, transferAlias: e.target.value})} placeholder="mi.alias.mp" />
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre del Titular</label>
-                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferName || ''} onChange={e => setAgentConfig({...agentConfig, transferName: e.target.value})} placeholder="Juan Pérez" />
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none text-sm" value={agentConfig.transferName || ''} onChange={e => setAgentConfig({...agentConfig, transferName: e.target.value})} placeholder="Juan Pérez" />
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">CUIT / CUIL</label>
-                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none" value={agentConfig.transferCuit || ''} onChange={e => setAgentConfig({...agentConfig, transferCuit: e.target.value})} placeholder="20-12345678-9" />
+                                                        <input type="text" className="w-full border p-2.5 rounded-lg focus:border-[var(--color-primary)] outline-none text-sm" value={agentConfig.transferCuit || ''} onChange={e => setAgentConfig({...agentConfig, transferCuit: e.target.value})} placeholder="20-12345678-9" />
                                                     </div>
                                                 </div>
                                             )}
@@ -443,23 +439,23 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <label className="block text-xs font-bold text-gray-800 uppercase mb-2">👋 Bienvenida a Nuevos Clientes</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*!</div>
-                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm text-gray-700 resize-none transition-all" value={messagesConfig.welcome || ''} onChange={e=>setMessagesConfig({...messagesConfig, welcome: e.target.value})} placeholder="Escribe aquí tu mensaje de bienvenida..."></textarea>
                             </div>
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <label className="block text-xs font-bold text-gray-800 uppercase mb-2">✅ Confirmación de Turno</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te confirmamos tu turno para *[Servicio]* el *[Día]* a las *[Hora]*.</div>
-                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm text-gray-700 resize-none transition-all" value={messagesConfig.confirm || ''} onChange={e=>setMessagesConfig({...messagesConfig, confirm: e.target.value})} placeholder="Ej: ¡Te esperamos!"></textarea>
                                 <div className="text-sm text-gray-400 mt-2 italic">[Link de Google Maps] + [Link de Calendario]</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <label className="block text-xs font-bold text-gray-800 uppercase mb-2">❌ Rechazo / Reprogramación</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! Te escribimos de *[Tu Local]*.</div>
-                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
+                                <textarea rows="3" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm text-gray-700 resize-none transition-all" value={messagesConfig.reject || ''} onChange={e=>setMessagesConfig({...messagesConfig, reject: e.target.value})} placeholder="Motivo del rechazo y oferta de reprogramación..."></textarea>
                             </div>
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <label className="block text-xs font-bold text-gray-800 uppercase mb-2">🎂 Saludo de Cumpleaños</label>
                                 <div className="text-sm text-gray-400 mb-2 italic">¡Hola *[Nombre Cliente]*! En este día especial te deseamos un ¡MUY FELIZ CUMPLEAÑOS!</div>
-                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-gray-700 resize-none transition-all" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
+                                <textarea rows="2" className="w-full border p-3 rounded-lg outline-none focus:border-[var(--color-primary)] text-sm text-gray-700 resize-none transition-all" value={messagesConfig.birthday || ''} onChange={e=>setMessagesConfig({...messagesConfig, birthday: e.target.value})} placeholder="Ej: Para festejar te regalamos..."></textarea>
                             </div>
                         </div>
                     )}
@@ -479,13 +475,13 @@ const LocalSettings = ({ settings, setSettings, saveSettings, notify, updateBran
                     {openSection === 'email' && (
                         <div className="p-6 animate-fade-in">
                             <div className="space-y-4 mb-6">
-                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] outline-none transition-colors" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
-                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] outline-none resize-none transition-colors" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asunto del Correo</label><input type="text" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] text-sm outline-none transition-colors" value={messagesConfig.promoSubject || ''} onChange={e=>setMessagesConfig({...messagesConfig, promoSubject: e.target.value})} /></div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cuerpo del Mensaje</label><textarea rows="3" className="w-full border p-3 rounded-lg focus:border-[var(--color-primary)] text-sm outline-none resize-none transition-colors" value={messagesConfig.promo || ''} onChange={e=>setMessagesConfig({...messagesConfig, promo: e.target.value})}></textarea></div>
                             </div>
 
                             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                                 {emailGroups.length === 0 ? (
-                                    <button type="button" onClick={handlePreparePromo} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-sm"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
+                                    <button type="button" onClick={handlePreparePromo} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-sm text-sm"><Icon name="users" size={18}/> Preparar Lista de Envío</button>
                                 ) : (
                                     <div className="space-y-4">
                                         <p className="text-xs text-gray-700 font-medium">Se han creado {emailGroups.length} grupos de 50 correos. Haz clic en cada uno para abrir tu correo:</p>
