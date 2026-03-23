@@ -36,11 +36,16 @@ const formatDate = (dateStr) => {
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+// ✅ FUNCIÓN CORREGIDA: Limpia todo y NUNCA devuelve el signo "+"
 const formatPhoneForWhatsApp = (phone) => {
-  if (!phone) return '';
-  let cleaned = phone.replace(/[^0-9]/g, '');
-  if (cleaned.startsWith('54')) return '+' + cleaned;
-  return '+549' + cleaned;
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, ''); 
+    if (!cleaned.startsWith('54')) {
+        cleaned = '549' + cleaned;
+    } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+        cleaned = '549' + cleaned.substring(2);
+    }
+    return cleaned;
 };
 
 const canClientModify = (dateIso) => {
