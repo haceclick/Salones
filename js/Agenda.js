@@ -1,5 +1,4 @@
 const Agenda = ({ appointments, clients, treatments, professionals, settings, setAppointments, saveAppointments, notify, targetApptId, clearTargetAppt, loggedProfId, userRole }) => {
-    // 🔥 CREAMOS EL MODO "SOLO LECTURA" PARA PROFESIONALES
     const isProfessional = userRole === 'professional';
 
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -14,7 +13,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
     const [blockModal, setBlockModal] = useState({ open: false, type: 'day', date: '', time: '', profId: loggedProfId || '' });
 
-    // ESTADOS PARA EL COBRO
     const [showCheckout, setShowCheckout] = useState(null); 
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [discountValue, setDiscountValue] = useState(0);
@@ -97,24 +95,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
             return a.professionalId === filterProf || a.professionalId === 'any' || a.professionalId === 'ALL';
         });
     }, [appointments, filterProf]);
-
-    const sendWhatsAppMsg = (appt, client, treatment, isDepositRequest = false) => {
-        if (!client || !client.phone) return;
-        const phone = String(client.phone).replace(/\D/g, ''); 
-        const d = new Date(appt.date);
-        const dateStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const serviceName = treatment ? treatment.name : 'tu servicio';
-        const agentConfig = settings?.find(s => s.id === 'agent_config');
-        const mapsUrl = agentConfig?.mapsUrl || ''; 
-        const mapsText = mapsUrl ? `\n📍 Ubicación: ${mapsUrl}` : '';
-
-        let text = isDepositRequest 
-            ? `¡Hola *${client.name}*! 👋\nRecibimos tu solicitud de turno para *${serviceName}* el ${dateStr} a las ${timeStr} hs.\n\nPara poder confirmar tu lugar, es necesario realizar una seña de *$${agentConfig?.depositAmount || 0}*.\n\n💳 *Link de pago:* ${agentConfig?.paymentUrl}\n\nUna vez realizado, envíanos el comprobante por este medio. ¡Muchas gracias!`
-            : `¡Hola *${client.name}*! 👋\n¡Seña recibida correctamente! ✅\n\nTe confirmamos tu turno para:\n- *${serviceName}* el ${dateStr} a las ${timeStr} hs.\n\n¡Te esperamos!${mapsText}`;
-        
-        window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
-    };
 
     const handleSave = (e) => {
         if (isProfessional) return; 
@@ -320,11 +300,15 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 <h2 className="text-2xl font-bold text-gray-800">Agenda</h2>
                 <div className="flex flex-wrap gap-2 items-center">
                     {!loggedProfId ? (
-                        <select value={filterProf} onChange={(e) => setFilterProf(e.target.value)}
-                            className="border border-gray-300 p-2 rounded-lg bg-white font-bold text-sm text-gray-800 outline-none shadow-sm focus:border-[var(--color-primary)]">
-                            <option value="all">👥 Todos los Profesionales</option>
-                            {professionals.map(p => <option key={p.id} value={p.id}>👤 {p.name}</option>)}
-                        </select>
+                        <CustomSelect 
+                            value={filterProf} 
+                            onChange={(e) => setFilterProf(e.target.value)}
+                            options={[
+                                { value: 'all', label: '👥 Todos los Profesionales' },
+                                ...professionals.map(p => ({ value: p.id, label: `👤 ${p.name}` }))
+                            ]}
+                            className="w-56"
+                        />
                     ) : <div className="border border-[var(--color-primary)] bg-white text-[var(--color-primary)] px-3 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"><Icon name="users" size={16}/> Mi Agenda</div>}
                     
                     {!isProfessional && (
@@ -519,33 +503,45 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         <form onSubmit={handleSave} className="space-y-4 text-left">
                             <div>
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cliente</label>
-                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.clientId} onChange={e=>setForm({...form, clientId:e.target.value})}>
-                                    <option value="">Seleccione...</option>
-                                    {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                                <CustomSelect 
+                                    value={form.clientId} 
+                                    onChange={e=>setForm({...form, clientId:e.target.value})}
+                                    options={clients.map(c => ({ value: c.id, label: c.name }))}
+                                    placeholder="Seleccione cliente..."
+                                />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Servicio</label>
-                                <select required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.treatmentId} onChange={e=>setForm({...form, treatmentId:e.target.value})}>
-                                    <option value="">Seleccione...</option>
-                                    {treatments.map(t=><option key={t.id} value={t.id}>{t.category} - {t.name}</option>)}
-                                </select>
+                                <CustomSelect 
+                                    value={form.treatmentId} 
+                                    onChange={e=>setForm({...form, treatmentId:e.target.value})}
+                                    options={treatments.map(t => ({ value: t.id, label: `${t.category} - ${t.name}` }))}
+                                    placeholder="Seleccione servicio..."
+                                />
                             </div>
                             
                             <div className="grid grid-cols-1 gap-2">
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Profesional Principal</label>
-                                    <select required disabled={!!loggedProfId} className={`w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none text-sm ${loggedProfId ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'focus:border-[var(--color-primary)]'}`} value={form.profId} onChange={e=>setForm({...form, profId:e.target.value})}>
-                                        <option value="">Seleccione...</option>
-                                        {professionals.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                    <CustomSelect 
+                                        value={form.profId} 
+                                        onChange={e=>setForm({...form, profId:e.target.value})}
+                                        disabled={!!loggedProfId}
+                                        options={professionals.map(p => ({ value: p.id, label: p.name }))}
+                                        placeholder="Seleccione profesional..."
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Asistente / Lavado (Opcional)</label>
-                                    <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-800 outline-none focus:border-[var(--color-primary)] text-sm" value={form.assistantId} onChange={e=>setForm({...form, assistantId:e.target.value})}>
-                                        <option value="">Nadie / No requiere</option>
-                                        {professionals.filter(p => p.id !== form.profId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                    <CustomSelect 
+                                        value={form.assistantId} 
+                                        onChange={e=>setForm({...form, assistantId:e.target.value})}
+                                        options={[
+                                            { value: '', label: 'Nadie / No requiere' },
+                                            ...professionals.filter(p => p.id !== form.profId).map(p => ({ value: p.id, label: p.name }))
+                                        ]}
+                                        placeholder="Seleccione asistente..."
+                                    />
                                 </div>
                             </div>
 
@@ -553,14 +549,23 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] text-sm" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
                                 <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] text-sm" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
                             </div>
-                            <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado</label>
-                                <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-800 outline-none font-bold focus:border-[var(--color-primary)] text-sm" value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
-                                    <option value="reserved">🟡 Reserva (Pendiente)</option>
-                                    <option value="confirmed">🟢 Confirmado</option>
-                                    <option value="confirmed_paid">🟢 Confirmado (Pagó seña)</option>
-                                    <option value="completed">🔵 Finalizar Servicio (Cobrar)</option>
-                                </select></div>
-                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg text-sm">Cancelar</button><button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button></div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado</label>
+                                <CustomSelect 
+                                    value={form.status} 
+                                    onChange={e=>setForm({...form, status:e.target.value})}
+                                    options={[
+                                        { value: 'reserved', label: '🟡 Reserva (Pendiente)' },
+                                        { value: 'confirmed', label: '🟢 Confirmado' },
+                                        { value: 'confirmed_paid', label: '🟢 Confirmado (Pagó seña)' },
+                                        { value: 'completed', label: '🔵 Finalizar Servicio (Cobrar)' }
+                                    ]}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100">
+                                <button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg text-sm">Cancelar</button>
+                                <button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -576,10 +581,14 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 text-sm" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
                             {!loggedProfId && (
                                 <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label>
-                                    <select className="w-full border border-gray-300 p-2.5 rounded-lg bg-white text-gray-800 outline-none focus:border-gray-800 text-sm" value={blockModal.profId} onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}>
-                                        <option value="">Todo el local (Todos los profesionales)</option>
-                                        {professionals.map(p=><option key={p.id} value={p.id}>Solo a {p.name}</option>)}
-                                    </select>
+                                    <CustomSelect 
+                                        value={blockModal.profId} 
+                                        onChange={e=>setBlockModal({...blockModal, profId:e.target.value})}
+                                        options={[
+                                            { value: '', label: 'Todo el local (Todos los profesionales)' },
+                                            ...professionals.map(p => ({ value: p.id, label: `Solo a ${p.name}` }))
+                                        ]}
+                                    />
                                 </div>
                             )}
                             <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg text-sm">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black shadow-md text-sm">Confirmar Bloqueo</button></div>
