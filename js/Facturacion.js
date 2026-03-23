@@ -58,7 +58,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); 
     }, [appointments, dateRange, activeProfFilter, paymentFilter, searchClient, clients]);
 
-    // Procesamiento de datos para métricas y gráficas (AJUSTADO PARA DESCUENTOS)
+    // Procesamiento de datos para métricas y gráficas (AJUSTADO PARA ASISTENTES Y MONTO FIJO)
     const statsData = useMemo(() => {
         let totalBruto = 0;
         let totalComisiones = 0;
@@ -76,20 +76,29 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
             
             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
             const treatmentCategory = treatment?.category || '';
+            
             let rate = 0;
+            let comm = 0;
+
             if (hasComm) {
-                if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) {
-                    rate = Number(professional.commissionRates[treatmentCategory]);
-                } else if (professional?.commissionRate) {
-                    rate = Number(professional.commissionRate);
+                if (professional.commissionType === 'fixed_service') {
+                    comm = Number(professional.commissionValue || 0);
+                } else {
+                    if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) {
+                        rate = Number(professional.commissionRates[treatmentCategory]);
+                    } else if (professional?.commissionRate) {
+                        rate = Number(professional.commissionRate);
+                    }
+                    comm = priceAfterDiscount * (rate / 100);
                 }
             }
             
-            const comm = priceAfterDiscount * (rate / 100);
-            const gananciaLocal = priceAfterDiscount - comm;
+            const asisComm = Number(appt.assistantCommission || 0);
+            const totalEgresosTurno = comm + asisComm;
+            const gananciaLocal = priceAfterDiscount - totalEgresosTurno;
 
             totalBruto += priceAfterDiscount;
-            totalComisiones += comm;
+            totalComisiones += totalEgresosTurno; // Suma principal + asistente
             totalDescuentos += discount;
 
             const dateKey = new Date(appt.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
@@ -196,7 +205,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                         setIsGenerating(false);
                         if (res.success) {
                             notify("¡PDF subido y listo para enviar!", "success");
-                            const cleanPhone = String(prof.phone).replace(/\D/g, '');
+                            const cleanPhone = formatPhoneForWhatsApp(prof.phone);
                             const total = statsData.totalComisiones || 0;
                             const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
                             window.location.href = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
@@ -224,7 +233,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         <div className="p-4 md:p-8 bg-gray-50 min-h-full overflow-y-auto custom-scrollbar">
             
             <header className="mb-6 print:hidden">
-                {/* ACHICADO A text-2xl */}
                 <h2 className="text-2xl font-black text-gray-900 tracking-tight">
                     {isProfessional ? 'Mi Facturación' : 'Caja y Liquidaciones'}
                 </h2>
@@ -255,19 +263,27 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Período</label>
-                        <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={dateRange} onChange={e => setDateRange(e.target.value)}>
-                            <option value="today">Hoy</option><option value="week">Esta Semana</option><option value="month">Este Mes</option><option value="all">Historico Total</option>
-                        </select>
+                        {/* ✅ APLICANDO CUSTOM SELECT AL PERIODO */}
+                        <CustomSelect 
+                            value={dateRange} 
+                            onChange={e => setDateRange(e.target.value)}
+                            options={[
+                                { value: 'today', label: 'Hoy' },
+                                { value: 'week', label: 'Esta Semana' },
+                                { value: 'month', label: 'Este Mes' },
+                                { value: 'all', label: 'Histórico Total' }
+                            ]}
+                        />
                     </div>
 
                     {reportMode === 'local' ? (
                         <div>
                             <label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Buscar Cliente</label>
-                            <input type="text" placeholder="Nombre..." className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
+                            <input type="text" placeholder="Nombre..." className="w-full border border-gray-300 p-2.5 rounded-lg text-sm flex justify-between items-center outline-none focus:border-[var(--color-primary)]" value={searchClient} onChange={e => setSearchClient(e.target.value)}/>
                         </div>
                     ) : (
-                        <div className="md:col-span-2 border-2 border-blue-100 bg-blue-50 p-2 -mt-2 rounded-xl">
-                            <label className="text-[10px] font-bold uppercase text-blue-500 mb-1 block px-1">
+                        <div className="md:col-span-2 border border-blue-200 bg-blue-50/50 p-2 -mt-2 rounded-xl">
+                            <label className="text-[10px] font-bold uppercase text-blue-600 mb-1 block px-1">
                                 {isProfessional ? 'Profesional' : 'Seleccionar Profesional a Liquidar'}
                             </label>
                             {isProfessional ? (
@@ -276,19 +292,29 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                     {professionals.find(p=>p.id === user?.profId)?.name || 'Mi Perfil'}
                                 </div>
                             ) : (
-                                <select className="w-full border-none p-2 rounded-lg font-bold text-blue-900 outline-none bg-blue-50" value={selectedProf} onChange={e => setSelectedProf(e.target.value)}>
-                                    {professionals.length === 0 && <option value="">Sin profesionales...</option>}
-                                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
+                                /* ✅ APLICANDO CUSTOM SELECT AL PROFESIONAL */
+                                <CustomSelect 
+                                    value={selectedProf} 
+                                    onChange={e => setSelectedProf(e.target.value)}
+                                    options={professionals.length === 0 ? [{ value: '', label: 'Sin profesionales...' }] : professionals.map(p => ({ value: p.id, label: p.name }))}
+                                    placeholder="Seleccione profesional..."
+                                />
                             )}
                         </div>
                     )}
 
                     <div className={reportMode === 'prof' ? 'hidden md:block' : ''}>
                         <label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
-                        <select className="w-full border border-gray-200 p-2.5 rounded-xl font-bold text-gray-900 outline-none focus:border-[var(--color-primary)]" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
-                            <option value="ALL">Todos</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option>
-                        </select>
+                        {/* ✅ APLICANDO CUSTOM SELECT AL MEDIO DE PAGO */}
+                        <CustomSelect 
+                            value={paymentFilter} 
+                            onChange={e => setPaymentFilter(e.target.value)}
+                            options={[
+                                { value: 'ALL', label: 'Todos' },
+                                { value: 'cash', label: 'Efectivo' },
+                                { value: 'transfer', label: 'Transferencia' }
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -322,8 +348,8 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                     <p className="text-xl font-black text-gray-900">${statsData.totalBruto.toLocaleString()}</p>
                                     {statsData.totalDescuentos > 0 && <span className="absolute top-6 right-6 text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-200">-{statsData.totalDescuentos} en Promos</span>}
                                 </div>
-                                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                    <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Comisiones (Egresos)</p>
+                                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Comisiones Totales (Egresos)</p>
                                     <p className="text-xl font-black text-red-500">-${statsData.totalComisiones.toLocaleString()}</p>
                                 </div>
                                 <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-200 shadow-md">
@@ -452,13 +478,13 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                         
                                         {reportMode === 'local' ? (
                                             <>
-                                                <th className="pb-4 px-2 text-right text-red-400">Comisión</th>
+                                                <th className="pb-4 px-2 text-right text-red-400">Total Egresos</th>
                                                 <th className="pb-4 px-2 text-right text-green-600">Neto Local</th>
                                             </>
                                         ) : (
                                             <>
-                                                <th className="pb-4 px-2 text-right text-gray-800">Com. %</th>
-                                                <th className="pb-4 px-2 text-right text-gray-800">Monto Com.</th>
+                                                <th className="pb-4 px-2 text-right text-gray-800">Detalle</th>
+                                                <th className="pb-4 px-2 text-right text-gray-800">Ganancia</th>
                                             </>
                                         )}
                                     </tr>
@@ -479,12 +505,19 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                             const hasComm = professional?.hasCommission === true || professional?.hasCommission === "SÍ";
                                             const treatmentCategory = treatment?.category || '';
                                             let rate = 0;
+                                            let comm = 0;
                                             if (hasComm) {
-                                                if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) rate = Number(professional.commissionRates[treatmentCategory]);
-                                                else if (professional?.commissionRate) rate = Number(professional.commissionRate);
+                                                if (professional.commissionType === 'fixed_service') {
+                                                    comm = Number(professional.commissionValue || 0);
+                                                } else {
+                                                    if (professional?.commissionRates && professional.commissionRates[treatmentCategory] !== undefined) rate = Number(professional.commissionRates[treatmentCategory]);
+                                                    else if (professional?.commissionRate) rate = Number(professional.commissionRate);
+                                                    comm = finalPrice * (rate / 100);
+                                                }
                                             }
                                             
-                                            const comm = finalPrice * (rate / 100);
+                                            const asisComm = Number(appt.assistantCommission || 0);
+                                            const totalEgresosTurno = comm + asisComm;
 
                                             return (
                                                 <tr key={appt.id} className="text-sm border-b border-gray-50">
@@ -497,6 +530,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                                         <p className="text-[10px] text-gray-500">
                                                             {treatment?.name || 'Servicio'} 
                                                             {reportMode === 'local' && <span className="font-medium text-blue-500 ml-1">({professional?.name || 'Sin asignar'})</span>}
+                                                            {reportMode === 'local' && appt.assistantId && <span className="text-gray-400 italic ml-1"> + Asistente</span>}
                                                         </p>
                                                         <span className="text-[9px] font-bold uppercase text-gray-400 mt-1 inline-block">
                                                             {appt.paymentMethod === 'transfer' ? 'Transf.' : 'Efectivo'}
@@ -521,12 +555,14 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                                     
                                                     {reportMode === 'local' ? (
                                                         <>
-                                                            <td className="py-4 px-2 text-right text-red-400">-${comm.toLocaleString()}</td>
-                                                            <td className="py-4 px-2 text-right font-black text-green-700">${(finalPrice - comm).toLocaleString()}</td>
+                                                            <td className="py-4 px-2 text-right text-red-400">-${totalEgresosTurno.toLocaleString()}</td>
+                                                            <td className="py-4 px-2 text-right font-black text-green-700">${(finalPrice - totalEgresosTurno).toLocaleString()}</td>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <td className="py-4 px-2 text-right text-gray-600 font-medium">{rate}%</td>
+                                                            <td className="py-4 px-2 text-right text-gray-600 font-medium text-xs">
+                                                                {professional.commissionType === 'fixed_service' ? 'Monto Fijo' : `${rate}%`}
+                                                            </td>
                                                             <td className="py-4 px-2 text-right font-black text-gray-900">${comm.toLocaleString()}</td>
                                                         </>
                                                     )}
