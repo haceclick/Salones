@@ -20,8 +20,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         hasAccess: false, email: '', password: '',
         permissions: defaultPermissions, 
         hasCommission: false, 
-        commissionType: 'percentage', // ✅ NUEVO: Tipo de modelo de pago
-        commissionValue: '', // ✅ NUEVO: Monto para fijos
+        commissionType: 'percentage', 
+        commissionValue: '', 
         commissionRates: {} 
     });
 
@@ -61,14 +61,12 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
         const idToDelete = confirmDelete.id;
         const updatedList = list.filter(p => p.id !== idToDelete);
         
-        // 1. Actualiza la UI y guarda en base local
         setList(updatedList);
         setConfirmDelete({ open: false, id: null });
         notify("Eliminando profesional...", "info");
         
         const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
         
-        // 2. Borra los accesos de la base maestra
         google.script.run
             .withSuccessHandler(res => {
                 if(res && res.success) notify("Profesional eliminado completamente", "success");
@@ -117,8 +115,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             workingDays: prof?.workingDays || defaultDays(),
             specialties: prof?.specialties || [],
             hasCommission: prof?.hasCommission || false, 
-            commissionType: prof?.commissionType || 'percentage', // Carga el tipo
-            commissionValue: prof?.commissionValue || '', // Carga el monto fijo
+            commissionType: prof?.commissionType || 'percentage', 
+            commissionValue: prof?.commissionValue || '', 
             commissionRates: prof?.commissionRates || (prof?.commissionRate ? { "GENERAL": prof.commissionRate } : {})
         });
         setIsModalOpen(true);
@@ -131,8 +129,8 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
             hasAccess: false, email: '', password: '',
             permissions: defaultPermissions, 
             hasCommission: false, 
-            commissionType: 'percentage', // Nuevo
-            commissionValue: '', // Nuevo
+            commissionType: 'percentage', 
+            commissionValue: '', 
             commissionRates: {}
         });
         setIsModalOpen(true);
@@ -354,7 +352,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                 </div>
 
-                                {/* ✅ SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA) */}
+                                {/* ✅ SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA A CUSTOM SELECT) */}
                                 <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Esquema de Pago</h4>
@@ -368,15 +366,16 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-4">
                                             <div>
                                                 <label className="block text-[10px] uppercase font-bold text-green-800 mb-1.5">Modelo de Pago</label>
-                                                <select 
-                                                    className="w-full border border-green-200 p-2.5 rounded-lg text-sm text-green-900 outline-none focus:border-green-500 bg-white font-medium"
-                                                    value={form.commissionType || 'percentage'}
+                                                {/* ✅ IMPLEMENTACIÓN DEL CUSTOM SELECT */}
+                                                <CustomSelect 
+                                                    value={form.commissionType} 
                                                     onChange={e => setForm({...form, commissionType: e.target.value})}
-                                                >
-                                                    <option value="percentage">Porcentaje (%) por Especialidad</option>
-                                                    <option value="fixed_service">Monto Fijo ($) por Servicio Asistido</option>
-                                                    <option value="fixed_day">Monto Fijo ($) por Día Trabajado</option>
-                                                </select>
+                                                    options={[
+                                                        { value: 'percentage', label: 'Porcentaje (%) por Especialidad' },
+                                                        { value: 'fixed_service', label: 'Monto Fijo ($) por Servicio Asistido' },
+                                                        { value: 'fixed_day', label: 'Monto Fijo ($) por Día Trabajado' }
+                                                    ]}
+                                                />
                                             </div>
 
                                             {form.commissionType === 'percentage' && (
