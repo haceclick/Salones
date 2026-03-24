@@ -96,6 +96,27 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         });
     }, [appointments, filterProf]);
 
+    const sendWhatsAppMsg = (appt, client, treatment, isDepositRequest = false) => {
+        if (!client || !client.phone) return;
+        
+        // ✅ AHORA SÍ: Usamos la función global corregida
+        const phone = formatPhoneForWhatsApp(client.phone); 
+
+        const d = new Date(appt.date);
+        const dateStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const serviceName = treatment ? treatment.name : 'tu servicio';
+        const agentConfig = settings?.find(s => s.id === 'agent_config');
+        const mapsUrl = agentConfig?.mapsUrl || ''; 
+        const mapsText = mapsUrl ? `\n📍 Ubicación: ${mapsUrl}` : '';
+
+        let text = isDepositRequest 
+            ? `¡Hola *${client.name}*! 👋\nRecibimos tu solicitud de turno para *${serviceName}* el ${dateStr} a las ${timeStr} hs.\n\nPara poder confirmar tu lugar, es necesario realizar una seña de *$${agentConfig?.depositAmount || 0}*.\n\n💳 *Link de pago:* ${agentConfig?.paymentUrl}\n\nUna vez realizado, envíanos el comprobante por este medio. ¡Muchas gracias!`
+            : `¡Hola *${client.name}*! 👋\n¡Seña recibida correctamente! ✅\n\nTe confirmamos tu turno para:\n- *${serviceName}* el ${dateStr} a las ${timeStr} hs.\n\n¡Te esperamos!${mapsText}`;
+        
+        window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
+    };
+
     const handleSave = (e) => {
         if (isProfessional) return; 
         e.preventDefault();
@@ -238,9 +259,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         `_(Medio: ${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})_\n\n` +
                         `¡Esperamos verte pronto! 💖`;
 
-        let phone = String(client.phone).replace(/\D/g, '');
-        if (!phone.startsWith('54')) phone = '549' + phone;
-        else if (phone.startsWith('54') && !phone.startsWith('549')) phone = '549' + phone.substring(2);
+        // ✅ AHORA SÍ: Usamos la función global corregida
+        const phone = formatPhoneForWhatsApp(client.phone);
 
         window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
         
@@ -374,7 +394,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                             
                                             const cursorClass = !isWorking ? 'bg-gray-100/60 cursor-not-allowed opacity-50' : (isProfessional ? 'cursor-default' : 'hover:bg-[var(--color-primary)]/5 cursor-pointer');
 
-                                            return <div key={h} className={`h-28 border-b border-gray-100 ${cursorClass}`} 
+                                            return <div key={h} className={`h-28 border-b border-gray-100 transition-colors ${cursorClass}`} 
                                                 style={!isWorking ? { backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)' } : {}}
                                                 onClick={() => { 
                                                     if (isProfessional) return; 
@@ -413,13 +433,13 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                             const tr = treatments.find(t => t.id === appt.treatmentId);
                                             
                                             return <div key={appt.id} onClick={(e)=>{e.stopPropagation(); setSelectedAppt(appt)}} 
-                                                className={`absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg p-2 cursor-pointer overflow-hidden flex flex-col leading-tight hover:scale-[1.02] border shadow-sm ${bgClass} ${borderProfColor}`} 
+                                                className={`absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg p-2 cursor-pointer overflow-hidden flex flex-col leading-tight transition-all hover:scale-[1.02] border shadow-sm ${bgClass} ${borderProfColor}`} 
                                                 style={{top:`${top}px`, height:`${height}px`, zIndex: 30}}>
                                                     
                                                     {!isProfessional && appt.status !== 'completed' && appt.status !== 'blocked' && (
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleStatusChange(appt.id, 'completed'); }}
-                                                            className="absolute top-1 right-1 w-6 h-6 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-gray-800 shadow-sm"
+                                                            className="absolute top-1 right-1 w-6 h-6 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-gray-800 shadow-sm transition-colors"
                                                             title="Finalizar y Cobrar"
                                                         >
                                                             <Icon name="check" size={14}/>
@@ -450,7 +470,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 return (
                     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-white p-10 rounded-[2rem] w-full max-w-md relative shadow-2xl animate-scale-in text-center">
-                            <button onClick={()=>setSelectedAppt(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 p-2 rounded-full"><Icon name="x"/></button>
+                            <button onClick={()=>setSelectedAppt(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full"><Icon name="x"/></button>
                             <h3 className="font-black text-2xl mb-6 text-gray-800 tracking-tight">{clientName}</h3>
                             <div className="space-y-4 mb-8 text-sm text-gray-600 font-medium text-left">
                                 <p className="flex items-center justify-between">
@@ -472,21 +492,21 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     {selectedAppt.status !== 'completed' && selectedAppt.status !== 'blocked' && (
                                         <button 
                                             onClick={() => handleStatusChange(selectedAppt.id, 'completed')}
-                                            className="w-full mb-6 bg-blue-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 flex items-center justify-center gap-2"
+                                            className="w-full mb-6 bg-blue-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
                                         >
                                             <Icon name="check-circle" size={20}/> Finalizar Servicio / Cobrar
                                         </button>
                                     )}
 
                                     <div className="flex gap-4">
-                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-2.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 flex justify-center items-center gap-2 text-sm"><Icon name="pencil" size={16}/> Editar</button>}
-                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-2.5 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={16}/> Eliminar</button>
+                                        {selectedAppt.status !== 'blocked' && <button onClick={()=>openEditModal(selectedAppt)} className="flex-1 bg-white text-gray-700 border-2 border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="pencil" size={18}/> Editar</button>}
+                                        <button onClick={(e)=>{ e.stopPropagation(); setSelectedAppt(null); setConfirmDelete({open:true, id:selectedAppt.id}); }} className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3 rounded-xl font-bold hover:bg-red-100 hover:border-red-200 transition-colors flex justify-center items-center gap-2 text-sm"><Icon name="trash-2" size={18}/> Eliminar</button>
                                     </div>
                                 </>
                             )}
 
                             {isProfessional && (
-                                <button onClick={()=>setSelectedAppt(null)} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 text-sm">
+                                <button onClick={()=>setSelectedAppt(null)} className="w-full py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
                                     Cerrar Detalles
                                 </button>
                             )}
@@ -495,7 +515,6 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                 );
             })()}
             
-            {/* MODAL AGENDAR / EDITAR */}
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
@@ -546,8 +565,8 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                             </div>
 
                             <div className="flex gap-4">
-                                <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] text-sm" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
-                                <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] text-sm" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
+                                <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
+                                <div className="w-1/3"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hora</label><input type="time" step="300" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-[var(--color-primary)] transition-colors text-sm" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /></div>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado</label>
@@ -563,7 +582,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 />
                             </div>
                             <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100">
-                                <button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg text-sm">Cancelar</button>
+                                <button type="button" onClick={()=>setIsCreateOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button>
                                 <button className="px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-primary-text)] rounded-lg font-bold hover:opacity-90 shadow-md flex items-center gap-2 text-sm"><Icon name="save" size={16}/> {editingApptId ? 'Actualizar' : 'Guardar'}</button>
                             </div>
                         </form>
@@ -576,9 +595,9 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                     <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-scale-in">
                         <h3 className="font-bold text-lg mb-5 text-gray-800 flex items-center gap-2"><Icon name="lock" className="text-gray-800"/> Bloquear Agenda</h3>
                         <form onSubmit={handleBlock} className="space-y-5 text-left">
-                            <div className="flex gap-2 p-1 bg-gray-100 rounded-lg"><button type="button" onClick={()=>setBlockModal({...blockModal, type:'day'})} className={`flex-1 py-2 rounded-md font-bold text-sm ${blockModal.type==='day'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Día Completo</button><button type="button" onClick={()=>setBlockModal({...blockModal, type:'slot'})} className={`flex-1 py-2 rounded-md font-bold text-sm ${blockModal.type==='slot'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Hora Específica</button></div>
-                            <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 text-sm" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
-                            {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 text-sm" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
+                            <div className="flex gap-2 p-1 bg-gray-100 rounded-lg"><button type="button" onClick={()=>setBlockModal({...blockModal, type:'day'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='day'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Día Completo</button><button type="button" onClick={()=>setBlockModal({...blockModal, type:'slot'})} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${blockModal.type==='slot'?'bg-white shadow-sm text-gray-800':'text-gray-500 hover:text-gray-700'}`}>Hora Específica</button></div>
+                            <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fecha a bloquear</label><input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.date} onChange={e=>setBlockModal({...blockModal, date:e.target.value})} /></div>
+                            {blockModal.type === 'slot' && (<div className="animate-fade-in"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Horario a bloquear</label><input type="time" required className="w-full border border-gray-300 p-2.5 rounded-lg bg-white outline-none focus:border-gray-800 transition-colors text-sm" value={blockModal.time} onChange={e=>setBlockModal({...blockModal, time:e.target.value})} /></div>)}
                             {!loggedProfId && (
                                 <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aplicar a</label>
                                     <CustomSelect 
@@ -591,7 +610,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                     />
                                 </div>
                             )}
-                            <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg text-sm">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black shadow-md text-sm">Confirmar Bloqueo</button></div>
+                            <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-100"><button type="button" onClick={()=>setBlockModal({...blockModal, open:false})} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-sm">Cancelar</button><button className="px-6 py-2.5 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-colors shadow-md text-sm">Confirmar Bloqueo</button></div>
                         </form>
                     </div>
                 </div>
@@ -645,7 +664,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
                             <div className="bg-[var(--color-primary)] p-6 text-white text-center relative">
-                                <button onClick={() => setShowCheckout(null)} className="absolute top-4 right-4 text-white/70 hover:text-white"><Icon name="x" size={24}/></button>
+                                <button onClick={() => setShowCheckout(null)} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"><Icon name="x" size={24}/></button>
                                 <Icon name="check-circle" size={48} className="mx-auto mb-2 opacity-80"/>
                                 <h3 className="text-xl font-bold">Finalizar Servicio</h3>
                                 <p className="opacity-90 text-sm">Registra el pago para cerrar el turno</p>
@@ -664,16 +683,16 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                                     <Icon name="tag" size={12}/> Aplicar Descuento
                                                 </label>
                                                 <div className="flex bg-white rounded-lg border border-purple-200 overflow-hidden shadow-sm">
-                                                    <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold ${discountType === 'fixed' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Monto ($)</button>
-                                                    <button type="button" onClick={() => { setDiscountType('percentage'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold ${discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Porcentaje (%)</button>
+                                                    <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'fixed' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Monto ($)</button>
+                                                    <button type="button" onClick={() => { setDiscountType('percentage'); setDiscountValue(0); }} className={`px-3 py-1 text-[10px] font-bold transition-colors ${discountType === 'percentage' ? 'bg-purple-500 text-white' : 'text-gray-500 hover:bg-purple-50'}`}>Porcentaje (%)</button>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mb-2">
                                                 <div className="relative w-1/3 shrink-0">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{discountType === 'percentage' ? '%' : '$'}</span>
-                                                    <input type="number" min="0" step={discountType === 'percentage' ? '1' : '100'} className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white text-sm" placeholder="0" value={discountValue || ''} onChange={(e) => setDiscountValue(e.target.value)} />
+                                                    <input type="number" min="0" step={discountType === 'percentage' ? '1' : '100'} className="w-full border border-purple-200 p-2 pl-7 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 font-bold text-gray-800 bg-white transition-all text-sm" placeholder="0" value={discountValue || ''} onChange={(e) => setDiscountValue(e.target.value)} />
                                                 </div>
-                                                <input type="text" className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white" placeholder="Motivo (Ej: Promo Amiga)" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} disabled={!discountValue || discountValue <= 0} />
+                                                <input type="text" className="flex-1 border border-purple-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-100 text-sm bg-white transition-all" placeholder="Motivo (Ej: Promo Amiga)" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} disabled={!discountValue || discountValue <= 0} />
                                             </div>
                                             {parseFloat(discountValue) > 0 && (
                                                 <p className="text-[10px] text-purple-600 text-right font-bold italic animate-fade-in">
@@ -687,15 +706,15 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-3 text-left">Método de Pago</label>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={() => setPaymentMethod('cash')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${paymentMethod === 'cash' ? 'border-[var(--color-primary)] bg-blue-50 text-[var(--color-primary)]' : 'border-gray-100 text-gray-400'}`}>
+                                        <button onClick={() => setPaymentMethod('cash')} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'cash' ? 'border-[var(--color-primary)] bg-blue-50 text-[var(--color-primary)]' : 'border-gray-100 text-gray-400'}`}>
                                             <Icon name="banknote" /><span className="font-bold text-sm">Efectivo</span>
                                         </button>
-                                        <button onClick={() => setPaymentMethod('transfer')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${paymentMethod === 'transfer' ? 'border-[var(--color-primary)] bg-blue-50 text-[var(--color-primary)]' : 'border-gray-100 text-gray-400'}`}>
+                                        <button onClick={() => setPaymentMethod('transfer')} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'transfer' ? 'border-[var(--color-primary)] bg-blue-50 text-[var(--color-primary)]' : 'border-gray-100 text-gray-400'}`}>
                                             <Icon name="credit-card" /><span className="font-bold text-sm">Transferencia</span>
                                         </button>
                                     </div>
                                 </div>
-                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 hover:scale-[1.02] flex items-center justify-center gap-2 text-sm">
+                                <button onClick={handleCompleteCheckout} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] text-sm">
                                     <Icon name="send" size={16}/> Finalizar y Saludar por WA
                                 </button>
                             </div>
