@@ -37,7 +37,7 @@ const formatDate = (dateStr) => {
 };
 
 // ✅ FUNCIÓN CORREGIDA: Limpia todo y NUNCA devuelve el signo "+"
-const formatPhoneForWhatsApp = (phone) => {
+window.formatPhoneForWhatsApp = (phone) => {
     if (!phone) return '';
     let cleaned = phone.replace(/\D/g, ''); 
     if (!cleaned.startsWith('54')) {
