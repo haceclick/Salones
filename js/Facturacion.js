@@ -163,7 +163,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         tryGenerate();
     };
 
-    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL)
+    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL CORRECTA)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
@@ -205,8 +205,8 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                         setIsGenerating(false);
                         if (res.success) {
                             notify("¡PDF subido y listo para enviar!", "success");
-                            // ✅ USAMOS LA FUNCIÓN GLOBAL DIRECTAMENTE
-                            const cleanPhone = window.formatPhoneForWhatsApp(prof.phone);
+                            // ✅ CORREGIDO: Se quitó el "window." para que use la función global de Utils.js
+                            const cleanPhone = formatPhoneForWhatsApp(prof.phone);
                             const total = statsData.totalComisiones || 0;
                             const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
                             window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
