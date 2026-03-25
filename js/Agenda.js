@@ -19,6 +19,18 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const [discountReason, setDiscountReason] = useState('');
     const [discountType, setDiscountType] = useState('fixed'); 
 
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
+    };
+
     useEffect(() => {
         if (targetApptId && appointments.length > 0) {
             const appt = appointments.find(a => a.id === targetApptId);
@@ -99,8 +111,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
     const sendWhatsAppMsg = (appt, client, treatment, isDepositRequest = false) => {
         if (!client || !client.phone) return;
         
-        // ✅ AHORA SÍ: Usamos la función global corregida
-        const phone = formatPhoneForWhatsApp(client.phone); 
+        const phone = getCleanPhone(client.phone); 
 
         const d = new Date(appt.date);
         const dateStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -248,7 +259,7 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
         
         saveAppointments(updatedAppointments);
 
-        const message = `¡Gracias por visitarnos, *${client.name}*! 😊✨\n\n` +
+        const message = `¡Gracias por visitarnos, *${client?.name || 'cliente'}*! 😊✨\n\n` +
                         `Tu servicio de *${tr?.name}* ha sido finalizado.\n\n` +
                         `💰 *Detalle del pago:*\n` +
                         `- Valor Servicio: $${total.toLocaleString()}\n` +
@@ -259,10 +270,11 @@ const Agenda = ({ appointments, clients, treatments, professionals, settings, se
                         `_(Medio: ${paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'})_\n\n` +
                         `¡Esperamos verte pronto! 💖`;
 
-        // ✅ AHORA SÍ: Usamos la función global corregida
-        const phone = formatPhoneForWhatsApp(client.phone);
-
-        window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+        // ✅ SOLO ENVIAMOS WHATSAPP SI EL CLIENTE EXISTE Y TIENE TELÉFONO
+        if (client && client.phone) {
+            const phone = getCleanPhone(client.phone);
+            window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+        }
         
         setShowCheckout(null);
         setEditingApptId(null);
