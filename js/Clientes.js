@@ -95,7 +95,7 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                                         {c?.phone && (
                                             <button 
                                                 onClick={() => {
-                                                    const phoneClean = formatPhoneForWhatsApp(c.phone);
+                                                    const phoneClean = window.formatPhoneForWhatsApp(client?.phone)
                                                     const url = `whatsapp://send?phone=${phoneClean}`;
                                                     const a = document.createElement('a');
                                                     a.href = url;
