@@ -98,7 +98,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
             const gananciaLocal = priceAfterDiscount - totalEgresosTurno;
 
             totalBruto += priceAfterDiscount;
-            totalComisiones += totalEgresosTurno; // Suma principal + asistente
+            totalComisiones += totalEgresosTurno; 
             totalDescuentos += discount;
 
             const dateKey = new Date(appt.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
@@ -163,7 +163,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         tryGenerate();
     };
 
-    // ENVÍO POR WHATSAPP
+    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
@@ -205,10 +205,11 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                         setIsGenerating(false);
                         if (res.success) {
                             notify("¡PDF subido y listo para enviar!", "success");
-                            const cleanPhone = formatPhoneForWhatsApp(prof.phone);
+                            // ✅ USAMOS LA FUNCIÓN GLOBAL DIRECTAMENTE
+                            const cleanPhone = window.formatPhoneForWhatsApp(prof.phone);
                             const total = statsData.totalComisiones || 0;
                             const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
-                            window.location.href = "whatsapp://send?phone=" + cleanPhone + "&text=" + encodeURIComponent(message);
+                            window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
                         } else { 
                             notify("Error al subir a Drive: " + res.message, "error"); 
                         }
@@ -263,7 +264,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Período</label>
-                        {/* ✅ APLICANDO CUSTOM SELECT AL PERIODO */}
                         <CustomSelect 
                             value={dateRange} 
                             onChange={e => setDateRange(e.target.value)}
@@ -292,7 +292,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                                     {professionals.find(p=>p.id === user?.profId)?.name || 'Mi Perfil'}
                                 </div>
                             ) : (
-                                /* ✅ APLICANDO CUSTOM SELECT AL PROFESIONAL */
                                 <CustomSelect 
                                     value={selectedProf} 
                                     onChange={e => setSelectedProf(e.target.value)}
@@ -305,7 +304,6 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
 
                     <div className={reportMode === 'prof' ? 'hidden md:block' : ''}>
                         <label className="text-[10px] font-bold uppercase text-gray-500 mb-2 block">Medio de Pago</label>
-                        {/* ✅ APLICANDO CUSTOM SELECT AL MEDIO DE PAGO */}
                         <CustomSelect 
                             value={paymentFilter} 
                             onChange={e => setPaymentFilter(e.target.value)}
