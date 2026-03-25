@@ -193,12 +193,12 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                             <Icon name="phone" size={14}/> {p?.phone || '-'}
-                                            {/* ✅ BOTÓN WHATSAPP EN VISTA TARJETA */}
+                                            {/* ✅ BOTÓN WHATSAPP EN VISTA TARJETA - CORREGIDO */}
                                             {p?.phone && (
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const phoneClean = window.formatPhoneForWhatsApp(p.phone);
+                                                        const phoneClean = formatPhoneForWhatsApp(p.phone);
                                                         const url = `whatsapp://send?phone=${phoneClean}`;
                                                         const a = document.createElement('a');
                                                         a.href = url;
@@ -270,12 +270,12 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm">
                                                 <div className="flex items-center gap-2">
                                                     {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
-                                                    {/* ✅ BOTÓN WHATSAPP EN VISTA LISTA */}
+                                                    {/* ✅ BOTÓN WHATSAPP EN VISTA LISTA - CORREGIDO */}
                                                     {p?.phone && (
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const phoneClean = window.formatPhoneForWhatsApp(p.phone);
+                                                                const phoneClean = formatPhoneForWhatsApp(p.phone);
                                                                 const url = `whatsapp://send?phone=${phoneClean}`;
                                                                 const a = document.createElement('a');
                                                                 a.href = url;
