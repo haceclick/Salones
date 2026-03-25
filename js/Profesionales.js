@@ -198,7 +198,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const phoneClean = window.formatPhoneForWhatsApp(client?.phone);
+                                                        const phoneClean = window.formatPhoneForWhatsApp(p.phone);
                                                         const url = `whatsapp://send?phone=${phoneClean}`;
                                                         const a = document.createElement('a');
                                                         a.href = url;
@@ -275,7 +275,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const phoneClean = window.formatPhoneForWhatsApp(client?.phone);
+                                                                const phoneClean = window.formatPhoneForWhatsApp(p.phone);
                                                                 const url = `whatsapp://send?phone=${phoneClean}`;
                                                                 const a = document.createElement('a');
                                                                 a.href = url;
