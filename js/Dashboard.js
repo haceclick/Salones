@@ -103,7 +103,9 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return baseDomain;
     };
 
-    const openWhatsAppApp = (phone, text) => {
+    // ✅ VACUNA APLICADA: Esta función centraliza todos los envíos y formatea el número SIEMPRE
+    const openWhatsAppApp = (rawPhone, text) => {
+        const phone = formatPhoneForWhatsApp(rawPhone);
         const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
         const a = document.createElement('a');
         a.href = url;
@@ -162,7 +164,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         const tr = treatments ? treatments.find(t => t.id === appt.treatmentId) : null;
 
         if (client && client.phone) {
-            const phone = String(client.phone).replace(/\D/g, ''); 
+            const phone = client.phone; 
             const mapsUrl = agentConfig?.mapsUrl || ''; 
             const mapsText = mapsUrl ? `\n📍 Ubicación: \n${mapsUrl}` : '';
             const gcalLink = generateGCalLink(appt, tr);
@@ -210,17 +212,16 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         setSelectedPendingAppt(null);
 
         if (client && client.phone) {
-            const phone = String(client.phone).replace(/\D/g, ''); 
             const rejectMsg = msgConfig.reject || 'Te pedimos mil disculpas, pero tuvimos que rechazar tu solicitud porque el espacio se ocupó o el profesional no está disponible.\n\n¿Te gustaría que te ofrezcamos otro horario? Quedamos a tu disposición. 🙏';
             const text = `¡Hola *${client.name}*! 👋\nTe escribimos de *${businessName}*.\n\n${rejectMsg}`;
-            openWhatsAppApp(phone, text);
+            openWhatsAppApp(client.phone, text);
         }
     }; 
 
     const sendWhatsAppMsg = (appt, client, treatment, isAwaitingDeposit = false) => {
         if (isProfessional) return; // BLOQUEO
         if (!client || !client.phone) return;
-        const phone = String(client.phone).replace(/\D/g, ''); 
+        const phone = client.phone; 
         const d = new Date(appt.date);
         const dateStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
         const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -262,7 +263,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     const sendReminderWA = (appt, client, tr) => {
         if (isProfessional) return; // BLOQUEO
         if(!client?.phone) return;
-        const phone = String(client.phone).replace(/\D/g, '');
         const timeStr = new Date(appt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         const dateStr = new Date(appt.date).toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
         
@@ -278,7 +278,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         
         text += `\nPor favor, confirmá tu asistencia respondiendo este mensaje. ¡Te esperamos!`;
         
-        openWhatsAppApp(phone, text);
+        openWhatsAppApp(client.phone, text);
 
         const updatedAppts = appointments.map(a => a.id === appt.id ? {...a, reminderSent: true} : a);
         saveAppointments(updatedAppts);
@@ -286,9 +286,8 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const sendBirthdayGreeting = (person) => {
-        if (isProfessional) return; // BLOQUEO: Los profesionales no envían saludos
+        if (isProfessional) return; // BLOQUEO
         if (!person || !person.phone) return;
-        const phone = String(person.phone).replace(/\D/g, '');
         
         let text = '';
         if (person.isProf) {
@@ -298,7 +297,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
             text = `¡Hola *${person.name}*! 🎂🎈\n\nEn este día especial, todo el equipo de *${businessName}* te desea un ¡MUY FELIZ CUMPLEAÑOS! 🥳✨\n\n${promoText}\n\nQue pases un día hermoso.`;
         }
         
-        openWhatsAppApp(phone, text);
+        openWhatsAppApp(person.phone, text);
         notify("Abriendo WhatsApp para saludar...", "success");
     };
 
@@ -367,7 +366,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         <Icon name="external-link" size={18}/> Portal Clientes
                     </button>
                     
-                    {/* Solo Dueño o Admin pueden enviar recordatorios masivos */}
                     {!isProfessional && (
                         <button onClick={() => setReminderModal(true)} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-5 py-2.5 rounded-brand font-bold flex items-center gap-2 transition-all shadow-md hover:opacity-90">
                             <Icon name="message-square" size={18}/> Enviar Avisos
@@ -376,7 +374,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                 </div>
             </header>
 
-            {/* --- ALERTA DE SERVICIOS SIN CERRAR --- */}
             {unclosedAppts.length > 0 && (
                 <div className="bg-red-50 border border-red-200 p-4 md:p-6 rounded-brand shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
                     <div className="flex items-start md:items-center gap-4">
@@ -458,7 +455,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                             <button onClick={() => {
                                                 const welcomeText = msgConfig.welcome || '¡Qué alegría sumarte a nuestro local! En breve revisaremos la solicitud de tu turno.';
                                                 const text = `¡Hola *${n.clientName}*! 👋\n\n${welcomeText}`;
-                                                openWhatsAppApp(n.clientPhone.replace(/\D/g, ''), text);
+                                                openWhatsAppApp(n.clientPhone, text);
                                                 handleDismissNotif(n.id);
                                             }} className="flex-1 bg-green-100 text-green-700 border border-green-200 py-2 rounded-brand text-xs font-bold hover:bg-green-200 flex justify-center items-center gap-1 shadow-sm transition-colors">
                                                 <Icon name="message-circle" size={14}/> <span>Saludar</span>
@@ -527,7 +524,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                         }
                     </div>
 
-                    {/* TURNOS HOY - CON ESTADOS REALES Y COLORES PASTEL */}
+                    {/* TURNOS HOY */}
                     <div className="bg-brand-card rounded-brand shadow-card border border-brand-border p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-base text-brand-text flex items-center gap-2"><Icon name="calendar"/> Agenda de Hoy</h3>
@@ -616,7 +613,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                                     </p>
                                                 </div>
 
-                                                {/* 🔥 OCULTAMOS LOS BOTONES DE LECTURA SI ES PROFESIONAL 🔥 */}
                                                 {!isRead && !isProfessional && (
                                                     <button 
                                                         onClick={() => setReadNotifs(prev => [...prev, String(n.id)])}
@@ -656,7 +652,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                             <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><Icon name="phone" size={10}/> {person.phone || 'Sin número'}</p>
                                         </div>
                                         
-                                        {/* 🔥 OCULTAMOS BOTONES DE SALUDO Y HISTORIAL SI ES PROFESIONAL */}
                                         {!isProfessional && (
                                             <div className="flex gap-2">
                                                 {!person.isProf && (
@@ -881,7 +876,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
                                 <div className="w-16 h-16 bg-[#25D366]/10 text-[#0f763e] border border-[#25D366]/30 rounded-full flex items-center justify-center mb-4">
                                     <Icon name="message-circle" size={32} />
                                 </div>
-                                <h3 className="font-bold text-base text-gray-800 mb-2"><span>¡Mensaje Listo!</span></h3>
+                                <h3 className="font-bold text-base text-gray-800"><span>¡Mensaje Listo!</span></h3>
                                 
                                 <button 
                                     onClick={() => {
