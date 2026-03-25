@@ -193,6 +193,26 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                             <Icon name="phone" size={14}/> {p?.phone || '-'}
+                                            {/* ✅ BOTÓN WHATSAPP EN VISTA TARJETA */}
+                                            {p?.phone && (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const phoneClean = formatPhoneForWhatsApp(p.phone);
+                                                        const url = `whatsapp://send?phone=${phoneClean}`;
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.target = '_top';
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        document.body.removeChild(a);
+                                                    }} 
+                                                    className="text-[#25D366] hover:text-green-600 bg-green-50 p-1.5 rounded-full hover:bg-green-100 transition-colors" 
+                                                    title="Enviar WhatsApp"
+                                                >
+                                                    <Icon name="message-circle" size={14}/>
+                                                </button>
+                                            )}
                                         </div>
                                         {p?.hasAccess && (
                                             <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold mt-1.5 border border-blue-100">
@@ -248,7 +268,29 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                                 </div>
                                             </td>
                                             <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm">
-                                                {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
+                                                <div className="flex items-center gap-2">
+                                                    {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
+                                                    {/* ✅ BOTÓN WHATSAPP EN VISTA LISTA */}
+                                                    {p?.phone && (
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const phoneClean = formatPhoneForWhatsApp(p.phone);
+                                                                const url = `whatsapp://send?phone=${phoneClean}`;
+                                                                const a = document.createElement('a');
+                                                                a.href = url;
+                                                                a.target = '_top';
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                document.body.removeChild(a);
+                                                            }} 
+                                                            className="text-[#25D366] hover:text-green-600 bg-green-50 p-1.5 rounded-full hover:bg-green-100 transition-colors" 
+                                                            title="Enviar WhatsApp"
+                                                        >
+                                                            <Icon name="message-circle" size={14}/>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="p-4 max-w-xs">
                                                 <div className="flex flex-wrap gap-1">
@@ -352,7 +394,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                 </div>
 
-                                {/* ✅ SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA A CUSTOM SELECT) */}
+                                {/* SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA A CUSTOM SELECT) */}
                                 <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Esquema de Pago</h4>
@@ -366,7 +408,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-4">
                                             <div>
                                                 <label className="block text-[10px] uppercase font-bold text-green-800 mb-1.5">Modelo de Pago</label>
-                                                {/* ✅ IMPLEMENTACIÓN DEL CUSTOM SELECT */}
+                                                {/* IMPLEMENTACIÓN DEL CUSTOM SELECT */}
                                                 <CustomSelect 
                                                     value={form.commissionType} 
                                                     onChange={e => setForm({...form, commissionType: e.target.value})}
