@@ -40,7 +40,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
             const saved = settings.find(s => s.id === 'support_config');
             if (saved) {
                 let loadedVideos = saved.videos || [];
-                // Migración de datos viejos si existen
                 if (!saved.videos && (saved.ytClients || saved.ytProfs || saved.ytAgenda)) {
                     if (saved.ytClients) loadedVideos.push({ id: 101, title: 'Clientes', url: saved.ytClients });
                     if (saved.ytProfs) loadedVideos.push({ id: 102, title: 'Profesionales', url: saved.ytProfs });
@@ -82,12 +81,10 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto relative h-full bg-brand-bg">
             
-            {/* MODAL REPRODUCTOR DE VIDEO */}
             {selectedVideo && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[500] p-4 md:p-10 animate-fade-in">
                     <div className="bg-black rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl relative flex flex-col border border-gray-800">
                         <div className="flex justify-between items-center p-4 bg-gray-900/80 border-b border-gray-800">
-                            {/* ACHICADO A text-base */}
                             <h3 className="font-bold text-base text-white truncate pr-4 flex items-center gap-2">
                                 <Icon name="play-circle" className="text-red-500"/>
                                 {selectedVideo.title || 'Video Instructivo'}
@@ -97,7 +94,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                             </button>
                         </div>
                         <div className="aspect-video w-full bg-black relative">
-                            {/* Mostramos un loader mientras carga el iframe */}
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <Icon name="loader" size={32} className="text-gray-600 animate-spin"/>
                             </div>
@@ -113,7 +109,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                         <img src="https://i.postimg.cc/HLNzb26w/LATERAL-SIN-FONDO.png" alt="HaceClick" className="h-10 sm:h-12 opacity-90 object-contain shrink-0" />
                         <div className="hidden sm:block h-10 w-px bg-gray-300"></div>
                         <div>
-                            {/* ACHICADO A text-2xl */}
                             <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
                                 <Icon name="help-circle" className="text-[#008395] hidden sm:block"/> 
                                 Capacitación & Soporte
@@ -131,7 +126,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
 
             {isEditing && canConfigure ? (
                 <form onSubmit={handleSave} className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-brand-border mb-8 animate-fade-in">
-                    {/* ACHICADO A text-base */}
                     <h3 className="font-bold text-base mb-6 flex items-center gap-2 text-gray-800 border-b pb-3"><Icon name="edit-3"/> Ajustes del Centro de Ayuda</h3>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -168,14 +162,12 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
             ) : (
                 <div className="space-y-4 pb-20">
                     
-                    {/* SECCIÓN 1: VIDEOS */}
                     <div className="bg-white rounded-brand shadow-sm border border-brand-border overflow-hidden transition-all">
                         <button 
                             type="button" 
                             onClick={() => toggleSection('videos')}
                             className={`w-full flex justify-between items-center p-6 bg-white hover:bg-gray-50 transition-colors ${openSection === 'videos' ? 'border-b border-gray-100' : ''}`}
                         >
-                            {/* ACHICADO A text-base */}
                             <h3 className="font-bold text-base flex items-center gap-2 text-gray-800"><Icon name="youtube" className="text-red-500"/> Instructivos en Video</h3>
                             <Icon name={openSection === 'videos' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                         </button>
@@ -191,7 +183,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                                         {activeVideos.map((vid, idx) => {
                                             const videoId = getVideoId(vid.url);
-                                            // Usamos mqdefault o hqdefault para mejor calidad de miniatura
                                             const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
                                             return (
                                                 <button key={idx} onClick={() => videoId ? setSelectedVideo(vid) : null}
@@ -202,7 +193,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                                             ? <img src={thumbUrl} alt="Thumbnail" className="w-full h-full object-cover"/>
                                                             : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Link inválido</div>
                                                         }
-                                                        {/* Play Button Overlay */}
                                                         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                                             <div className="w-10 h-10 bg-red-600/90 backdrop-blur-sm text-white rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                                                                 <Icon name="play" size={18} className="ml-0.5"/>
@@ -221,10 +211,8 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                         )}
                     </div>
 
-                    {/* SECCIÓN 2: CONTACTO (Email y WhatsApp lado a lado si la pantalla es ancha) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
-                        {/* TARJETA EMAIL */}
                         {config.supportEmail && (
                             <div className={`bg-gradient-to-br from-[#008395] to-[#005f6b] rounded-brand shadow-sm border border-[#004a54] overflow-hidden transition-all relative group ${openSection === 'email' ? 'row-span-2' : ''}`}>
                                 <Icon name="mail" size={120} className="absolute -bottom-4 -right-4 text-white opacity-5 rotate-12 group-hover:scale-110 transition-transform duration-500 pointer-events-none"/>
@@ -233,7 +221,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                     onClick={() => toggleSection('email')}
                                     className="w-full flex justify-between items-center p-6 transition-colors relative z-10"
                                 >
-                                    {/* ACHICADO A text-base */}
                                     <h3 className="font-bold text-base flex items-center gap-2 text-white"><Icon name="mail" size={18}/> Correo Directo</h3>
                                     <Icon name={openSection === 'email' ? 'chevron-up' : 'chevron-down'} className="text-white/70"/>
                                 </button>
@@ -270,7 +257,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                             </div>
                         )}
 
-                        {/* TARJETA WHATSAPP */}
                         {config.supportWa && (
                             <div className={`bg-white rounded-brand shadow-sm border border-gray-200 overflow-hidden transition-all relative group ${openSection === 'whatsapp' ? 'row-span-2' : ''}`}>
                                 <div className="absolute top-0 left-0 w-full h-1 bg-[#25D366]"></div>
@@ -280,7 +266,6 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                     onClick={() => toggleSection('whatsapp')}
                                     className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors relative z-10"
                                 >
-                                    {/* ACHICADO A text-base */}
                                     <h3 className="font-bold text-base flex items-center gap-2 text-gray-800"><Icon name="message-circle" className="text-[#25D366]" size={18}/> Chat Rápido</h3>
                                     <Icon name={openSection === 'whatsapp' ? 'chevron-up' : 'chevron-down'} className="text-gray-400"/>
                                 </button>
@@ -292,19 +277,12 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                             e.preventDefault();
                                             if(!config.supportWa) { notify("El administrador no configuró un número de WhatsApp.", "error"); return; }
                                             
-                                            // ✅ AHORA UTILIZAMOS LA NAVAJA SUIZA Y EL TRUCO DEL ENLACE
+                                            // ✅ SOLUCIÓN NATIVA PARA ANDROID
                                             const text = e.target.waMensaje.value;
                                             const cleanPhone = getCleanPhone(config.supportWa);
                                             const encodedText = encodeURIComponent(`Hola soporte de HaceClick, soy del local "${user?.businessName || user?.email}".\n\nConsulta: ${text}`);
-                                            const url = `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`;
                                             
-                                            const a = document.createElement('a');
-                                            a.href = url;
-                                            a.target = '_top';
-                                            document.body.appendChild(a);
-                                            a.click();
-                                            document.body.removeChild(a);
-                                            
+                                            window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`;
                                             e.target.reset();
                                         }}>
                                             <textarea name="waMensaje" required rows="4" 
