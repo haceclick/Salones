@@ -28,7 +28,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
 
     const [waModal, setWaModal] = useState({ open: false, phone: '', text: '', loading: false });
     
-    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    // ✅ MINI-HERRAMIENTA INTERNA
     const getCleanPhone = (phoneNum) => {
         if (!phoneNum) return '';
         let cleaned = String(phoneNum).replace(/\D/g, ''); 
@@ -45,7 +45,6 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && a.status !== 'cancelled' && a.status !== 'blocked' && a.status !== 'holiday'; 
     }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    // Si es profesional, en "Agenda de Hoy" solo ve SUS turnos
     const myTodaysApps = isProfessional ? todaysApps.filter(a => a.professionalId === user?.profId) : todaysApps;
 
     const groupedTodaysApps = myTodaysApps.reduce((acc, appt) => {
@@ -115,16 +114,10 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return baseDomain;
     };
 
-    // ✅ USA LA FUNCIÓN INTERNA
+    // ✅ SOLUCIÓN NATIVA PARA ANDROID
     const openWhatsAppApp = (rawPhone, text) => {
         const phone = getCleanPhone(rawPhone);
-        const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_top';
-        document.body.appendChild(a);
-        a.click(); 
-        document.body.removeChild(a); 
+        window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
     };
 
     const generateGCalLink = (appt, treatment) => {
@@ -147,7 +140,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirm = (apptId, forcedProfId = null) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         const appt = appointments.find(a => a.id === apptId);
         const finalProfId = forcedProfId || appt.professionalId;
         const client = clients.find(c => c.id === appt.clientId);
@@ -166,7 +159,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleConfirmDeposit = (e, appt) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         e.stopPropagation();
         const updated = appointments.map(a => a.id === appt.id ? { ...a, status: 'confirmed_paid' } : a);
         saveAppointments(updated);
@@ -176,7 +169,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         const tr = treatments ? treatments.find(t => t.id === appt.treatmentId) : null;
 
         if (client && client.phone) {
-            const phone = client.phone; 
+            const phone = getCleanPhone(client.phone); 
             const mapsUrl = agentConfig?.mapsUrl || ''; 
             const mapsText = mapsUrl ? `\n📍 Ubicación: \n${mapsUrl}` : '';
             const gcalLink = generateGCalLink(appt, tr);
@@ -199,7 +192,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleQuickConfirm = (e, appt) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         e.stopPropagation();
         if (appt.professionalId === 'any' || appt.professionalId === 'ALL' || !appt.professionalId) {
             notify("⚠️ Debes asignar un profesional antes de confirmar.", "warning");
@@ -215,7 +208,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const handleReject = (apptId) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         const appt = appointments.find(a => a.id === apptId);
         const client = clients.find(c => c.id === appt?.clientId);
         
@@ -231,9 +224,9 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     }; 
 
     const sendWhatsAppMsg = (appt, client, treatment, isAwaitingDeposit = false) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         if (!client || !client.phone) return;
-        const phone = client.phone; 
+        const phone = getCleanPhone(client.phone); 
         const d = new Date(appt.date);
         const dateStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
         const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -273,7 +266,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const sendReminderWA = (appt, client, tr) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         if(!client?.phone) return;
         const timeStr = new Date(appt.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         const dateStr = new Date(appt.date).toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
@@ -298,7 +291,7 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
     };
 
     const sendBirthdayGreeting = (person) => {
-        if (isProfessional) return; // BLOQUEO
+        if (isProfessional) return; 
         if (!person || !person.phone) return;
         
         let text = '';
