@@ -27,6 +27,18 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
     const colors = ['bg-red-100 text-red-800', 'bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800', 'bg-pink-100 text-pink-800', 'bg-indigo-100 text-indigo-800', 'bg-teal-100 text-teal-800'];
 
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
+    };
+
     const handleSave = (e) => {
         e.preventDefault();
         const newProf = { ...form, id: form.id || 'PROF-' + Date.now() };
@@ -193,12 +205,12 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                             <Icon name="phone" size={14}/> {p?.phone || '-'}
-                                            {/* ✅ BOTÓN WHATSAPP EN VISTA TARJETA - CORREGIDO */}
+                                            {/* ✅ BOTÓN DE WHATSAPP (Usa la función interna) */}
                                             {p?.phone && (
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const phoneClean = formatPhoneForWhatsApp(p.phone);
+                                                        const phoneClean = getCleanPhone(p.phone);
                                                         const url = `whatsapp://send?phone=${phoneClean}`;
                                                         const a = document.createElement('a');
                                                         a.href = url;
@@ -270,12 +282,12 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm">
                                                 <div className="flex items-center gap-2">
                                                     {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
-                                                    {/* ✅ BOTÓN WHATSAPP EN VISTA LISTA - CORREGIDO */}
+                                                    {/* ✅ BOTÓN DE WHATSAPP (Usa la función interna) */}
                                                     {p?.phone && (
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const phoneClean = formatPhoneForWhatsApp(p.phone);
+                                                                const phoneClean = getCleanPhone(p.phone);
                                                                 const url = `whatsapp://send?phone=${phoneClean}`;
                                                                 const a = document.createElement('a');
                                                                 a.href = url;
