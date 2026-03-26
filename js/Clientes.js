@@ -10,25 +10,31 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
     const formatCurrency = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
     const formatDate = (dateString) => {
         if(!dateString) return '-';
-        // Ajuste de zona horaria para evitar que la fecha retroceda un día
         const date = new Date(dateString);
         return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date);
+    };
+
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
     };
     
     // --- GUARDADO DE CLIENTES ---
     const handleSubmit = (e) => {
         e.preventDefault();
-        
         let updatedList;
         if (editingId) {
-            // Edición
             updatedList = clients.map(c => c.id === editingId ? { ...c, ...formData } : c);
         } else {
-            // Creación: AGREGAMOS AL PRINCIPIO PARA VERLO INSTANTÁNEAMENTE
             updatedList = [{ id: Date.now().toString(), ...formData }, ...clients];
         }
-        
-        // Actualización Optimista
         saveClients(updatedList);
         setIsModalOpen(false);
         notify("Cliente guardado correctamente", "success");
@@ -47,7 +53,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
             .sort((a,b) => new Date(b.date) - new Date(a.date));
     };
 
-    // Filtro de búsqueda optimizado
     const filtered = useMemo(() => {
         return (clients || []).filter(c => (c?.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()));
     }, [clients, searchTerm]);
@@ -66,7 +71,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
             <input className="w-full border border-brand-border pl-11 p-3 rounded-brand outline-none focus:border-primary transition-all bg-white shadow-sm" placeholder="Buscar Cliente..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
         </div>
 
-        {/* CONTENEDOR DE TABLA RESPONSIVE */}
         <div className="bg-white rounded-brand shadow-card border border-brand-border overflow-hidden flex-1 flex flex-col min-h-0">
             <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
                 <table className="w-full text-left min-w-[600px]">
@@ -91,11 +95,11 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                                 <td className="p-4 text-gray-600">
                                     <div className="flex items-center gap-2">
                                         <span className="whitespace-nowrap font-medium text-sm">{c?.phone || "-"}</span>
-                                        {/* ✅ BOTÓN DE WHATSAPP DIRECTO A LA APP CORREGIDO */}
+                                        {/* ✅ BOTÓN CON LA HERRAMIENTA INTERNA */}
                                         {c?.phone && (
                                             <button 
                                                 onClick={() => {
-                                                    const phoneClean = formatPhoneForWhatsApp(c.phone);
+                                                    const phoneClean = getCleanPhone(c.phone);
                                                     const url = `whatsapp://send?phone=${phoneClean}`;
                                                     const a = document.createElement('a');
                                                     a.href = url;
@@ -129,11 +133,9 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
             </div>
         </div>
         
-        {/* MODAL CLIENTE */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8 animate-fade-in">
             <div className="bg-white rounded-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl animate-scale-in">
-              
               <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                       <Icon name="user" className="text-[#008395]"/> {editingId ? 'Editar Cliente' : 'Nuevo Cliente'}
@@ -142,7 +144,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                       <Icon name="x" size={18}/>
                   </button>
               </div>
-
               <div className="flex-1 overflow-auto flex flex-col lg:flex-row p-6 gap-8 custom-scrollbar">
                 <form onSubmit={handleSubmit} className="space-y-5 flex-1 flex flex-col h-full">
                   <div className="space-y-4 flex-1">
@@ -169,7 +170,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                           <textarea placeholder="Alergias, preferencias, notas sobre tratamientos..." className="w-full bg-white border border-gray-200 p-3 rounded-xl outline-none focus:border-[#008395] focus:ring-2 focus:ring-[#008395]/20 transition-all h-28 resize-none text-gray-800" value={formData.notes} onChange={e=>setFormData({...formData, notes:e.target.value})}></textarea>
                       </div>
                   </div>
-
                   <div className="flex justify-end items-center gap-3 mt-6 pt-5 border-t border-gray-100 shrink-0">
                     {editingId && (
                         <button type="button" onClick={() => setConfirmDelete({open:true, id:editingId})} className="mr-auto text-red-500 hover:text-red-700 bg-red-50 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2">
@@ -182,8 +182,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                     </button>
                   </div>
                 </form>
-
-                {/* HISTORIAL */}
                 {editingId && (
                   <div className="flex-1 bg-gray-50/50 rounded-xl p-5 border border-gray-200 flex flex-col h-[400px] lg:h-auto">
                     <h4 className="font-bold text-base text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-3 shrink-0">
@@ -221,7 +219,6 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
           </div>
         )}
         
-        {/* MODAL ELIMINAR */}
         {confirmDelete.open && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
                 <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl animate-scale-in">
