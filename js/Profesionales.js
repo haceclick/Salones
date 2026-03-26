@@ -27,7 +27,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
 
     const colors = ['bg-red-100 text-red-800', 'bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800', 'bg-pink-100 text-pink-800', 'bg-indigo-100 text-indigo-800', 'bg-teal-100 text-teal-800'];
 
-    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    // ✅ MINI-HERRAMIENTA INTERNA
     const getCleanPhone = (phoneNum) => {
         if (!phoneNum) return '';
         let cleaned = String(phoneNum).replace(/\D/g, ''); 
@@ -42,25 +42,18 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
     const handleSave = (e) => {
         e.preventDefault();
         const newProf = { ...form, id: form.id || 'PROF-' + Date.now() };
-        
         let updatedList = form.id ? list.map(p => p.id === form.id ? newProf : p) : [...list, newProf];
         
-        // 1. Guarda en la UI y en la base local
         setList(updatedList); 
         setIsModalOpen(false);
         
         const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
-        
         notify("Procesando accesos en la nube...", "info");
 
-        // 2. Ejecuta el guardado en la base Maestra y ESCUCHA la respuesta
         google.script.run
             .withSuccessHandler((res) => {
-                if (res && res.success === false) {
-                    notify("⚠️ " + res.message, "error"); 
-                } else {
-                    notify("✅ " + res.message, "success");
-                }
+                if (res && res.success === false) notify("⚠️ " + res.message, "error"); 
+                else notify("✅ " + res.message, "success");
             })
             .withFailureHandler((err) => {
                 console.error(err);
@@ -181,7 +174,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                             <Icon name="list" size={18}/>
                         </button>
                     </div>
-                    
                     <button onClick={openNew} className="bg-[var(--color-primary)] text-[var(--color-primary-text)] px-6 py-3 rounded-xl font-bold shadow-md transition-transform hover:scale-105 flex items-center gap-2">
                         <Icon name="plus" size={18} /> Agregar
                     </button>
@@ -205,19 +197,13 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                             <Icon name="phone" size={14}/> {p?.phone || '-'}
-                                            {/* ✅ BOTÓN DE WHATSAPP (Usa la función interna) */}
+                                            {/* ✅ SOLUCIÓN NATIVA PARA ANDROID */}
                                             {p?.phone && (
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         const phoneClean = getCleanPhone(p.phone);
-                                                        const url = `whatsapp://send?phone=${phoneClean}`;
-                                                        const a = document.createElement('a');
-                                                        a.href = url;
-                                                        a.target = '_top';
-                                                        document.body.appendChild(a);
-                                                        a.click();
-                                                        document.body.removeChild(a);
+                                                        window.location.href = `whatsapp://send?phone=${phoneClean}`;
                                                     }} 
                                                     className="text-[#25D366] hover:text-green-600 bg-green-50 p-1.5 rounded-full hover:bg-green-100 transition-colors" 
                                                     title="Enviar WhatsApp"
@@ -282,19 +268,13 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                             <td className="p-4 font-medium text-gray-600 whitespace-nowrap text-sm">
                                                 <div className="flex items-center gap-2">
                                                     {p.phone ? <span className="flex items-center gap-1.5"><Icon name="phone" size={14}/> {p.phone}</span> : '-'}
-                                                    {/* ✅ BOTÓN DE WHATSAPP (Usa la función interna) */}
+                                                    {/* ✅ SOLUCIÓN NATIVA PARA ANDROID */}
                                                     {p?.phone && (
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const phoneClean = getCleanPhone(p.phone);
-                                                                const url = `whatsapp://send?phone=${phoneClean}`;
-                                                                const a = document.createElement('a');
-                                                                a.href = url;
-                                                                a.target = '_top';
-                                                                document.body.appendChild(a);
-                                                                a.click();
-                                                                document.body.removeChild(a);
+                                                                window.location.href = `whatsapp://send?phone=${phoneClean}`;
                                                             }} 
                                                             className="text-[#25D366] hover:text-green-600 bg-green-50 p-1.5 rounded-full hover:bg-green-100 transition-colors" 
                                                             title="Enviar WhatsApp"
@@ -406,7 +386,7 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                     </div>
                                 </div>
 
-                                {/* SECCIÓN COMISIONES MÚLTIPLES (ACTUALIZADA A CUSTOM SELECT) */}
+                                {/* SECCIÓN COMISIONES MÚLTIPLES */}
                                 <div className="bg-green-50/50 border border-green-100 rounded-xl p-5 transition-all">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-bold text-green-900 flex items-center gap-2 text-sm"><Icon name="dollar-sign" size={18}/> Esquema de Pago</h4>
@@ -420,7 +400,6 @@ const Professionals = ({ list = [], setList, notify, categories = [], user }) =>
                                         <div className="pt-4 border-t border-green-100/50 animate-fade-in space-y-4">
                                             <div>
                                                 <label className="block text-[10px] uppercase font-bold text-green-800 mb-1.5">Modelo de Pago</label>
-                                                {/* IMPLEMENTACIÓN DEL CUSTOM SELECT */}
                                                 <CustomSelect 
                                                     value={form.commissionType} 
                                                     onChange={e => setForm({...form, commissionType: e.target.value})}
