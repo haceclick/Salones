@@ -23,6 +23,18 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
         setOpenSection(prev => prev === sectionName ? null : sectionName);
     };
 
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
+    };
+
     useEffect(() => {
         if (settings && Array.isArray(settings)) {
             const saved = settings.find(s => s.id === 'support_config');
@@ -279,10 +291,20 @@ const SupportPanel = ({ settings, saveSettings, user, notify }) => {
                                         <form className="flex-1 flex flex-col" onSubmit={(e) => {
                                             e.preventDefault();
                                             if(!config.supportWa) { notify("El administrador no configuró un número de WhatsApp.", "error"); return; }
+                                            
+                                            // ✅ AHORA UTILIZAMOS LA NAVAJA SUIZA Y EL TRUCO DEL ENLACE
                                             const text = e.target.waMensaje.value;
-                                            const phone = config.supportWa.replace(/\D/g, '');
+                                            const cleanPhone = getCleanPhone(config.supportWa);
                                             const encodedText = encodeURIComponent(`Hola soporte de HaceClick, soy del local "${user?.businessName || user?.email}".\n\nConsulta: ${text}`);
-                                            window.location.href = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                                            const url = `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`;
+                                            
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.target = '_top';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            
                                             e.target.reset();
                                         }}>
                                             <textarea name="waMensaje" required rows="4" 
