@@ -28,6 +28,18 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
 
     const [waModal, setWaModal] = useState({ open: false, phone: '', text: '', loading: false });
     
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
+    };
+
     const todaysApps = appointments.filter(a => { 
         const d = new Date(a.date); 
         return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && a.status !== 'cancelled' && a.status !== 'blocked' && a.status !== 'holiday'; 
@@ -103,9 +115,9 @@ const Dashboard = ({ clients, appointments, professionals, treatments, settings,
         return baseDomain;
     };
 
-    // ✅ VACUNA APLICADA: Esta función centraliza todos los envíos y formatea el número SIEMPRE
+    // ✅ USA LA FUNCIÓN INTERNA
     const openWhatsAppApp = (rawPhone, text) => {
-        const phone = formatPhoneForWhatsApp(rawPhone);
+        const phone = getCleanPhone(rawPhone);
         const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
         const a = document.createElement('a');
         a.href = url;
