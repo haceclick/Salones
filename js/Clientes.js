@@ -14,7 +14,7 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
         return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date);
     };
 
-    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
+    // ✅ MINI-HERRAMIENTA INTERNA
     const getCleanPhone = (phoneNum) => {
         if (!phoneNum) return '';
         let cleaned = String(phoneNum).replace(/\D/g, ''); 
@@ -95,18 +95,13 @@ const Clients = ({ clients = [], setClients, saveClients, appointments = [], tre
                                 <td className="p-4 text-gray-600">
                                     <div className="flex items-center gap-2">
                                         <span className="whitespace-nowrap font-medium text-sm">{c?.phone || "-"}</span>
-                                        {/* ✅ BOTÓN CON LA HERRAMIENTA INTERNA */}
+                                        {/* ✅ SOLUCIÓN NATIVA PARA ANDROID */}
                                         {c?.phone && (
                                             <button 
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     const phoneClean = getCleanPhone(c.phone);
-                                                    const url = `whatsapp://send?phone=${phoneClean}`;
-                                                    const a = document.createElement('a');
-                                                    a.href = url;
-                                                    a.target = '_top';
-                                                    document.body.appendChild(a);
-                                                    a.click();
-                                                    document.body.removeChild(a);
+                                                    window.location.href = `whatsapp://send?phone=${phoneClean}`;
                                                 }} 
                                                 className="text-[#25D366] hover:text-green-600 bg-green-50 p-1.5 rounded-full hover:bg-green-100 transition-colors" 
                                                 title="Enviar WhatsApp"
