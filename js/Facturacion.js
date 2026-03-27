@@ -30,7 +30,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
     const localLogo = branding.logoBase64 || "";
     const localName = agentConfig.businessName || "Local";
 
-    // ✅ MINI-HERRAMIENTA INTERNA
+    // ✅ MINI-HERRAMIENTA INTERNA ANTIFALLOS PARA LIMPIAR TELÉFONOS
     const getCleanPhone = (phoneNum) => {
         if (!phoneNum) return '';
         let cleaned = String(phoneNum).replace(/\D/g, ''); 
@@ -133,7 +133,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         };
     }, [filteredAppointments, treatments, professionals]);
 
-    // GENERADOR DE PDF BLINDADO
+    // GENERADOR DE PDF BLINDADO PARA DESCARGA
     const handleDownloadPDF = () => {
         if (reportMode === 'prof' && !selectedProf) {
             return notify("Selecciona un profesional primero", "warning");
@@ -175,13 +175,17 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         tryGenerate();
     };
 
-    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL CORRECTA Y BASE64 LIMPIO)
+    // ENVÍO POR WHATSAPP (CORRECCIÓN DE PAYLOAD Y ADMIN EMAIL)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
         const prof = professionals.find(p => p.id === selectedProf);
         if (!prof?.phone) return notify("No tienes un teléfono guardado para este profesional.", "error");
-        if (!user || !user.email) return notify("Error: Usuario no identificado", "error");
+        
+        // Buscamos el correo maestro del local
+        const adminEmailToUse = user?.adminEmail || user?.email || localStorage.getItem('adminEmail') || '';
+        
+        if (!adminEmailToUse) return notify("Error: No se encontró el identificador del local.", "error");
 
         const tryUpload = () => {
             const element = document.getElementById('report-area');
@@ -198,42 +202,43 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
             const timeStamp = new Date().toISOString().split('T')[0];
             const customFileName = `LIQUIDACION_${profNameClean}_${timeStamp}.pdf`;
 
+            // ✅ REDUCIMOS SCALE A 1 PARA EVITAR ERRORES DE PESO EN APPS SCRIPT
             const opt = {
                 margin:       10,
                 filename:     customFileName,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false }, 
+                image:        { type: 'jpeg', quality: 0.95 },
+                html2canvas:  { scale: 1, useCORS: true, logging: false }, 
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // ✅ USAMOS outputPdf PARA ESTABILIDAD
-            window.html2pdf().set(opt).from(element).outputPdf('datauristring').then((pdfData) => {
+            window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
                 if (!pdfData) {
                     setIsGenerating(false);
                     return notify("Error al convertir PDF", "error");
                 }
 
-                // 🚨 CORTAMOS EL ENCABEZADO PARA QUE GOOGLE APPS SCRIPT NO FALLE 🚨
-                const base64Clean = pdfData.includes(',') ? pdfData.split(',')[1] : pdfData;
-
                 google.script.run
                     .withSuccessHandler((res) => {
                         setIsGenerating(false);
-                        if (res.success) {
+                        if (res && res.success) {
                             notify("¡PDF subido y listo para enviar!", "success");
+                            
                             const cleanPhone = getCleanPhone(prof.phone);
                             const total = statsData.totalComisiones || 0;
                             const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
+                            
+                            // Abrimos WhatsApp de forma directa (nativo)
                             window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
                         } else { 
-                            notify("Error al subir a Drive: " + res.message, "error"); 
+                            notify("Error del servidor: " + (res?.message || "Desconocido"), "error"); 
                         }
                     })
                     .withFailureHandler((err) => {
+                        console.error(err);
                         setIsGenerating(false);
-                        notify("Error de conexión al subir el archivo", "error");
+                        notify("Error de conexión al subir el archivo. El reporte puede ser muy pesado.", "error");
                     })
-                    .uploadReceiptToDrive(user.email, base64Clean, customFileName);
+                    .uploadReceiptToDrive(adminEmailToUse, pdfData, customFileName);
 
             }).catch(err => {
                 console.error(err);
