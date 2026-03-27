@@ -30,6 +30,18 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
     const localLogo = branding.logoBase64 || "";
     const localName = agentConfig.businessName || "Local";
 
+    // ✅ MINI-HERRAMIENTA INTERNA
+    const getCleanPhone = (phoneNum) => {
+        if (!phoneNum) return '';
+        let cleaned = String(phoneNum).replace(/\D/g, ''); 
+        if (!cleaned.startsWith('54')) {
+            cleaned = '549' + cleaned;
+        } else if (cleaned.startsWith('54') && !cleaned.startsWith('549')) {
+            cleaned = '549' + cleaned.substring(2);
+        }
+        return cleaned;
+    };
+
     // Filtro dinámico basado en el modo actual
     const activeProfFilter = reportMode === 'local' ? 'ALL' : selectedProf;
 
@@ -58,7 +70,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); 
     }, [appointments, dateRange, activeProfFilter, paymentFilter, searchClient, clients]);
 
-    // Procesamiento de datos para métricas y gráficas (AJUSTADO PARA ASISTENTES Y MONTO FIJO)
+    // Procesamiento de datos para métricas y gráficas
     const statsData = useMemo(() => {
         let totalBruto = 0;
         let totalComisiones = 0;
@@ -163,7 +175,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
         tryGenerate();
     };
 
-    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL CORRECTA)
+    // ENVÍO POR WHATSAPP (CON LA FUNCIÓN GLOBAL CORRECTA Y BASE64 LIMPIO)
     const handleSendWhatsApp = () => {
         if (!selectedProf) return notify("Selecciona un profesional", "warning");
         
@@ -194,19 +206,22 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            window.html2pdf().set(opt).from(element).output('datauristring').then((pdfData) => {
+            // ✅ USAMOS outputPdf PARA ESTABILIDAD
+            window.html2pdf().set(opt).from(element).outputPdf('datauristring').then((pdfData) => {
                 if (!pdfData) {
                     setIsGenerating(false);
                     return notify("Error al convertir PDF", "error");
                 }
+
+                // 🚨 CORTAMOS EL ENCABEZADO PARA QUE GOOGLE APPS SCRIPT NO FALLE 🚨
+                const base64Clean = pdfData.includes(',') ? pdfData.split(',')[1] : pdfData;
 
                 google.script.run
                     .withSuccessHandler((res) => {
                         setIsGenerating(false);
                         if (res.success) {
                             notify("¡PDF subido y listo para enviar!", "success");
-                            // ✅ CORREGIDO: Se quitó el "window." para que use la función global de Utils.js
-                            const cleanPhone = formatPhoneForWhatsApp(prof.phone);
+                            const cleanPhone = getCleanPhone(prof.phone);
                             const total = statsData.totalComisiones || 0;
                             const message = "¡Hola *" + prof.name + "*! 👋 \n\nTe envío el detalle de tu liquidación generada hoy.\n\n💰 *Total a cobrar: $" + total.toLocaleString() + "*\n\n📄 *Ver o Descargar PDF:* " + res.url;
                             window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
@@ -218,7 +233,7 @@ const Billing = ({ appointments = [], clients = [], treatments = [], professiona
                         setIsGenerating(false);
                         notify("Error de conexión al subir el archivo", "error");
                     })
-                    .uploadReceiptToDrive(user.email, pdfData, customFileName);
+                    .uploadReceiptToDrive(user.email, base64Clean, customFileName);
 
             }).catch(err => {
                 console.error(err);
