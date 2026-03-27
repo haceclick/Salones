@@ -415,6 +415,9 @@ const App = () => {
             setCurrentView('superadmin');
             return;
         }
+        
+        // 🔥 LA MAGIA: Prendemos la pantalla de carga ANTES de setear al usuario
+        setLoadingData(true); 
         setCurrentUser(userOrComp);
     };
 
